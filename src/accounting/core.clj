@@ -4,7 +4,7 @@
             [accounting.convert :as c]
             [clojure.string :as s]))
 
-(def current {:bank    :amp
+(def current {:bank    :anz-coy
               :year    2017
               :quarter :q3})
 
@@ -39,7 +39,10 @@
 ;; we can create a hash with right keys where vals have correct types.
 ;;
 (defn parse-csv [bank-account lines]
-  (let [heading-objs (map c/heading->parse-obj (c/bank-account-headings bank-account))
+  (let [headings (c/bank-account-headings bank-account)
+        _ (assert (every? c/all-headings headings) (str "New heading introduced: " headings ", expected: " c/all-headings))
+        heading-objs (map c/heading->parse-obj headings)
+        _ (assert (seq heading-objs) (str "No headings yet for " bank-account))
         make-record (record-maker heading-objs)]
     (map make-record lines)))
 
@@ -52,4 +55,4 @@
 
 (defn x-1 []
   (let [lines (raw-data->csv)]
-    (parse-csv :amp lines)))
+    (parse-csv (:bank current) lines)))

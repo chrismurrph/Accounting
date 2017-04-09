@@ -14,9 +14,8 @@
    :anz-coy "_ANZ_coy.csv"
    :anz-visa "_ANZ_credit_card.csv"})
 
-;; year is year ending
+;; year is year ending i.e. 30th June of the second calendar year in the financial year
 (def years #{2017})
-(def data-root "/home/chris/state/Google Drive/data/ATO/Tax Year 2017/Q3")
 (def data-root "/home/chris/state/Google Drive/data/ATO/")
 
 (defn -dir-for [year quarter]
@@ -31,16 +30,6 @@
         file-name (str qtr (file-names bank))
         file-path (str (-dir-for year quarter) "/" file-name)]
     file-path))
-
-;; :mock is fields I've manually added on purpose when file format changed and I did not want to upset Xero
-;; :ignore is a field that holds no purpose for accounting
-(def amp-structure [:date :mock :desc :amount :ignore :ignore :mock])
-
-(def heading->parse-fn
-  {:date identity
-   :mock identity
-   :desc identity
-   :amount identity})
 
 (defn x-1 []
   (bank-period->file-name :amp 2017 :q3))

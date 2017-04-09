@@ -11,9 +11,9 @@
 (def leave-outs #{:mock :ignore})
 
 (def bank-account-headings
-  {:amp amp-structure
-   :anz-coy anz-coy-structure
-   :anz-visa anz-visa-structure})
+  {:bank-amp amp-structure
+   :bank-anz-coy anz-coy-structure
+   :bank-anz-visa anz-visa-structure})
 
 (def str->month
   {"Jan" 1

@@ -2,11 +2,12 @@
   (:require [accounting.meta :as meta]
             [accounting.util :as u]
             [accounting.convert :as c]
+            [accounting.rules :as r]
             [clojure.string :as s]))
 
-(def current {:bank    :anz-visa
-              :year    2017
-              :quarter :q3})
+(def current {:bank    :bank-anz-coy
+              :period  {:year    2017
+                        :quarter :q3}})
 
 (defn chk-seq [xs]
   (assert xs)
@@ -37,6 +38,7 @@
 ;;
 ;; Given a bank account we can get a structure. The structure shows us how to parse each field so
 ;; we can create a hash with right keys where vals have correct types.
+;; Not hof because intention is that concat lines together from many periods
 ;;
 (defn parse-csv [bank-account lines]
   (let [headings (c/bank-account-headings bank-account)
@@ -46,13 +48,30 @@
         make-record (record-maker heading-objs)]
     (map make-record lines)))
 
-(defn raw-data->csv []
-  (let [{:keys [bank year quarter]} current
-        file-path (meta/bank-period->file-name bank year quarter)]
-    (->> (slurp file-path)
-         s/split-lines
-         (map u/line->csv))))
+(defn -raw-data->csv [bank]
+  (fn [period]
+    (let [file-path (meta/bank-period->file-name bank period)]
+      (->> (slurp file-path)
+           s/split-lines
+           (map u/line->csv)))))
+
+(defn raw-data->csv [bank periods]
+  (let [converter (-raw-data->csv bank)]
+    (mapcat converter periods)))
+
+(defn first-without-rule-match []
+  (let [bank (:bank current)
+        rules (r/bank-rules bank)
+        _ (println rules)
+        _ (println (map :field rules))
+        records (->> (raw-data->csv bank [(:period current)])
+                     (parse-csv bank))]
+    (first (filter (fn [record]
+                     (some (partial (complement r/match?) record) rules)) records))))
 
 (defn x-1 []
-  (let [lines (raw-data->csv)]
+  (let [lines (raw-data->csv (:bank current) [(:period current)])]
     (parse-csv (:bank current) lines)))
+
+(defn x-2 []
+  (first-without-rule-match))

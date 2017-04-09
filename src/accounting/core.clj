@@ -62,11 +62,14 @@
 (defn first-without-rule-match []
   (let [bank (:bank current)
         rules (r/bank-rules bank)
-        _ (println rules)
-        _ (println (map :field rules))
+        matcher (partial r/matches rules)
         records (->> (raw-data->csv bank [(:period current)])
                      (parse-csv bank))]
-    (first (filter (fn [record]
+    (first (for [record records
+                 :let [match-count (count (matcher record))]
+                 :when (not (= 1 match-count))]
+             [record match-count]))
+    #_(first (filter (fn [record]
                      (some (partial (complement r/match?) record) rules)) records))))
 
 (defn x-1 []

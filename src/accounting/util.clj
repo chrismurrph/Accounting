@@ -1,5 +1,6 @@
 (ns accounting.util
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s]
+            [clojure.pprint :as pp]))
 
 (defn line->csv [line]
   (s/split line #","))
@@ -18,3 +19,26 @@
     (if ((complement string?) first-unquote)
       (number? first-unquote)
       (-> first-unquote read-string number?))))
+
+(defn pp
+  ([n x]
+   (binding [pp/*print-right-margin* n]
+     (-> x clojure.pprint/pprint)))
+  ([x]
+   (pp 200 x)))
+
+(defn probe-off
+  ([x]
+   x)
+  ([x msg]
+   x))
+
+(defn probe-on
+  ([x]
+   (-> x
+       pp)
+   x)
+  ([x msg]
+   (println msg x)
+   x))
+

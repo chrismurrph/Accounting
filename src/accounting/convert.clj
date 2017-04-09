@@ -7,11 +7,13 @@
 ;; :ignore is a field that holds no purpose for accounting
 (def amp-structure [:long-date :mock :desc :dollar-amount :ignore :ignore :mock])
 (def anz-coy-structure [:short-date :quoted-amount :desc])
+(def anz-visa-structure [:short-date :quoted-amount :desc])
 (def leave-outs #{:mock :ignore})
 
 (def bank-account-headings
   {:amp amp-structure
-   :anz-coy anz-coy-structure})
+   :anz-coy anz-coy-structure
+   :anz-visa anz-visa-structure})
 
 (def str->month
   {"Jan" 1
@@ -63,6 +65,16 @@
    :quoted-amount {:field-kw :quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec read-string)}
    :ignore        {:field-kw :ignore}
    :mock          {:field-kw :mock}})
+
+;; The conversion got rid of the non-canonical stuff
+(def -in->out-kw
+  {:long-date :date
+   :short-date :date
+   :dollar-amount :amount
+   :quoted-amount :amount})
+
+(defn in->out-kw [kw]
+  (or (-in->out-kw kw) kw))
 
 (def all-headings (-> heading->parse-obj keys set))
 

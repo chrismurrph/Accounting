@@ -4,7 +4,7 @@
             [accounting.convert :as c]
             [clojure.string :as s]))
 
-(def current {:bank    :anz-coy
+(def current {:bank    :anz-visa
               :year    2017
               :quarter :q3})
 
@@ -22,7 +22,7 @@
         (convert-fn field-value)))))
 
 (defn make-map [kws v]
-  (zipmap kws v))
+  (zipmap (map c/in->out-kw kws) v))
 
 ;; A record is a vector of maps - a parsed line
 (defn record-maker [objs]

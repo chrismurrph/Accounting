@@ -8,7 +8,7 @@
 (def amp first)
 (def coy second)
 (def visa u/third)
-(def -current {:bank   (coy meta/bank-accounts)
+(def -current {:bank   (visa meta/bank-accounts)
                :period {:year    2017
                         :quarter :q3}})
 

@@ -1,43 +1,130 @@
 (ns accounting.rules
   (:require [clojure.string :as s]
-            [accounting.util :as u]))
+            [accounting.util :as u]
+            [accounting.meta :as meta]))
+
+(def amp (first meta/bank-accounts))
+(def coy (second meta/bank-accounts))
+(def visa (u/third meta/bank-accounts))
+
+(def q3-2017-rules {[visa :trash]               [{:field          :desc
+                                                  :logic-operator :single
+                                                  :conditions     [[:starts-with "QANTAS AIRWAYS"]]}]
+                    [visa :niim-trip]           [{:field          :desc
+                                                  :logic-operator :or
+                                                  :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
+                                                                   [:equals "RE & TK WILSDON PTY       KEITH"]
+                                                                   [:starts-with "TIGER AIRWAYS AUSTRALIA"]
+                                                                   [:starts-with "AUSDRAGON PTY LTD"]]}]
+                    [visa :office-expense]      [{:field          :desc
+                                                  :logic-operator :single
+                                                  :conditions     [[:equals "TARGET 5009               ADELAIDE"]]}]
+                    [visa :investigate-further] [{:field          :desc
+                                                  :logic-operator :or
+                                                  :conditions     [[:starts-with "Z & Y BEYOND INTL PL"]
+                                                                   [:starts-with "DRAKE SUPERMARKETS"]]}]
+                    })
 
 ;;
 ;; From which bank account tells you which account to put the transaction to
 ;; The result of applying these rules will be a list of transactions at the
 ;; target account.
+;; Apart from directing money to accounts it is also directed to :trash where
+;; nothing further happens or :investigate-further where the end user will need to
+;; investigate as to whether ought to be trashed or go to an (expense) account.
 ;;
-(def rules {[:bank-anz-coy :mining-sales]      [{:field          :desc
-                                                 :logic-operator :single
-                                                 :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]
-            [:bank-anz-coy :poker-parse-sales] [{:field          :desc
-                                                 :logic-operator :single
-                                                 :conditions     [[:starts-with "TRANSFER FROM R T WILSON"]]}]
-            [:bank-anz-coy :bank-interest]     [{:field          :desc
-                                                 :logic-operator :single
-                                                 :conditions     [[:starts-with "CREDIT INTEREST PAID"]]}]
-            [:bank-anz-coy :bank-fee]          [{:field          :desc
-                                                 :logic-operator :single
-                                                 :conditions     [[:equals "ACCOUNT SERVICING FEE"]]}]
-            [:bank-anz-coy :ato-payment]       [{:field          :desc
-                                                 :logic-operator :or
-                                                 :conditions     [[:starts-with "ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT"]
-                                                                  [:starts-with "PAYMENT TO ATO"]]}]
-            [:bank-anz-coy :drawings]          [{:field          :desc
-                                                 :logic-operator :and
-                                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
-                                                                  [:ends-with "4509499246191003"]]}
-                                                {:field          :desc
-                                                 :logic-operator :and
-                                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
-                                                                  [:ends-with "CHRISTOPHER MURP"]]
-                                                 }]})
+(def permanent-rules
+  {[visa :trash]               [{:field          :desc
+                                 :logic-operator :or
+                                 :conditions     [[:starts-with "CITY EAST IGA"]
+                                                  [:starts-with "DAN MURPHY'S"]
+                                                  [:starts-with "STRATH CORNER BAKERY"]
+                                                  [:starts-with "PAYMENT THANKYOU"]
+                                                  [:starts-with "WOOLWORTHS"]
+                                                  [:starts-with "FEATHERS HOTEL"]
+                                                  [:starts-with "BWS LIQUOR"]
+                                                  [:starts-with "UNLEY SWIMMING CNTR"]
+                                                  [:starts-with "NORWOOD SWIM SCHOOL"]
+                                                  [:starts-with "SQ *OUT OF ZULULAND"]
+                                                  [:starts-with "PANCAKE HOUSE"]
+                                                  [:starts-with "FREWVILLE FOODLAND"]
+                                                  [:starts-with "GREAT DREAM PTY LTD       HAYBOROUGH"]
+                                                  [:starts-with "JETTY SURF"]
+                                                  [:starts-with "COCKLES ON NORTH"]
+                                                  [:starts-with "CORIOLE VINEYARDS"]]}]
+   [visa :investigate-further] [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "OFFICEWORKS"]]}]
+   [visa :petrol]              [{:field          :desc
+                                 :logic-operator :or
+                                 :conditions     [[:starts-with "CALTEX"]
+                                                  [:starts-with "BP"]
+                                                  [:starts-with "X CONVENIENCE MT BARKE"]]}]
+   [visa :motor-vehicle]       [{:field          :desc
+                                 :logic-operator :or
+                                 :conditions     [[:starts-with "PETER STEVENS MOTORC"]
+                                                  [:starts-with "DPTI - EZYREG"]]}]
+   [visa :interest-expense]    [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "INTEREST CHARGED ON PURCHASES"]]}]
+   [visa :accounting-software] [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "XERO AUSTRALIA PTY LTD"]]}]
+   [visa :cloud-expense]       [{:field          :desc
+                                 :logic-operator :or
+                                 :conditions     [[:starts-with "GOOGLE*SVCSAPPS SEASOF"]
+                                                  [:starts-with "GOOGLE*SVCSAPPS STRAND"]
+                                                  [:starts-with "LINODE.COM"]
+                                                  [:starts-with "FastMail Pty Ltd"]]}]
+   [visa :computer-expense]    [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "ALLNEEDS COMPUTERS"]]}]
+   [visa :mobile-expense]      [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:equals "TELSTRA                   MELBOURNE"]]}]
+   [visa :private-health]      [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "HCF"]]}]
+   [amp :trash]                [{:field          :desc
+                                 :logic-operator :or
+                                 :conditions     [[:ends-with "drawings"]
+                                                  [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]
+                                                  [:starts-with "ATM Withdrawal - "]]}]
+   [amp :investigate-further]  [{:field          :desc
+                                 :logic-operator :and
+                                 :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
+                                                  [:ends-with "PAYPAL AUSTRALIA"]]}]
+   [coy :mining-sales]         [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]
+   [coy :poker-parse-sales]    [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "TRANSFER FROM R T WILSON"]]}]
+   [coy :bank-interest]        [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:starts-with "CREDIT INTEREST PAID"]]}]
+   [coy :bank-fee]             [{:field          :desc
+                                 :logic-operator :single
+                                 :conditions     [[:equals "ACCOUNT SERVICING FEE"]]}]
+   [coy :ato-payment]          [{:field          :desc
+                                 :logic-operator :or
+                                 :conditions     [[:starts-with "ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT"]
+                                                  [:starts-with "PAYMENT TO ATO"]]}]
+   [coy :drawings]             [{:field          :desc
+                                 :logic-operator :and
+                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                  [:ends-with "4509499246191003"]]}
+                                {:field          :desc
+                                 :logic-operator :and
+                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                  [:ends-with "CHRISTOPHER MURP"]]
+                                 }]})
 
 (defn bank-rules [bank]
   (let [rules (filter (fn [[[src-bank _] v]]
-                        (= src-bank bank)) rules)]
+                        (= src-bank bank)) permanent-rules)]
     (mapcat (fn [[[_ target-acct] bank-rules]]
-              (map #(assoc % :target-account target-acct) bank-rules)) rules)))
+              (map #(assoc % :target-account target-acct) bank-rules)) (concat q3-2017-rules rules))))
 
 (defn starts-with? [starts-with]
   (fn [field-value]
@@ -57,10 +144,11 @@
    :equals      equals?})
 
 (defn make-many-preds-fn [preds-fn conditions]
-  (let [fs (map (comp condition-functions first) conditions)
-        _ (assert (empty? (filter nil? fs)) (str "Missing functions from: " conditions))
+  (assert (> (count conditions) 1))
+  (let [hofs (map (comp condition-functions first) conditions)
+        _ (assert (empty? (filter nil? hofs)) (str "Missing functions from: " conditions))
         preds (map (fn [f match-text]
-                     (f match-text)) fs (map second conditions))]
+                     (f match-text)) hofs (map second conditions))]
     (apply preds-fn preds)))
 
 ;;

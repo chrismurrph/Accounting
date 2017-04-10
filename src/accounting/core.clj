@@ -59,22 +59,20 @@
   (let [converter (-raw-data->csv bank)]
     (mapcat converter periods)))
 
-(defn first-without-rule-match []
+(defn first-without-single-rule-match []
   (let [bank (:bank current)
         rules (r/bank-rules bank)
-        matcher (partial r/matches rules)
+        matcher (partial r/rule-matches rules)
         records (->> (raw-data->csv bank [(:period current)])
                      (parse-csv bank))]
     (first (for [record records
-                 :let [match-count (count (matcher record))]
-                 :when (not (= 1 match-count))]
-             [record match-count]))
-    #_(first (filter (fn [record]
-                     (some (partial (complement r/match?) record) rules)) records))))
+                 :let [rule-matches (matcher record)]
+                 :when (not (= 1 (count rule-matches)))]
+             [record (mapv :target-account rule-matches)]))))
 
 (defn x-1 []
   (let [lines (raw-data->csv (:bank current) [(:period current)])]
     (parse-csv (:bank current) lines)))
 
 (defn x-2 []
-  (first-without-rule-match))
+  (u/pp (first-without-single-rule-match)))

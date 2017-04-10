@@ -13,8 +13,11 @@
                                                  :starts-with "TRANSFER FROM R T WILSON"}]
             [:bank-anz-coy :bank-interest]     [{:field       :desc
                                                  :starts-with "CREDIT INTEREST PAID"}]
-            [:bank-anz-coy :ato-payment]       [{:field       :desc
-                                                 :starts-with "PAYMENT TO ATO"}]
+            [:bank-anz-coy :bank-fee]          [{:field  :desc
+                                                 :equals "ACCOUNT SERVICING FEE"}]
+            [:bank-anz-coy :ato-payment]       [{:field           :desc
+                                                 :logic-operation :or
+                                                 :starts-with     ["ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT" "PAYMENT TO ATO"]}]
             [:bank-anz-coy :drawings]          [{:field           :desc
                                                  :logic-operation :and
                                                  :starts-with     "ANZ INTERNET BANKING FUNDS TFER TRANSFER"
@@ -31,25 +34,37 @@
               (map #(assoc % :target-account target-acct) bank-rules)) rules)))
 
 (defn only-starts-with? [field-value {:keys [starts-with]}]
+  (assert (complement (vector? starts-with)))
   ;(println "only-starts-with?:" field-value starts-with)
-  (when (s/starts-with? field-value starts-with)
-    true))
+  (s/starts-with? field-value starts-with))
+
+(defn many-or-starts-with? [field-value {:keys [starts-with]}]
+  (assert (vector? starts-with))
+  (let [f (partial s/starts-with? field-value)]
+    (seq (filter identity (map f starts-with)))))
 
 (defn starts-and-ends-with? [field-value {:keys [starts-with ends-with] :as rule}]
-  (when (and (s/starts-with? field-value starts-with) (s/ends-with? field-value ends-with))
-    true))
+  (assert (complement (vector? starts-with)))
+  (assert (complement (vector? ends-with)))
+  (and (s/starts-with? field-value starts-with) (s/ends-with? field-value ends-with)))
 
-(defn match [record {:keys [field logic-operation starts-with ends-with] :as rule}]
+(defn equals? [field-value {:keys [equals] :as rule}]
+  (assert (complement (vector? equals)))
+  (= field-value equals))
+
+(defn match [record {:keys [field logic-operation starts-with ends-with equals] :as rule}]
   (assert field)
   (let [field-value (field record)
         f (cond
-            (and (nil? ends-with) starts-with) only-starts-with?
-            (and ends-with starts-with (= :and logic-operation)) starts-and-ends-with?
+            (and (= :or logic-operation) (nil? equals) (nil? ends-with) (vector? starts-with)) many-or-starts-with?
+            (and equals (nil? starts-with) (nil? ends-with)) equals?
+            (and (nil? equals) (nil? ends-with) starts-with) only-starts-with?
+            (and (nil? equals) ends-with starts-with (= :and logic-operation)) starts-and-ends-with?
             :default (assert false (str "No function found suitable for " rule)))]
-    (when f
-      (f field-value rule))))
+    (when (f field-value rule)
+      rule)))
 
-(defn matches [rules record]
+(defn rule-matches [rules record]
   (keep (partial match record) rules))
 
 (defn x-1 []

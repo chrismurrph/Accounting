@@ -4,14 +4,14 @@
 
 (def quarters #{:q1 :q2 :q3 :q4})
 
-(def bank-accounts #{:bank-amp :bank-anz-coy :bank-anz-visa})
+(def bank-accounts [:bank-amp :bank-anz-coy :bank-anz-visa])
 (def other-asset-accounts #{})
 (def income-accounts #{:bank-interest :mining-sales})
 (def tax-expense-accounts #{})
 (def non-tax-expense-accounts #{:ato-payment})
 (def negative-equity-account #{:drawings})
 
-(def all-accounts (set/union bank-accounts
+(def all-accounts (set/union (set bank-accounts)
                              other-asset-accounts
                              income-accounts
                              tax-expense-accounts

@@ -5,8 +5,11 @@
             [accounting.rules :as r]
             [clojure.string :as s]))
 
-(def current {:bank    :bank-anz-coy
-              :period  {:year    2017
+(def amp first)
+(def coy second)
+(def visa u/third)
+(def -current {:bank   (coy meta/bank-accounts)
+               :period {:year    2017
                         :quarter :q3}})
 
 (defn chk-seq [xs]
@@ -59,20 +62,23 @@
   (let [converter (-raw-data->csv bank)]
     (mapcat converter periods)))
 
-(defn first-without-single-rule-match []
-  (let [bank (:bank current)
-        rules (r/bank-rules bank)
+(defn first-without-single-rule-match [bank-account periods]
+  (let [rules (r/bank-rules bank-account)
         matcher (partial r/rule-matches rules)
-        records (->> (raw-data->csv bank [(:period current)])
-                     (parse-csv bank))]
+        records (->> (raw-data->csv bank-account periods)
+                     (parse-csv bank-account))]
     (first (for [record records
                  :let [rule-matches (matcher record)]
                  :when (not (= 1 (count rule-matches)))]
              [record (mapv :target-account rule-matches)]))))
 
 (defn x-1 []
-  (let [lines (raw-data->csv (:bank current) [(:period current)])]
-    (parse-csv (:bank current) lines)))
+  (let [bank-account (:bank -current)
+        periods [(:period -current)]
+        lines (raw-data->csv bank-account periods)]
+    (parse-csv bank-account lines)))
 
 (defn x-2 []
-  (u/pp (first-without-single-rule-match)))
+  (let [bank-account (:bank -current)
+        periods [(:period -current)]]
+    (u/pp (first-without-single-rule-match bank-account periods))))

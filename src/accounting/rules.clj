@@ -19,17 +19,19 @@
             [:bank-anz-coy :bank-fee]          [{:field          :desc
                                                  :logic-operator :single
                                                  :conditions     [[:equals "ACCOUNT SERVICING FEE"]]}]
-            [:bank-anz-coy :ato-payment]       [#_{:field           :desc
-                                                   :logic-operation :or
-                                                   :starts-with     ["ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT" "PAYMENT TO ATO"]}]
-            [:bank-anz-coy :drawings]          [#_{:field           :desc
-                                                   :logic-operation :and
-                                                   :starts-with     "ANZ INTERNET BANKING FUNDS TFER TRANSFER"
-                                                   :ends-with       "4509499246191003"}
-                                                #_{:field          :desc
-                                                   :logic-operator :and
-                                                   :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"] [:ends-with "CHRISTOPHER MURP"]]
-                                                   }]})
+            [:bank-anz-coy :ato-payment]       [{:field          :desc
+                                                 :logic-operator :or
+                                                 :conditions     [[:starts-with "ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT"]
+                                                                  [:starts-with "PAYMENT TO ATO"]]}]
+            [:bank-anz-coy :drawings]          [{:field          :desc
+                                                 :logic-operator :and
+                                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                                  [:ends-with "4509499246191003"]]}
+                                                {:field          :desc
+                                                 :logic-operator :and
+                                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                                  [:ends-with "CHRISTOPHER MURP"]]
+                                                 }]})
 
 (defn bank-rules [bank]
   (let [rules (filter (fn [[[src-bank _] v]]
@@ -37,32 +39,48 @@
     (mapcat (fn [[[_ target-acct] bank-rules]]
               (map #(assoc % :target-account target-acct) bank-rules)) rules)))
 
-(defn only-starts-with? [field-value starts-with]
-  (s/starts-with? field-value starts-with))
+(defn starts-with? [starts-with]
+  (fn [field-value]
+    (s/starts-with? field-value starts-with)))
 
-(defn equals? [field-value equals]
-  (= field-value equals))
+(defn ends-with? [ends-with]
+  (fn [field-value]
+    (s/ends-with? field-value ends-with)))
 
-(def rule-functions
-  {:starts-with only-starts-with?
-   :ends-with   nil
+(defn equals? [equals]
+  (fn [field-value]
+    (= field-value equals)))
+
+(def condition-functions
+  {:starts-with starts-with?
+   :ends-with   ends-with?
    :equals      equals?})
+
+(defn make-many-preds-fn [preds-fn conditions]
+  (let [fs (map (comp condition-functions first) conditions)
+        _ (assert (empty? (filter nil? fs)) (str "Missing functions from: " conditions))
+        preds (map (fn [f match-text]
+                     (f match-text)) fs (map second conditions))]
+    (apply preds-fn preds)))
 
 ;;
 ;; Return the rule if there's a match against it
+;; Conditions is a vector of vectors, eg: [[:starts-with "TRANSFER FROM R T WILSON"]]
 ;;
 (defn match [record {:keys [field logic-operator conditions] :as rule}]
   (assert field)
   (let [field-value (field record)
-        [f match-text] (if (= :single logic-operator)
-                         (let [_ (assert (= 1 (count conditions)))
-                               [how-kw match-text] (first conditions)]
-                           (assert how-kw)
-                           (assert match-text)
-                           [(rule-functions how-kw) match-text])
-                         (assert false (str "Only singles")))
+        f (condp = logic-operator
+            :single (let [_ (assert (= 1 (count conditions)))
+                          [how-kw match-text] (first conditions)]
+                      (assert how-kw)
+                      (assert match-text)
+                      ((condition-functions how-kw) match-text))
+            :and (make-many-preds-fn every-pred conditions)
+            :or (make-many-preds-fn some-fn conditions)
+            (assert false (str "Only :single :and - got: <" logic-operator ">")))
         _ (assert f (str "Not found a function for " rule))]
-    (when (f field-value match-text)
+    (when (f field-value)
       rule)))
 
 (defn rule-matches [rules record]

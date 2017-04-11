@@ -5,6 +5,11 @@
 
 (def third #(nth % 2))
 
+(defn abs [val]
+  (if (neg? val)
+    (* -1 val)
+    val))
+
 (defn line->csv [line]
   (s/split line #","))
 

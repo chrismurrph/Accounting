@@ -62,23 +62,66 @@
   (let [converter (-raw-data->csv bank)]
     (mapcat converter periods)))
 
-(defn first-without-single-rule-match [bank-account periods]
-  (let [rules (r/bank-rules bank-account)
+(defn -import-records [periods bank-account]
+  (->> (raw-data->csv bank-account periods)
+       (parse-csv bank-account)))
+
+(defn import-records [periods bank-accounts]
+  (let [importer (partial -import-records periods)]
+    (mapcat importer bank-accounts)))
+
+(defn first-without-single-rule-match [bank-accounts periods]
+  (let [rules (r/bank-rules bank-accounts)
         matcher (partial r/rule-matches rules)
-        records (->> (raw-data->csv bank-account periods)
-                     (parse-csv bank-account))]
+        records (import-records periods bank-accounts)]
     (first (for [record records
                  :let [rule-matches (matcher record)]
                  :when (not (= 1 (count rule-matches)))]
              [record (mapv :target-account rule-matches)]))))
 
-(defn x-1 []
-  (let [bank-account (:bank -current)
-        periods [(:period -current)]
-        lines (raw-data->csv bank-account periods)]
-    (parse-csv bank-account lines)))
+
+;;
+;; When we know there's one rule for each we can run this. One for each is enough to get
+;; a list of transactions for each account, which we do in a later step.
+;; All we needed from the rule is the target account
+;;
+(defn attach-rules [bank-accounts periods]
+  (let [rules (r/bank-rules bank-accounts)
+        matcher (partial r/rule-matches rules)
+        records (import-records periods bank-accounts)]
+    (for [record records
+          :let [[rule & tail] (matcher record)
+                account (:target-account rule)]
+          :when (not= account :trash)]
+      (do
+        (assert (empty? tail))
+        [account record]))))
+
+(defn produce-account-transactions [matched-records]
+  )
 
 (defn x-2 []
-  (let [bank-account (:bank -current)
-        periods [(:period -current)]]
-    (u/pp (first-without-single-rule-match bank-account periods))))
+  (u/pp (first-without-single-rule-match (set meta/bank-accounts) [(:period -current)])))
+
+(defn transactions [bank-accounts periods]
+  (->> (attach-rules bank-accounts periods)
+       (group-by first)
+       (map (fn [[k v]] [k (sort-by :date (map second v))]))
+       ))
+
+(defn accounts-summary [transactions]
+  (->> transactions
+       (map (fn [[account records]] [account (reduce + (map :amount records))]))
+       ))
+
+(defn x-3 []
+  (->> (transactions (set meta/bank-accounts) [(:period -current)])
+       (take 10)
+       u/pp))
+
+(defn x-4 []
+  (->> (transactions (set meta/bank-accounts) [(:period -current)])
+       (accounts-summary)
+       (sort-by (comp - u/abs second))
+       u/pp))
+

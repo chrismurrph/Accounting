@@ -7,22 +7,26 @@
 (def coy (second meta/bank-accounts))
 (def visa (u/third meta/bank-accounts))
 
-(def q3-2017-rules {[visa :trash]               [{:field          :desc
-                                                  :logic-operator :single
-                                                  :conditions     [[:starts-with "QANTAS AIRWAYS"]]}]
-                    [visa :niim-trip]           [{:field          :desc
-                                                  :logic-operator :or
-                                                  :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
-                                                                   [:equals "RE & TK WILSDON PTY       KEITH"]
-                                                                   [:starts-with "TIGER AIRWAYS AUSTRALIA"]
-                                                                   [:starts-with "AUSDRAGON PTY LTD"]]}]
-                    [visa :office-expense]      [{:field          :desc
-                                                  :logic-operator :single
-                                                  :conditions     [[:equals "TARGET 5009               ADELAIDE"]]}]
-                    [visa :investigate-further] [{:field          :desc
-                                                  :logic-operator :or
-                                                  :conditions     [[:starts-with "Z & Y BEYOND INTL PL"]
-                                                                   [:starts-with "DRAKE SUPERMARKETS"]]}]
+;;
+;; For every transaction date that comes thru that is :office-expense we will require a
+;; description
+;; All the invented accounts will need to have description. So here :niim-trip
+;;
+
+(def q3-2017-rules {[visa :trash]          [{:field          :desc
+                                             :logic-operator :single
+                                             :conditions     [[:starts-with "QANTAS AIRWAYS"]]}]
+                    [visa :niim-trip]      [{:field          :desc
+                                             :logic-operator :or
+                                             :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
+                                                              [:equals "RE & TK WILSDON PTY       KEITH"]
+                                                              [:starts-with "TIGER AIRWAYS AUSTRALIA"]
+                                                              [:starts-with "AUSDRAGON PTY LTD"]]}]
+                    [visa :office-expense] [{:field          :desc
+                                             :logic-operator :or
+                                             :conditions     [[:equals "TARGET 5009               ADELAIDE"]
+                                                              [:starts-with "DRAKE SUPERMARKETS"]
+                                                              [:starts-with "Z & Y BEYOND INTL PL"]]}]
                     })
 
 ;;
@@ -52,7 +56,7 @@
                                                   [:starts-with "JETTY SURF"]
                                                   [:starts-with "COCKLES ON NORTH"]
                                                   [:starts-with "CORIOLE VINEYARDS"]]}]
-   [visa :investigate-further] [{:field          :desc
+   [visa :office-expense]      [{:field          :desc
                                  :logic-operator :single
                                  :conditions     [[:starts-with "OFFICEWORKS"]]}]
    [visa :petrol]              [{:field          :desc
@@ -120,28 +124,29 @@
                                                   [:ends-with "CHRISTOPHER MURP"]]
                                  }]})
 
-(defn bank-rules [bank]
+(defn bank-rules [bank-accounts]
+  (assert (set? bank-accounts))
   (let [rules (filter (fn [[[src-bank _] v]]
-                        (= src-bank bank)) permanent-rules)]
+                        (bank-accounts src-bank)) permanent-rules)]
     (mapcat (fn [[[_ target-acct] bank-rules]]
               (map #(assoc % :target-account target-acct) bank-rules)) (concat q3-2017-rules rules))))
 
-(defn starts-with? [starts-with]
+(defn -starts-with? [starts-with]
   (fn [field-value]
     (s/starts-with? field-value starts-with)))
 
-(defn ends-with? [ends-with]
+(defn -ends-with? [ends-with]
   (fn [field-value]
     (s/ends-with? field-value ends-with)))
 
-(defn equals? [equals]
+(defn -equals? [equals]
   (fn [field-value]
     (= field-value equals)))
 
 (def condition-functions
-  {:starts-with starts-with?
-   :ends-with   ends-with?
-   :equals      equals?})
+  {:starts-with -starts-with?
+   :ends-with   -ends-with?
+   :equals      -equals?})
 
 (defn make-many-preds-fn [preds-fn conditions]
   (assert (> (count conditions) 1))
@@ -157,7 +162,9 @@
 ;;
 (defn match [record {:keys [field logic-operator conditions] :as rule}]
   (assert field)
+  (assert (map? record))
   (let [field-value (field record)
+        _ (assert field-value (str "No field " field " in: " record))
         f (condp = logic-operator
             :single (let [_ (assert (= 1 (count conditions)))
                           [how-kw match-text] (first conditions)]

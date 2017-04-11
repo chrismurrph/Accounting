@@ -5,15 +5,15 @@
 
 ;; :mock is fields I've manually added on purpose when file format changed and I did not want to upset Xero
 ;; :ignore is a field that holds no purpose for accounting
-(def amp-structure [:long-date :mock :desc :dollar-amount :ignore :ignore :mock])
-(def anz-coy-structure [:short-date :quoted-amount :desc])
-(def anz-visa-structure [:short-date :quoted-amount :desc])
-(def leave-outs #{:mock :ignore})
+(def amp-structure [:in/long-date :in/mock :in/desc :in/dollar-amount :in/ignore :in/ignore :in/mock])
+(def anz-coy-structure [:in/short-date :in/quoted-amount :in/desc])
+(def anz-visa-structure [:in/short-date :in/quoted-amount :in/desc])
+(def leave-outs #{:in/mock :in/ignore})
 
 (def bank-account-headings
-  {:bank-amp amp-structure
-   :bank-anz-coy anz-coy-structure
-   :bank-anz-visa anz-visa-structure})
+  {:bank/amp amp-structure
+   :bank/anz-coy anz-coy-structure
+   :bank/anz-visa anz-visa-structure})
 
 (def str->month
   {"Jan" 1
@@ -58,20 +58,21 @@
       nil (assert false (str "No $ found in: " amount)))))
 
 (def heading->parse-obj
-  {:long-date     {:field-kw :long-date :validate-fn default-validate :convert-fn long-date-str->date}
-   :short-date    {:field-kw :short-date :validate-fn default-validate :convert-fn short-date-str->date}
-   :desc          {:field-kw :desc :validate-fn default-validate :convert-fn identity}
-   :dollar-amount {:field-kw :dollar-amount :validate-fn dollar-amount-validate :convert-fn dollar-amount-convert}
-   :quoted-amount {:field-kw :quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec read-string)}
-   :ignore        {:field-kw :ignore}
-   :mock          {:field-kw :mock}})
+  {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn long-date-str->date}
+   :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn short-date-str->date}
+   :in/desc          {:field-kw :in/desc :validate-fn default-validate :convert-fn identity}
+   :in/dollar-amount {:field-kw :in/dollar-amount :validate-fn dollar-amount-validate :convert-fn dollar-amount-convert}
+   :in/quoted-amount {:field-kw :in/quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec read-string)}
+   :in/ignore        {:field-kw :in/ignore}
+   :in/mock          {:field-kw :in/mock}})
 
 ;; The conversion got rid of the non-canonical stuff
 (def -in->out-kw
-  {:long-date :date
-   :short-date :date
-   :dollar-amount :amount
-   :quoted-amount :amount})
+  {:in/long-date :out/date
+   :in/short-date :out/date
+   :in/desc :out/desc
+   :in/dollar-amount :out/amount
+   :in/quoted-amount :out/amount})
 
 (defn in->out-kw [kw]
   (or (-in->out-kw kw) kw))

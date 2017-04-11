@@ -9,8 +9,8 @@
 (def coy second)
 (def visa u/third)
 (def -current {:bank   (visa meta/bank-accounts)
-               :period {:year    2017
-                        :quarter :q3}})
+               :period {:period/year    2017
+                        :period/quarter :q3}})
 
 (defn chk-seq [xs]
   (assert xs)
@@ -97,21 +97,18 @@
         (assert (empty? tail))
         [account record]))))
 
-(defn produce-account-transactions [matched-records]
-  )
-
 (defn x-2 []
   (u/pp (first-without-single-rule-match (set meta/bank-accounts) [(:period -current)])))
 
 (defn transactions [bank-accounts periods]
   (->> (attach-rules bank-accounts periods)
        (group-by first)
-       (map (fn [[k v]] [k (sort-by :date (map second v))]))
+       (map (fn [[k v]] [k (sort-by :out/date (map second v))]))
        ))
 
 (defn accounts-summary [transactions]
   (->> transactions
-       (map (fn [[account records]] [account (reduce + (map :amount records))]))
+       (map (fn [[account records]] [account (reduce + (map :out/amount records))]))
        ))
 
 (defn x-3 []

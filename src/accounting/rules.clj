@@ -12,21 +12,20 @@
 ;; description
 ;; All the invented accounts will need to have description. So here :niim-trip
 ;;
-
-(def q3-2017-rules {[visa :trash]          [{:field          :desc
-                                             :logic-operator :single
-                                             :conditions     [[:starts-with "QANTAS AIRWAYS"]]}]
-                    [visa :niim-trip]      [{:field          :desc
-                                             :logic-operator :or
-                                             :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
-                                                              [:equals "RE & TK WILSDON PTY       KEITH"]
-                                                              [:starts-with "TIGER AIRWAYS AUSTRALIA"]
-                                                              [:starts-with "AUSDRAGON PTY LTD"]]}]
-                    [visa :office-expense] [{:field          :desc
-                                             :logic-operator :or
-                                             :conditions     [[:equals "TARGET 5009               ADELAIDE"]
-                                                              [:starts-with "DRAKE SUPERMARKETS"]
-                                                              [:starts-with "Z & Y BEYOND INTL PL"]]}]
+(def q3-2017-rules {[visa :trash]              [{:field          :out/desc
+                                                 :logic-operator :single
+                                                 :conditions     [[:starts-with "QANTAS AIRWAYS"]]}]
+                    [visa :exp/niim-trip]      [{:field          :out/desc
+                                                 :logic-operator :or
+                                                 :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
+                                                                  [:equals "RE & TK WILSDON PTY       KEITH"]
+                                                                  [:starts-with "TIGER AIRWAYS AUSTRALIA"]
+                                                                  [:starts-with "AUSDRAGON PTY LTD"]]}]
+                    [visa :exp/office-expense] [{:field          :out/desc
+                                                 :logic-operator :or
+                                                 :conditions     [[:equals "TARGET 5009               ADELAIDE"]
+                                                                  [:starts-with "DRAKE SUPERMARKETS"]
+                                                                  [:starts-with "Z & Y BEYOND INTL PL"]]}]
                     })
 
 ;;
@@ -38,91 +37,91 @@
 ;; investigate as to whether ought to be trashed or go to an (expense) account.
 ;;
 (def permanent-rules
-  {[visa :trash]               [{:field          :desc
-                                 :logic-operator :or
-                                 :conditions     [[:starts-with "CITY EAST IGA"]
-                                                  [:starts-with "DAN MURPHY'S"]
-                                                  [:starts-with "STRATH CORNER BAKERY"]
-                                                  [:starts-with "PAYMENT THANKYOU"]
-                                                  [:starts-with "WOOLWORTHS"]
-                                                  [:starts-with "FEATHERS HOTEL"]
-                                                  [:starts-with "BWS LIQUOR"]
-                                                  [:starts-with "UNLEY SWIMMING CNTR"]
-                                                  [:starts-with "NORWOOD SWIM SCHOOL"]
-                                                  [:starts-with "SQ *OUT OF ZULULAND"]
-                                                  [:starts-with "PANCAKE HOUSE"]
-                                                  [:starts-with "FREWVILLE FOODLAND"]
-                                                  [:starts-with "GREAT DREAM PTY LTD       HAYBOROUGH"]
-                                                  [:starts-with "JETTY SURF"]
-                                                  [:starts-with "COCKLES ON NORTH"]
-                                                  [:starts-with "CORIOLE VINEYARDS"]]}]
-   [visa :office-expense]      [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "OFFICEWORKS"]]}]
-   [visa :petrol]              [{:field          :desc
-                                 :logic-operator :or
-                                 :conditions     [[:starts-with "CALTEX"]
-                                                  [:starts-with "BP"]
-                                                  [:starts-with "X CONVENIENCE MT BARKE"]]}]
-   [visa :motor-vehicle]       [{:field          :desc
-                                 :logic-operator :or
-                                 :conditions     [[:starts-with "PETER STEVENS MOTORC"]
-                                                  [:starts-with "DPTI - EZYREG"]]}]
-   [visa :interest-expense]    [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "INTEREST CHARGED ON PURCHASES"]]}]
-   [visa :accounting-software] [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "XERO AUSTRALIA PTY LTD"]]}]
-   [visa :cloud-expense]       [{:field          :desc
-                                 :logic-operator :or
-                                 :conditions     [[:starts-with "GOOGLE*SVCSAPPS SEASOF"]
-                                                  [:starts-with "GOOGLE*SVCSAPPS STRAND"]
-                                                  [:starts-with "LINODE.COM"]
-                                                  [:starts-with "FastMail Pty Ltd"]]}]
-   [visa :computer-expense]    [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "ALLNEEDS COMPUTERS"]]}]
-   [visa :mobile-expense]      [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:equals "TELSTRA                   MELBOURNE"]]}]
-   [visa :private-health]      [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "HCF"]]}]
-   [amp :trash]                [{:field          :desc
-                                 :logic-operator :or
-                                 :conditions     [[:ends-with "drawings"]
-                                                  [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]
-                                                  [:starts-with "ATM Withdrawal - "]]}]
-   [amp :investigate-further]  [{:field          :desc
-                                 :logic-operator :and
-                                 :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-                                                  [:ends-with "PAYPAL AUSTRALIA"]]}]
-   [coy :mining-sales]         [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]
-   [coy :poker-parse-sales]    [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "TRANSFER FROM R T WILSON"]]}]
-   [coy :bank-interest]        [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:starts-with "CREDIT INTEREST PAID"]]}]
-   [coy :bank-fee]             [{:field          :desc
-                                 :logic-operator :single
-                                 :conditions     [[:equals "ACCOUNT SERVICING FEE"]]}]
-   [coy :ato-payment]          [{:field          :desc
-                                 :logic-operator :or
-                                 :conditions     [[:starts-with "ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT"]
-                                                  [:starts-with "PAYMENT TO ATO"]]}]
-   [coy :drawings]             [{:field          :desc
-                                 :logic-operator :and
-                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
-                                                  [:ends-with "4509499246191003"]]}
-                                {:field          :desc
-                                 :logic-operator :and
-                                 :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
-                                                  [:ends-with "CHRISTOPHER MURP"]]
-                                 }]})
+  {[visa :trash]                   [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:starts-with "CITY EAST IGA"]
+                                                      [:starts-with "DAN MURPHY'S"]
+                                                      [:starts-with "STRATH CORNER BAKERY"]
+                                                      [:starts-with "PAYMENT THANKYOU"]
+                                                      [:starts-with "WOOLWORTHS"]
+                                                      [:starts-with "FEATHERS HOTEL"]
+                                                      [:starts-with "BWS LIQUOR"]
+                                                      [:starts-with "UNLEY SWIMMING CNTR"]
+                                                      [:starts-with "NORWOOD SWIM SCHOOL"]
+                                                      [:starts-with "SQ *OUT OF ZULULAND"]
+                                                      [:starts-with "PANCAKE HOUSE"]
+                                                      [:starts-with "FREWVILLE FOODLAND"]
+                                                      [:starts-with "GREAT DREAM PTY LTD       HAYBOROUGH"]
+                                                      [:starts-with "JETTY SURF"]
+                                                      [:starts-with "COCKLES ON NORTH"]
+                                                      [:starts-with "CORIOLE VINEYARDS"]]}]
+   [visa :exp/office-expense]      [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "OFFICEWORKS"]]}]
+   [visa :exp/petrol]              [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:starts-with "CALTEX"]
+                                                      [:starts-with "BP"]
+                                                      [:starts-with "X CONVENIENCE MT BARKE"]]}]
+   [visa :exp/motor-vehicle]       [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:starts-with "PETER STEVENS MOTORC"]
+                                                      [:starts-with "DPTI - EZYREG"]]}]
+   [visa :exp/interest-expense]    [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "INTEREST CHARGED ON PURCHASES"]]}]
+   [visa :exp/accounting-software] [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "XERO AUSTRALIA PTY LTD"]]}]
+   [visa :exp/cloud-expense]       [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:starts-with "GOOGLE*SVCSAPPS SEASOF"]
+                                                      [:starts-with "GOOGLE*SVCSAPPS STRAND"]
+                                                      [:starts-with "LINODE.COM"]
+                                                      [:starts-with "FastMail Pty Ltd"]]}]
+   [visa :exp/computer-expense]    [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "ALLNEEDS COMPUTERS"]]}]
+   [visa :exp/mobile-expense]      [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:equals "TELSTRA                   MELBOURNE"]]}]
+   [visa :non-exp/private-health]  [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "HCF"]]}]
+   [amp :trash]                    [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:ends-with "drawings"]
+                                                      [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]
+                                                      [:starts-with "ATM Withdrawal - "]]}]
+   [amp :investigate-further]      [{:field          :out/desc
+                                     :logic-operator :and
+                                     :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
+                                                      [:ends-with "PAYPAL AUSTRALIA"]]}]
+   [coy :income/mining-sales]      [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]
+   [coy :income/poker-parse-sales] [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "TRANSFER FROM R T WILSON"]]}]
+   [coy :income/bank-interest]     [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:starts-with "CREDIT INTEREST PAID"]]}]
+   [coy :exp/bank-fee]             [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:equals "ACCOUNT SERVICING FEE"]]}]
+   [coy :non-exp/ato-payment]      [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:starts-with "ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT"]
+                                                      [:starts-with "PAYMENT TO ATO"]]}]
+   [coy :capital/drawings]         [{:field          :out/desc
+                                     :logic-operator :and
+                                     :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                      [:ends-with "4509499246191003"]]}
+                                    {:field          :out/desc
+                                     :logic-operator :and
+                                     :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                      [:ends-with "CHRISTOPHER MURP"]]
+                                     }]})
 
 (defn bank-rules [bank-accounts]
   (assert (set? bank-accounts))
@@ -164,7 +163,7 @@
   (assert field)
   (assert (map? record))
   (let [field-value (field record)
-        _ (assert field-value (str "No field " field " in: " record))
+        _ (assert field-value (str "No field " field " in: " (keys record)))
         f (condp = logic-operator
             :single (let [_ (assert (= 1 (count conditions)))
                           [how-kw match-text] (first conditions)]
@@ -182,4 +181,4 @@
   (keep (partial match record) rules))
 
 (defn x-1 []
-  (u/pp (bank-rules :bank-anz-coy)))
+  (u/pp (bank-rules :bank/anz-coy)))

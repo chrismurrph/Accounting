@@ -3,7 +3,10 @@
             [accounting.util :as u]
             [accounting.convert :as c]
             [accounting.rules :as r]
-            [clojure.string :as s]))
+            [accounting.rules-data :as rd]
+            [clojure.string :as s]
+            [accounting.gl :as gl]
+            [accounting.rules-data :as d]))
 
 (def amp first)
 (def coy second)
@@ -29,14 +32,15 @@
   (zipmap (map c/in->out-kw kws) v))
 
 ;; A record is a vector of maps - a parsed line
-(defn record-maker [objs]
+(defn record-maker [bank-account objs]
   (chk-seq objs)
   (fn [line]
     (chk-seq line)
-    (->> line
-         (map convert objs)
-         (filter identity)
-         (make-map (remove c/leave-outs (map :field-kw objs))))))
+    (as-> line $
+          (map convert objs $)
+          (filter identity $)
+          (make-map (remove c/leave-outs (map :field-kw objs)) $)
+          (assoc $ :out/src-bank bank-account))))
 
 ;;
 ;; Given a bank account we can get a structure. The structure shows us how to parse each field so
@@ -48,7 +52,7 @@
         _ (assert (every? c/all-headings headings) (str "New heading introduced: " headings ", expected: " c/all-headings))
         heading-objs (map c/heading->parse-obj headings)
         _ (assert (seq heading-objs) (str "No headings yet for " bank-account))
-        make-record (record-maker heading-objs)]
+        make-record (record-maker bank-account heading-objs)]
     (map make-record lines)))
 
 (defn -raw-data->csv [bank]
@@ -70,55 +74,83 @@
   (let [importer (partial -import-records periods)]
     (mapcat importer bank-accounts)))
 
+(defn investigation-resolved? [target-accounts]
+  (assert (seq target-accounts))
+  (and
+    (= 2 (count target-accounts))
+    (= 1 (->> target-accounts
+              (filter #(= % :investigate-further))
+              count))))
+
+(defn poor-match? [rule-matches]
+  (let [bad-count? (not (= 1 (count rule-matches)))
+        good-override? (investigation-resolved? (map :rule/target-account rule-matches))]
+    (and bad-count? (not good-override?))))
+
 (defn first-without-single-rule-match [bank-accounts periods]
-  (let [rules (r/bank-rules bank-accounts)
-        matcher (partial r/rule-matches rules)
+  (let [rules (r/bank-rules bank-accounts r/current-rules)
+        matcher (partial r/records-rule-matches rules)
         records (import-records periods bank-accounts)]
     (first (for [record records
                  :let [rule-matches (matcher record)]
-                 :when (not (= 1 (count rule-matches)))]
-             [record (mapv :target-account rule-matches)]))))
-
+                 :when (poor-match? rule-matches)]
+             [record (mapv :rule/target-account rule-matches)]))))
 
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get
 ;; a list of transactions for each account, which we do in a later step.
 ;; All we needed from the rule is the target account
 ;;
-(defn attach-rules [bank-accounts periods]
-  (let [rules (r/bank-rules bank-accounts)
-        matcher (partial r/rule-matches rules)
+(defn attach-rules [bank-accounts periods rules]
+  (let [matcher (partial r/records-rule-matches rules)
         records (import-records periods bank-accounts)]
     (for [record records
-          :let [[rule & tail] (matcher record)
-                account (:target-account rule)]
-          :when (not= account :trash)]
+          :let [[rule & tail :as matched-rules] (matcher record)
+                target-account (:rule/target-account rule)]
+          :when (not= target-account :trash)]
       (do
-        (assert (empty? tail))
-        [account record]))))
+        (u/assrt (or (empty? tail) (investigation-resolved? (map :rule/target-account matched-rules)))
+                 (str "Don't expect more than one rule per record:\n" (u/pp-str rule) (u/pp-str tail)))
+        (assert target-account)
+        [target-account (assoc record :out/dest-account target-account)]))))
 
 (defn x-2 []
-  (u/pp (first-without-single-rule-match (set meta/bank-accounts) [(:period -current)])))
+  (-> (first-without-single-rule-match (set meta/bank-accounts) [(:period -current)])
+      u/pp))
 
-(defn transactions [bank-accounts periods]
-  (->> (attach-rules bank-accounts periods)
+(defn account-grouped-transactions [bank-accounts periods]
+  (->> (attach-rules bank-accounts periods (r/bank-rules bank-accounts r/current-rules))
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))
        ))
 
-(defn accounts-summary [transactions]
-  (->> transactions
-       (map (fn [[account records]] [account (reduce + (map :out/amount records))]))
-       ))
+(defn accounts-summary [transacts]
+  (->> transacts
+       (map (fn [[account records]]
+              [account (reduce + (map :out/amount records))]))))
 
 (defn x-3 []
-  (->> (transactions (set meta/bank-accounts) [(:period -current)])
+  (->> (account-grouped-transactions (set meta/bank-accounts) [(:period -current)])
        (take 10)
        u/pp))
 
 (defn x-4 []
-  (->> (transactions (set meta/bank-accounts) [(:period -current)])
+  (->> (account-grouped-transactions (set meta/bank-accounts) [(:period -current)])
        (accounts-summary)
        (sort-by (comp - u/abs second))
        u/pp))
+
+(def paypal "Direct Entry Debit Item Ref: 1000654854287 PAYPAL AUSTRALIA")
+
+(defn x-5 []
+  (let [transactions (->> (attach-rules
+                            (set meta/bank-accounts)
+                            [(:period -current)]
+                            r/current-rules)
+                          (remove #(= :investigate-further (first %)))
+                          u/probe-off
+                          (map second)
+                          (sort-by :out/date)
+                          )]
+    (u/pp (reduce gl/apply-trans gl/general-ledger transactions))))
 

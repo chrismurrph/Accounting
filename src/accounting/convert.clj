@@ -1,6 +1,5 @@
 (ns accounting.convert
-  (:require [clj-time.core :as t]
-            [accounting.util :as u]
+  (:require [accounting.util :as u]
             [clojure.string :as s]))
 
 ;; :mock is fields I've manually added on purpose when file format changed and I did not want to upset Xero
@@ -14,23 +13,6 @@
   {:bank/amp amp-structure
    :bank/anz-coy anz-coy-structure
    :bank/anz-visa anz-visa-structure})
-
-(def str->month
-  {"Jan" 1
-   "Feb" 2
-   "Mar" 3
-   "Apr" 4})
-
-(defn long-date-str->date [x]
-  (let [[_ day m year] (re-matches #"(\d+) (\w+) (\d+)" x)
-        month (str->month m)]
-    (assert (-> month nil? not))
-    ;(println day month year)
-    (t/date-time (u/to-int year) month (u/to-int day))))
-
-(defn short-date-str->date [x]
-  (let [[_ d m y] (re-matches #"(\d+)/(\d+)/(\d+)" x)]
-    (t/date-time (u/to-int y) (u/to-int m) (u/to-int d))))
 
 ;;
 ;; nil is okay whereas a message will be processed
@@ -58,8 +40,8 @@
       nil (assert false (str "No $ found in: " amount)))))
 
 (def heading->parse-obj
-  {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn long-date-str->date}
-   :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn short-date-str->date}
+  {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn u/long-date-str->date}
+   :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn u/short-date-str->date}
    :in/desc          {:field-kw :in/desc :validate-fn default-validate :convert-fn identity}
    :in/dollar-amount {:field-kw :in/dollar-amount :validate-fn dollar-amount-validate :convert-fn dollar-amount-convert}
    :in/quoted-amount {:field-kw :in/quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec read-string)}
@@ -78,11 +60,5 @@
   (or (-in->out-kw kw) kw))
 
 (def all-headings (-> heading->parse-obj keys set))
-
-(defn x-1 []
-  (long-date-str->date "21 Mar 2017"))
-
-(defn x-2 []
-  (short-date-str->date "31/03/2017"))
 
 

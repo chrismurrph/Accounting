@@ -77,8 +77,9 @@
   (let [date (-> record :out/date t/format-date)]
     (assoc record :out/date date)))
 
-(defn first-without-single-rule-match [bank-accounts periods]
-  (let [rules (r/bank-rules bank-accounts r/current-rules)
+(defn first-without-single-rule-match [bank-accounts periods rules-in]
+  (let [rules (r/bank-rules bank-accounts rules-in)
+        ;_ (u/pp rules)
         matcher (partial r/records-rule-matches rules)
         records (import-records periods bank-accounts)]
     (first (for [record records
@@ -108,8 +109,8 @@
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
 
-(defn account-grouped-transactions [bank-accounts periods]
-  (->> (attach-rules bank-accounts periods (r/bank-rules bank-accounts r/current-rules))
+(defn account-grouped-transactions [bank-accounts periods rules]
+  (->> (attach-rules bank-accounts periods (r/bank-rules bank-accounts rules))
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))
        ))

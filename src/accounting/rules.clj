@@ -39,15 +39,27 @@
                      (f match-text)) hofs (map second conditions))]
     (apply preds-fn preds)))
 
+;;   :on-date
+;;   :between-dates-inclusive
+;;   :amount
+;;   - already has :period
+(defn matches-chosen-specifics? [record {:keys [period on-date between-dates-inclusive amount] :as rule}]
+  (and (or (nil? period) (t/within-period? period (:out/date record)))
+       (or (nil? on-date) (t/equal? on-date (:out/date record)))
+       (or (nil? between-dates-inclusive)
+           (let [[start end] between-dates-inclusive]
+             (t/within-range? start end (:out/date record))))
+       (or (nil? amount) (= amount (:out/amount record)))))
+
 ;;
 ;; Return the rule if there's a match against it
 ;; Conditions is a vector of vectors, eg: [[:starts-with "TRANSFER FROM R T WILSON"]]
 ;;
-(defn match [record {:keys [field logic-operator conditions period] :as rule}]
+(defn match [record {:keys [field logic-operator conditions] :as rule}]
   (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
   (assert field (str "No field in rule: " rule))
   (assert (map? record))
-  (when (or (nil? period) (t/within-period? period (:out/date record)))
+  (when (matches-chosen-specifics? record rule)
     (let [field-value (field record)
           _ (assert field-value (str "No field " field " in: " (keys record)))
           f (condp = logic-operator
@@ -66,15 +78,9 @@
 (defn records-rule-matches [rules record]
   (keep (partial match record) rules))
 
-(defn -merged-rules []
-  (merge-with (comp vec concat) d/permanent-rules d/q3-2017-rules))
-
 (defn canonicalise-rules [rules-in]
   (mapcat (fn [[[source-bank target-account] v]]
             (map #(assoc % :rule/source-bank source-bank :rule/target-account target-account) v)) rules-in))
 
-;; Select one or the other
-(def current-rules
-  (let [initial-rules (-merged-rules) #_d/test-rules]
-    (->> initial-rules
-         canonicalise-rules)))
+(defn merge-permanent-with [quarter-only-rules]
+  (merge-with (comp vec concat) d/permanent-rules quarter-only-rules))

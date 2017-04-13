@@ -1,38 +1,36 @@
 (ns accounting.rules-data
   (:require [accounting.meta :as meta]
-            [accounting.util :as u]))
+            [accounting.util :as u]
+            [accounting.time :as t]))
 
 (def amp (first meta/bank-accounts))
 (def coy (second meta/bank-accounts))
 (def visa (u/third meta/bank-accounts))
 
-;;
-;; We won't know what to do with a record that matches these two rules. We want an error to always happen.
-;; Then we will code around it as :investigate-further is obviously being overridden.
-;;
-(def test-rules {[amp :personal/amp]        [{:field          :out/desc
-                                              :logic-operator :and
-                                              :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-                                                               [:ends-with "PAYPAL AUSTRALIA"]]}]
-                 ;[amp :investigate-further] [{:field          :out/desc
-                 ;                             :logic-operator :and
-                 ;                             :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-                 ;                                              [:ends-with "PAYPAL AUSTRALIA"]]}]
-                 })
-
 (defn attach-period [period rules-in]
   (into {} (map (fn [[k v]]
-                  [k (mapv #(assoc % :period period) v)]) rules-in))
-  #_rules-in)
+                  [k (mapv #(assoc % :period period) v)]) rules-in)))
 
 ;;
 ;; For every transaction date that comes thru that is :office-expense we will require a
-;; description
+;; description TODO - there are more descriptions, need to take all from Xero
 ;; All the invented accounts will need to have description. So here :niim-trip
+;;
+;; Have introduce more specificity to these rules, that will be used if not nil:
+;;   :on-date
+;;   :between-dates-inclusive
+;;   :amount
+;;   - already has :period
+;; Here the PayPal can be :on-date, and the niim-trip between dates
+;; Will test the PayPal by having on wrong date - works!
+;; TODO
+;; S/also have whether multiple matches are allowed. For permanent ones default will be true.
+;; For temporary ones like here the user migth have to specify
 ;;
 (def -q3-2017-rules {
                      ;; Upon closer investigation, this one was personal spending
                      [amp :personal/amp]        [{:field          :out/desc
+                                                  :on-date        (t/long-date-str->date "20 Feb 2017")
                                                   :logic-operator :and
                                                   :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                                    [:ends-with "PAYPAL AUSTRALIA"]]}]
@@ -40,22 +38,32 @@
                                                   :logic-operator :single
                                                   :conditions     [[:starts-with "QANTAS AIRWAYS"]]}
                                                  ]
-                     [visa :exp/niim-trip]      [{:field          :out/desc
-                                                  :logic-operator :or
-                                                  :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
-                                                                   [:equals "RE & TK WILSDON PTY       KEITH"]
-                                                                   [:starts-with "TIGER AIRWAYS AUSTRALIA"]
-                                                                   [:starts-with "AUSDRAGON PTY LTD"]]}]
+                     [visa :exp/niim-trip]      [{:field                   :out/desc
+                                                  :between-dates-inclusive (t/inclusive-range "25 Jan 2017" "08 Feb 2017")
+                                                  :logic-operator          :or
+                                                  :conditions              [[:starts-with "SKYBUS COACH SERVICE"]
+                                                                            [:equals "RE & TK WILSDON PTY       KEITH"]
+                                                                            [:starts-with "TIGER AIRWAYS AUSTRALIA"]
+                                                                            [:starts-with "AUSDRAGON PTY LTD"]]}]
                      [visa :exp/office-expense] [{:field          :out/desc
                                                   :logic-operator :or
                                                   :conditions     [[:equals "TARGET 5009               ADELAIDE"]
                                                                    [:starts-with "DRAKE SUPERMARKETS"]
                                                                    [:starts-with "Z & Y BEYOND INTL PL"]]}]})
 
-(def q3-2017-rules (attach-period {:period/year    2017
-                                   :period/quarter :q3} -q3-2017-rules))
+(def -q2-2017-rules {
+                     [amp :personal/amp] [{:field          :out/desc
+                                           :on-date        (t/long-date-str->date "12 Dec 2016")
+                                           :logic-operator :and
+                                           :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
+                                                            [:ends-with "PAYPAL AUSTRALIA"]]}]})
 
-(def q3-2017-rules -q3-2017-rules)
+(def q3-2017-rules (attach-period {:period/tax-year 2017
+                                   :period/quarter  :q3} -q3-2017-rules))
+
+(def q2-2017-rules (attach-period {:period/tax-year 2017
+                                   :period/quarter  :q2} -q2-2017-rules))
+
 ;;
 ;; From which bank account tells you which account to put the transaction to
 ;; The result of applying these rules will be a list of transactions at the
@@ -63,12 +71,14 @@
 ;; Apart from directing money to accounts it is also directed to :personal where
 ;; nothing further happens or :investigate-further where the end user will need to
 ;; investigate as to whether ought to be trashed or go to an (expense) account.
-;; :personal is personal spending from a non-company bank account.
+;; :personal is personal spending (above money came in from drawings) from a non-company bank account.
 ;; Good to have it in an account to see how much of a drain personal spending makes
 ;; from quarter to quarter.
 ;; Also good to have so that this system can correctly calculate the final bank balance.
 ;; In the future we could order trash by amount, including description, so we can see
 ;; what is causing the drain on finances.
+;; Any -ive on :personal is good, means drew out into the account and did not spend it that quarter
+;; So good defintion is decrease in personal wealth over that quarter, in the bank account
 ;;
 (def permanent-rules
   {[visa :personal/anz-visa]       [{:field          :out/desc

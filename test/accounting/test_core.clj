@@ -3,27 +3,21 @@
             [accounting.meta :as meta]
             [accounting.util :as u]
             [accounting.rules :as r]
-            [accounting.gl :as gl]))
-
-(def amp first)
-(def coy second)
-(def visa u/third)
-(def -current {:bank   (amp meta/bank-accounts)
-               :period {:period/year    2017
-                        :period/quarter :q3}})
-(def periods [(:period -current)])
+            [accounting.gl :as gl]
+            [accounting.rules-data :as d]
+            [accounting.context :as con]))
 
 (defn x-2 []
-  (-> (c/first-without-single-rule-match (set meta/bank-accounts) periods)
+  (-> (c/first-without-single-rule-match (set meta/bank-accounts) con/current-periods-range con/current-rules)
       u/pp))
 
 (defn x-3 []
-  (->> (c/account-grouped-transactions (set meta/bank-accounts) periods)
+  (->> (c/account-grouped-transactions (set meta/bank-accounts) con/current-periods-range con/current-rules)
        (take 10)
        u/pp))
 
 (defn x-4 []
-  (->> (c/account-grouped-transactions (set meta/bank-accounts) periods)
+  (->> (c/account-grouped-transactions (set meta/bank-accounts) con/current-periods-range con/current-rules)
        (c/accounts-summary)
        (sort-by (comp - u/abs second))
        u/pp))
@@ -31,8 +25,8 @@
 (defn x-5 []
   (let [transactions (->> (c/attach-rules
                             (set meta/bank-accounts)
-                            periods
-                            r/current-rules)
+                            con/current-periods-range
+                            con/current-rules)
                           ;(remove #(= :investigate-further (first %)))
                           u/probe-off
                           (map second)

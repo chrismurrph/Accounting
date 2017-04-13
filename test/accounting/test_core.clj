@@ -10,7 +10,7 @@
 (def visa u/third)
 (def -current {:bank   (amp meta/bank-accounts)
                :period {:period/year    2017
-                        :period/quarter :q2}})
+                        :period/quarter :q3}})
 (def periods [(:period -current)])
 
 (defn x-2 []

@@ -106,9 +106,9 @@
     (for [record records
           :let [[rule & tail :as matched-rules] (matcher record)
                 target-account (:rule/target-account rule)]
-          ;; :trash is an event that affects the bank balance of non-company accounts
-          ;; With :trash taken into account non-company bank balances will be true from period to period
-          ;;:when (not= target-account :trash)
+          ;; :personal is an event that affects the bank balance of non-company accounts
+          ;; With :personal taken into account non-company bank balances will be true from period to period
+          ;;:when (not= target-account :personal)
           ]
       (do
         ;; `first-without-single-rule-match` is designed to find this out, so start using it!

@@ -6,6 +6,8 @@
   {:bank/anz-coy             0
    :bank/anz-visa            0
    :bank/amp                 0
+   :personal/amp             0
+   :personal/anz-visa        0
    :income/poker-parse-sales 0
    :exp/office-expense       0
    :capital/drawings         0
@@ -61,21 +63,21 @@
       (update dest-account #(- % amount))))
 
 (def how-apply
-  {"income"  modify-gl
-   "exp"     modify-gl
-   "non-exp" modify-gl
-   "capital" modify-gl})
+  {"income"   modify-gl
+   "exp"      modify-gl
+   "non-exp"  modify-gl
+   "capital"  modify-gl
+   "personal" modify-gl})
 
 ;;
 ;; Modifies gl, used by reduce
 ;;
-(defn apply-trans [gl trans]
-  (let [{:keys [out/amount out/src-bank out/dest-account]} trans
-        _ (assert amount)
-        _ (assert src-bank)
-        _ (assert dest-account)
-        _ (u/assrt (not= dest-account :investigate-further))
-        ns (namespace dest-account)
+(defn apply-trans [gl {:keys [out/amount out/src-bank out/dest-account] :as trans}]
+  (assert amount)
+  (assert src-bank)
+  (assert dest-account)
+  (u/assrt (not= dest-account :investigate-further))
+  (let [ns (namespace dest-account)
         _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (u/pp-str trans)))
         f (how-apply ns)]
     (assert f (str "Not found a function for " ns))

@@ -10,7 +10,7 @@
 ;; We won't know what to do with a record that matches these two rules. We want an error to always happen.
 ;; Then we will code around it as :investigate-further is obviously being overridden.
 ;;
-(def test-rules {[amp :trash]               [{:field          :out/desc
+(def test-rules {[amp :personal/amp]        [{:field          :out/desc
                                               :logic-operator :and
                                               :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                                [:ends-with "PAYPAL AUSTRALIA"]]}]
@@ -27,11 +27,11 @@
 ;;
 (def q3-2017-rules {
                     ;; Upon closer investigation, this one is for trashing
-                    [amp :trash]               [{:field          :out/desc
+                    [amp :personal/amp]        [{:field          :out/desc
                                                  :logic-operator :and
                                                  :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                                   [:ends-with "PAYPAL AUSTRALIA"]]}]
-                    [visa :trash]              [{:field          :out/desc
+                    [visa :personal/anz-visa]  [{:field          :out/desc
                                                  :logic-operator :single
                                                  :conditions     [[:starts-with "QANTAS AIRWAYS"]]}
                                                 ]
@@ -51,12 +51,18 @@
 ;; From which bank account tells you which account to put the transaction to
 ;; The result of applying these rules will be a list of transactions at the
 ;; target account.
-;; Apart from directing money to accounts it is also directed to :trash where
+;; Apart from directing money to accounts it is also directed to :personal where
 ;; nothing further happens or :investigate-further where the end user will need to
 ;; investigate as to whether ought to be trashed or go to an (expense) account.
+;; :personal is personal spending from a non-company bank account.
+;; Good to have it in an account to see how much of a drain personal spending makes
+;; from quarter to quarter.
+;; Also good to have so that this system can correctly calculate the final bank balance.
+;; In the future we could order trash by amount, including description, so we can see
+;; what is causing the drain on finances.
 ;;
 (def permanent-rules
-  {[visa :trash]                   [{:field          :out/desc
+  {[visa :personal/anz-visa]       [{:field          :out/desc
                                      :logic-operator :or
                                      :conditions     [[:starts-with "CITY EAST IGA"]
                                                       [:starts-with "DAN MURPHY'S"]
@@ -107,7 +113,7 @@
    [visa :non-exp/private-health]  [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "HCF"]]}]
-   [amp :trash]                    [{:field          :out/desc
+   [amp :personal/amp]             [{:field          :out/desc
                                      :logic-operator :or
                                      :conditions     [[:ends-with "drawings"]
                                                       [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]

@@ -111,7 +111,8 @@
                                      :logic-operator :or
                                      :conditions     [[:ends-with "drawings"]
                                                       [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]
-                                                      [:starts-with "ATM Withdrawal - "]]}]
+                                                      [:starts-with "ATM Withdrawal - "]
+                                                      [:starts-with "Purchase - Ideal Shoe Sto"]]}]
    [amp :investigate-further]      [{:field          :out/desc
                                      :logic-operator :and
                                      :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]

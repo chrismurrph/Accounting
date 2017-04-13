@@ -76,15 +76,3 @@
   (let [initial-rules (-merged-rules) #_d/test-rules]
     (->> initial-rules
          canonicalise-rules)))
-
-(defn x-1 []
-  (u/pp (bank-rules :bank/anz-coy current-rules)))
-
-(defn x-2 []
-  (->> current-rules
-       (take 3)
-       u/pp))
-
-(defn x-3 []
-  (->> (canonicalise-rules current-rules)
-       u/pp))

@@ -6,14 +6,8 @@
             [accounting.rules-data :as rd]
             [clojure.string :as s]
             [accounting.gl :as gl]
-            [accounting.rules-data :as d]))
-
-(def amp first)
-(def coy second)
-(def visa u/third)
-(def -current {:bank   (visa meta/bank-accounts)
-               :period {:period/year    2017
-                        :period/quarter :q3}})
+            [accounting.rules-data :as d]
+            [accounting.time :as t]))
 
 (defn chk-seq [xs]
   (assert xs)
@@ -37,6 +31,7 @@
   (fn [line]
     (chk-seq line)
     (as-> line $
+          (u/probe-off $)
           (map convert objs $)
           (filter identity $)
           (make-map (remove c/leave-outs (map :field-kw objs)) $)
@@ -87,14 +82,18 @@
         good-override? (investigation-resolved? (map :rule/target-account rule-matches))]
     (and bad-count? (not good-override?))))
 
+(defn show [record]
+  (let [date (-> record :out/date t/format-date)]
+    (assoc record :out/date date)))
+
 (defn first-without-single-rule-match [bank-accounts periods]
   (let [rules (r/bank-rules bank-accounts r/current-rules)
         matcher (partial r/records-rule-matches rules)
         records (import-records periods bank-accounts)]
     (first (for [record records
                  :let [rule-matches (matcher record)]
-                 :when (poor-match? rule-matches)]
-             [record (mapv :rule/target-account rule-matches)]))))
+                 :when (or (empty? rule-matches) (poor-match? rule-matches))]
+             [(show record) (mapv :rule/target-account rule-matches)]))))
 
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get
@@ -107,16 +106,17 @@
     (for [record records
           :let [[rule & tail :as matched-rules] (matcher record)
                 target-account (:rule/target-account rule)]
-          :when (not= target-account :trash)]
+          ;; :trash is an event that affects the bank balance of non-company accounts
+          ;; With :trash taken into account non-company bank balances will be true from period to period
+          ;;:when (not= target-account :trash)
+          ]
       (do
+        ;; `first-without-single-rule-match` is designed to find this out, so start using it!
+        (assert rule (str "No rule will match: <" (select-keys record [:out/desc :out/src-bank]) ">"))
         (u/assrt (or (empty? tail) (investigation-resolved? (map :rule/target-account matched-rules)))
                  (str "Don't expect more than one rule per record:\n" (u/pp-str rule) (u/pp-str tail)))
-        (assert target-account)
+        (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
-
-(defn x-2 []
-  (-> (first-without-single-rule-match (set meta/bank-accounts) [(:period -current)])
-      u/pp))
 
 (defn account-grouped-transactions [bank-accounts periods]
   (->> (attach-rules bank-accounts periods (r/bank-rules bank-accounts r/current-rules))
@@ -128,29 +128,4 @@
   (->> transacts
        (map (fn [[account records]]
               [account (reduce + (map :out/amount records))]))))
-
-(defn x-3 []
-  (->> (account-grouped-transactions (set meta/bank-accounts) [(:period -current)])
-       (take 10)
-       u/pp))
-
-(defn x-4 []
-  (->> (account-grouped-transactions (set meta/bank-accounts) [(:period -current)])
-       (accounts-summary)
-       (sort-by (comp - u/abs second))
-       u/pp))
-
-(def paypal "Direct Entry Debit Item Ref: 1000654854287 PAYPAL AUSTRALIA")
-
-(defn x-5 []
-  (let [transactions (->> (attach-rules
-                            (set meta/bank-accounts)
-                            [(:period -current)]
-                            r/current-rules)
-                          (remove #(= :investigate-further (first %)))
-                          u/probe-off
-                          (map second)
-                          (sort-by :out/date)
-                          )]
-    (u/pp (reduce gl/apply-trans gl/general-ledger transactions))))
 

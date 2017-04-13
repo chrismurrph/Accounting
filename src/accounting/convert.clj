@@ -1,6 +1,7 @@
 (ns accounting.convert
-  (:require [accounting.util :as u]
-            [clojure.string :as s]))
+  (:require [accounting.time :as t]
+            [clojure.string :as s]
+            [accounting.util :as u]))
 
 ;; :mock is fields I've manually added on purpose when file format changed and I did not want to upset Xero
 ;; :ignore is a field that holds no purpose for accounting
@@ -40,8 +41,8 @@
       nil (assert false (str "No $ found in: " amount)))))
 
 (def heading->parse-obj
-  {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn u/long-date-str->date}
-   :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn u/short-date-str->date}
+  {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn t/long-date-str->date}
+   :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn t/short-date-str->date}
    :in/desc          {:field-kw :in/desc :validate-fn default-validate :convert-fn identity}
    :in/dollar-amount {:field-kw :in/dollar-amount :validate-fn dollar-amount-validate :convert-fn dollar-amount-convert}
    :in/quoted-amount {:field-kw :in/quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec read-string)}

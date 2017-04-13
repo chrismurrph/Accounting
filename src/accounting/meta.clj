@@ -45,6 +45,3 @@
         file-name (str qtr (file-names bank))
         file-path (str (-dir-for period) "/" file-name)]
     file-path))
-
-(defn x-1 []
-  (bank-period->file-name :bank/amp {:period/year 2017 :period/quarter :q3}))

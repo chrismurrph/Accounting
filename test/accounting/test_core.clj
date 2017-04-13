@@ -33,7 +33,7 @@
                             (set meta/bank-accounts)
                             periods
                             r/current-rules)
-                          (remove #(= :investigate-further (first %)))
+                          ;(remove #(= :investigate-further (first %)))
                           u/probe-off
                           (map second)
                           (sort-by :out/date)

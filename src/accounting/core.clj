@@ -69,18 +69,9 @@
   (let [importer (partial -import-records periods)]
     (mapcat importer bank-accounts)))
 
-(defn investigation-resolved? [target-accounts]
-  (assert (seq target-accounts))
-  (and
-    (= 2 (count target-accounts))
-    (= 1 (->> target-accounts
-              (filter #(= % :investigate-further))
-              count))))
-
 (defn poor-match? [rule-matches]
-  (let [bad-count? (not (= 1 (count rule-matches)))
-        good-override? (investigation-resolved? (map :rule/target-account rule-matches))]
-    (and bad-count? (not good-override?))))
+  (let [bad-count? (not (= 1 (count rule-matches)))]
+    bad-count?))
 
 (defn show [record]
   (let [date (-> record :out/date t/format-date)]
@@ -113,8 +104,7 @@
       (do
         ;; `first-without-single-rule-match` is designed to find this out, so start using it!
         (assert rule (str "No rule will match: <" (select-keys record [:out/desc :out/src-bank]) ">"))
-        (u/assrt (or (empty? tail) (investigation-resolved? (map :rule/target-account matched-rules)))
-                 (str "Don't expect more than one rule per record:\n" (u/pp-str rule) (u/pp-str tail)))
+        (u/assrt (empty? tail) (str "Don't expect more than one rule per record:\n" (u/pp-str rule) (u/pp-str tail)))
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
 

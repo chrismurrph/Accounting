@@ -76,7 +76,6 @@
   (assert amount)
   (assert src-bank)
   (assert dest-account)
-  (u/assrt (not= dest-account :investigate-further))
   (let [ns (namespace dest-account)
         _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (u/pp-str trans)))
         f (how-apply ns)]

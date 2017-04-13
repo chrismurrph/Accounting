@@ -14,39 +14,48 @@
                                               :logic-operator :and
                                               :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                                [:ends-with "PAYPAL AUSTRALIA"]]}]
-                 [amp :investigate-further] [{:field          :out/desc
-                                              :logic-operator :and
-                                              :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-                                                               [:ends-with "PAYPAL AUSTRALIA"]]}]
+                 ;[amp :investigate-further] [{:field          :out/desc
+                 ;                             :logic-operator :and
+                 ;                             :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
+                 ;                                              [:ends-with "PAYPAL AUSTRALIA"]]}]
                  })
+
+(defn attach-period [period rules-in]
+  (into {} (map (fn [[k v]]
+                  [k (mapv #(assoc % :period period) v)]) rules-in))
+  #_rules-in)
 
 ;;
 ;; For every transaction date that comes thru that is :office-expense we will require a
 ;; description
 ;; All the invented accounts will need to have description. So here :niim-trip
 ;;
-(def q3-2017-rules {
-                    ;; Upon closer investigation, this one is for trashing
-                    [amp :personal/amp]        [{:field          :out/desc
-                                                 :logic-operator :and
-                                                 :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-                                                                  [:ends-with "PAYPAL AUSTRALIA"]]}]
-                    [visa :personal/anz-visa]  [{:field          :out/desc
-                                                 :logic-operator :single
-                                                 :conditions     [[:starts-with "QANTAS AIRWAYS"]]}
-                                                ]
-                    [visa :exp/niim-trip]      [{:field          :out/desc
-                                                 :logic-operator :or
-                                                 :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
-                                                                  [:equals "RE & TK WILSDON PTY       KEITH"]
-                                                                  [:starts-with "TIGER AIRWAYS AUSTRALIA"]
-                                                                  [:starts-with "AUSDRAGON PTY LTD"]]}]
-                    [visa :exp/office-expense] [{:field          :out/desc
-                                                 :logic-operator :or
-                                                 :conditions     [[:equals "TARGET 5009               ADELAIDE"]
-                                                                  [:starts-with "DRAKE SUPERMARKETS"]
-                                                                  [:starts-with "Z & Y BEYOND INTL PL"]]}]})
+(def -q3-2017-rules {
+                     ;; Upon closer investigation, this one was personal spending
+                     [amp :personal/amp]        [{:field          :out/desc
+                                                  :logic-operator :and
+                                                  :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
+                                                                   [:ends-with "PAYPAL AUSTRALIA"]]}]
+                     [visa :personal/anz-visa]  [{:field          :out/desc
+                                                  :logic-operator :single
+                                                  :conditions     [[:starts-with "QANTAS AIRWAYS"]]}
+                                                 ]
+                     [visa :exp/niim-trip]      [{:field          :out/desc
+                                                  :logic-operator :or
+                                                  :conditions     [[:starts-with "SKYBUS COACH SERVICE"]
+                                                                   [:equals "RE & TK WILSDON PTY       KEITH"]
+                                                                   [:starts-with "TIGER AIRWAYS AUSTRALIA"]
+                                                                   [:starts-with "AUSDRAGON PTY LTD"]]}]
+                     [visa :exp/office-expense] [{:field          :out/desc
+                                                  :logic-operator :or
+                                                  :conditions     [[:equals "TARGET 5009               ADELAIDE"]
+                                                                   [:starts-with "DRAKE SUPERMARKETS"]
+                                                                   [:starts-with "Z & Y BEYOND INTL PL"]]}]})
 
+(def q3-2017-rules (attach-period {:period/year    2017
+                                   :period/quarter :q3} -q3-2017-rules))
+
+(def q3-2017-rules -q3-2017-rules)
 ;;
 ;; From which bank account tells you which account to put the transaction to
 ;; The result of applying these rules will be a list of transactions at the
@@ -119,10 +128,10 @@
                                                       [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]
                                                       [:starts-with "ATM Withdrawal - "]
                                                       [:starts-with "Purchase - Ideal Shoe Sto"]]}]
-   [amp :investigate-further]      [{:field          :out/desc
-                                     :logic-operator :and
-                                     :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-                                                      [:ends-with "PAYPAL AUSTRALIA"]]}]
+   ;[amp :investigate-further]      [{:field          :out/desc
+   ;                                  :logic-operator :and
+   ;                                  :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
+   ;                                                   [:ends-with "PAYPAL AUSTRALIA"]]}]
    [coy :income/mining-sales]      [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]

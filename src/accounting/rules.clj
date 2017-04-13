@@ -2,7 +2,8 @@
   (:require [clojure.string :as s]
             [accounting.util :as u]
             [accounting.meta :as meta]
-            [accounting.rules-data :as d]))
+            [accounting.rules-data :as d]
+            [accounting.time :as t]))
 
 ;;
 ;; Filter so only get the rules of certain bank accounts
@@ -42,24 +43,25 @@
 ;; Return the rule if there's a match against it
 ;; Conditions is a vector of vectors, eg: [[:starts-with "TRANSFER FROM R T WILSON"]]
 ;;
-(defn match [record {:keys [field logic-operator conditions] :as rule}]
+(defn match [record {:keys [field logic-operator conditions period] :as rule}]
   (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
   (assert field (str "No field in rule: " rule))
   (assert (map? record))
-  (let [field-value (field record)
-        _ (assert field-value (str "No field " field " in: " (keys record)))
-        f (condp = logic-operator
-            :single (let [_ (assert (= 1 (count conditions)))
-                          [how-kw match-text] (first conditions)]
-                      (assert how-kw)
-                      (assert match-text)
-                      ((condition-functions how-kw) match-text))
-            :and (make-many-preds-fn every-pred conditions)
-            :or (make-many-preds-fn some-fn conditions)
-            (assert false (str "Only :single :and - got: <" logic-operator ">")))
-        _ (assert f (str "Not found a function for " rule))]
-    (when (f field-value)
-      rule)))
+  (when (or (nil? period) (t/within-period? period (:out/date record)))
+    (let [field-value (field record)
+          _ (assert field-value (str "No field " field " in: " (keys record)))
+          f (condp = logic-operator
+              :single (let [_ (assert (= 1 (count conditions)))
+                            [how-kw match-text] (first conditions)]
+                        (assert how-kw)
+                        (assert match-text)
+                        ((condition-functions how-kw) match-text))
+              :and (make-many-preds-fn every-pred conditions)
+              :or (make-many-preds-fn some-fn conditions)
+              (assert false (str "Only :single :and - got: <" logic-operator ">")))
+          _ (assert f (str "Not found a function for " rule))]
+      (when (f field-value)
+        rule))))
 
 (defn records-rule-matches [rules record]
   (keep (partial match record) rules))

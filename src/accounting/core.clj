@@ -69,13 +69,20 @@
   (let [importer (partial -import-records periods)]
     (mapcat importer bank-accounts)))
 
-(defn poor-match? [rule-matches]
-  (let [bad-count? (not (= 1 (count rule-matches)))]
-    bad-count?))
-
 (defn show [record]
   (let [date (-> record :out/date t/format-date)]
     (assoc record :out/date date)))
+
+;;
+;; Intention to have `equal` being better then `starts-with`, but would be too much
+;; work. Better for the problem to come out to the user, and the user to decide which
+;; one overrides. We can make an override group and a sequence in it.
+;;
+#_(defn not-clear-override? [rec rule-matches]
+  (when (= 2 (count rule-matches))
+    (u/pp rec)
+    (u/pp rule-matches))
+  true)
 
 (defn first-without-single-rule-match [bank-accounts periods rules-in]
   (let [rules (m/bank-rules bank-accounts rules-in)
@@ -84,7 +91,9 @@
         records (import-records periods bank-accounts)]
     (first (for [record records
                  :let [rule-matches (matcher record)]
-                 :when (or (empty? rule-matches) (poor-match? rule-matches))]
+                 :when (and (not= 1 (count rule-matches))
+                            ;(not-clear-override? record rule-matches)
+                            )]
              [(show record) (mapv :rule/target-account rule-matches)]))))
 
 ;;

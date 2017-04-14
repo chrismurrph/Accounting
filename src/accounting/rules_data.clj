@@ -142,6 +142,7 @@
                                      :logic-operator :single
                                      :conditions     [[:starts-with "HCF"]]}]
    [visa :exp/bank-fee]            [{:field          :out/desc
+                                     :dominates #{:personal/anz-visa}
                                      :logic-operator :or
                                      :conditions     [[:equals "INTEREST CHARGED ON CASH"]
                                                       [:equals "REWARD PROGRAM FEE"]

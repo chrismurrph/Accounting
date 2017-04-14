@@ -16,8 +16,7 @@
 (def -current {:bank       (amp meta/bank-accounts)
                :period     {:period/tax-year    2017
                             :period/quarter current-quarter}
-               :temp-rules (quarter->rules current-quarter)
-               })
+               :temp-rules (quarter->rules current-quarter)})
 (def current-periods-range [(:period -current)])
 
 (defn canonicalise-rules [rules-in]

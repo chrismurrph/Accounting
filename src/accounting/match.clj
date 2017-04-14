@@ -30,12 +30,18 @@
   (fn [field-value]
     (s/includes? field-value includes)))
 
+(defn local-some-fn [])
+
 (def condition-functions
   {:starts-with -starts-with?
    :ends-with   -ends-with?
    :equals      -equals?
    :contains    -contains?})
 
+;;
+;; preds-fn is either every-pred or some-fn, both hofs,
+;; so here the function to be called is returned.
+;;
 (defn make-many-preds-fn [preds-fn conditions]
   (assert (> (count conditions) 1))
   (let [hofs (map (comp condition-functions first) conditions)
@@ -44,6 +50,7 @@
                      (f match-text)) hofs (map second conditions))]
     (apply preds-fn preds)))
 
+;;   Only matches if they were chosen
 ;;   :on-dates
 ;;   :between-dates-inclusive
 ;;   :amount
@@ -77,8 +84,23 @@
               :or (make-many-preds-fn some-fn conditions)
               (assert false (str "Only :single :and - got: <" logic-operator ">")))
           _ (assert f (str "Not found a function for " rule))]
-      (when (f field-value)
+      (when-let [res (f field-value)]
         rule))))
 
+;;
+;; When 2 matches come through one may have been set as the dominator. If the one dominates the
+;; other we can return it. Otherwise return 2 as would normally
+;;
 (defn records-rule-matches [rules record]
-  (keep (partial match record) rules))
+  (let [xs (keep (partial match record) rules)
+        res-count (count xs)]
+    (if (not= 2 res-count)
+      xs
+      (let [[[dominator & more-dominators] [recessive & _]] (split-with :dominates xs)
+            dominated-set (:dominates dominator)
+            recessive-target (:rule/target-account recessive)]
+        (if (and (nil? more-dominators)
+                 dominated-set
+                 (dominated-set recessive-target))
+          [dominator]
+          xs)))))

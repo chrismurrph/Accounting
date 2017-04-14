@@ -1,4 +1,4 @@
-(ns accounting.rules
+(ns accounting.match
   (:require [clojure.string :as s]
             [accounting.util :as u]
             [accounting.meta :as meta]
@@ -26,10 +26,15 @@
   (fn [field-value]
     (= field-value equals)))
 
+(defn -contains? [includes]
+  (fn [field-value]
+    (s/includes? field-value includes)))
+
 (def condition-functions
   {:starts-with -starts-with?
    :ends-with   -ends-with?
-   :equals      -equals?})
+   :equals      -equals?
+   :contains    -contains?})
 
 (defn make-many-preds-fn [preds-fn conditions]
   (assert (> (count conditions) 1))
@@ -39,13 +44,13 @@
                      (f match-text)) hofs (map second conditions))]
     (apply preds-fn preds)))
 
-;;   :on-date
+;;   :on-dates
 ;;   :between-dates-inclusive
 ;;   :amount
 ;;   - already has :period
-(defn matches-chosen-specifics? [record {:keys [period on-date between-dates-inclusive amount] :as rule}]
+(defn matches-chosen-specifics? [record {:keys [period on-dates between-dates-inclusive amount] :as rule}]
   (and (or (nil? period) (t/within-period? period (:out/date record)))
-       (or (nil? on-date) (t/equal? on-date (:out/date record)))
+       (or (nil? on-dates) (t/in-set? on-dates (:out/date record)))
        (or (nil? between-dates-inclusive)
            (let [[start end] between-dates-inclusive]
              (t/within-range? start end (:out/date record))))
@@ -77,10 +82,3 @@
 
 (defn records-rule-matches [rules record]
   (keep (partial match record) rules))
-
-(defn canonicalise-rules [rules-in]
-  (mapcat (fn [[[source-bank target-account] v]]
-            (map #(assoc % :rule/source-bank source-bank :rule/target-account target-account) v)) rules-in))
-
-(defn merge-permanent-with [quarter-only-rules]
-  (merge-with (comp vec concat) d/permanent-rules quarter-only-rules))

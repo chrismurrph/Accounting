@@ -2,7 +2,7 @@
   (:require [accounting.meta :as meta]
             [accounting.util :as u]
             [accounting.convert :as c]
-            [accounting.rules :as r]
+            [accounting.match :as m]
             [accounting.rules-data :as rd]
             [clojure.string :as s]
             [accounting.gl :as gl]
@@ -78,9 +78,9 @@
     (assoc record :out/date date)))
 
 (defn first-without-single-rule-match [bank-accounts periods rules-in]
-  (let [rules (r/bank-rules bank-accounts rules-in)
+  (let [rules (m/bank-rules bank-accounts rules-in)
         ;_ (u/pp rules)
-        matcher (partial r/records-rule-matches rules)
+        matcher (partial m/records-rule-matches rules)
         records (import-records periods bank-accounts)]
     (first (for [record records
                  :let [rule-matches (matcher record)]
@@ -93,7 +93,7 @@
 ;; All we needed from the rule is the target account
 ;;
 (defn attach-rules [bank-accounts periods rules]
-  (let [matcher (partial r/records-rule-matches rules)
+  (let [matcher (partial m/records-rule-matches rules)
         records (import-records periods bank-accounts)]
     (for [record records
           :let [[rule & tail :as matched-rules] (matcher record)
@@ -110,7 +110,7 @@
         [target-account (assoc record :out/dest-account target-account)]))))
 
 (defn account-grouped-transactions [bank-accounts periods rules]
-  (->> (attach-rules bank-accounts periods (r/bank-rules bank-accounts rules))
+  (->> (attach-rules bank-accounts periods (m/bank-rules bank-accounts rules))
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))
        ))

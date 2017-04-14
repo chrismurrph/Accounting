@@ -2,7 +2,6 @@
   (:require [accounting.core :as c]
             [accounting.meta :as meta]
             [accounting.util :as u]
-            [accounting.rules :as r]
             [accounting.gl :as gl]
             [accounting.rules-data :as d]
             [accounting.context :as con]))

@@ -30,7 +30,7 @@
 (def -q3-2017-rules {
                      ;; Upon closer investigation, this one was personal spending
                      [amp :personal/amp]        [{:field          :out/desc
-                                                  :on-date        (t/long-date-str->date "20 Feb 2017")
+                                                  :on-dates       #{(t/long-date-str->date "20 Feb 2017")}
                                                   :logic-operator :and
                                                   :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                                    [:ends-with "PAYPAL AUSTRALIA"]]}]
@@ -53,7 +53,7 @@
 
 (def -q2-2017-rules {
                      [amp :personal/amp] [{:field          :out/desc
-                                           :on-date        (t/long-date-str->date "12 Dec 2016")
+                                           :on-dates       #{(t/long-date-str->date "12 Dec 2016") (t/long-date-str->date "8 Dec 2016")}
                                            :logic-operator :and
                                            :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                             [:ends-with "PAYPAL AUSTRALIA"]]}]})
@@ -98,7 +98,15 @@
                                                       [:starts-with "GREAT DREAM PTY LTD       HAYBOROUGH"]
                                                       [:starts-with "JETTY SURF"]
                                                       [:starts-with "COCKLES ON NORTH"]
-                                                      [:starts-with "CORIOLE VINEYARDS"]]}]
+                                                      [:starts-with "CORIOLE VINEYARDS"]
+                                                      [:equals "HAZELS POOLSIDE CAFE      HAZELWOOD PAR"]
+                                                      [:equals "J TSIMBINOS & PARTNERS    ADELAIDE"]
+                                                      [:equals "NRMA LIMITED - 2          NORTH STRATHF"]
+                                                      [:equals "COLES EXPRESS 1943        ROSE PARK"]
+                                                      [:equals "HOTEL ROYAL               TORRENSVILLE"]
+                                                      [:equals "NATIONAL PHARMACIES       VICTOR HARBOR"]
+                                                      [:equals "RECOVERIES CORP           MELBOURNE"]
+                                                      [:starts-with "CASH ADVANCE"]]}]
    [visa :exp/office-expense]      [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "OFFICEWORKS"]]}]
@@ -106,6 +114,7 @@
                                      :logic-operator :or
                                      :conditions     [[:starts-with "CALTEX"]
                                                       [:starts-with "BP"]
+                                                      [:contains "PETROL"]
                                                       [:starts-with "X CONVENIENCE MT BARKE"]]}]
    [visa :exp/motor-vehicle]       [{:field          :out/desc
                                      :logic-operator :or
@@ -132,16 +141,22 @@
    [visa :non-exp/private-health]  [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "HCF"]]}]
+   [visa :exp/bank-fee]            [{:field          :out/desc
+                                     :logic-operator :or
+                                     :conditions     [[:equals "INTEREST CHARGED ON CASH"]
+                                                      [:equals "REWARD PROGRAM FEE"]
+                                                      [:equals "ANNUAL FEE"]
+                                                      [:equals "CASH ADVANCE FEE - INTERNET"]]}]
    [amp :personal/amp]             [{:field          :out/desc
                                      :logic-operator :or
                                      :conditions     [[:ends-with "drawings"]
                                                       [:equals "Direct Entry Credit Item Ref: drawings Seaweed Software"]
                                                       [:starts-with "ATM Withdrawal - "]
-                                                      [:starts-with "Purchase - Ideal Shoe Sto"]]}]
-   ;[amp :investigate-further]      [{:field          :out/desc
-   ;                                  :logic-operator :and
-   ;                                  :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
-   ;                                                   [:ends-with "PAYPAL AUSTRALIA"]]}]
+                                                      [:starts-with "Purchase - Ideal Shoe Sto"]
+                                                      [:equals "Outward Dishonour Fee - Electronic"]
+                                                      [:starts-with "Dishonour of: Direct Entry Debit Item Ref:"]
+                                                      [:equals "ATM Direct Charge"]
+                                                      [:equals "Purchase - IGA HUTT ST              ADELAIDE     AU"]]}]
    [coy :income/mining-sales]      [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]

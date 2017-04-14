@@ -1,10 +1,10 @@
-(ns accounting.test-rules
-  (:require [accounting.rules :as r]
+(ns accounting.test-match
+  (:require [accounting.match :as m]
             [accounting.util :as u]
             [accounting.context :as con]))
 
 (defn x-1 []
-  (u/pp (r/bank-rules #{:bank/anz-coy} con/current-rules)))
+  (u/pp (m/bank-rules #{:bank/anz-coy} con/current-rules)))
 
 (defn x-2 []
   (->> con/current-rules

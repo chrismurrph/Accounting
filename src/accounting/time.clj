@@ -88,6 +88,10 @@
            (t/equal? date start-moment))
        (t/before? date end-moment)))
 
+;; I'm assuming these Java dates are immutable - don't know why equals? exists in the clj-time library
+(defn in-set? [dates date]
+  (dates date))
+
 (defn within-period? [period date]
   (let [start-moment (start-period-moment period)
         end-moment (end-period-moment period)]

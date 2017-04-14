@@ -89,7 +89,9 @@
 
 ;;
 ;; When 2 matches come through one may have been set as the dominator. If the one dominates the
-;; other we can return it. Otherwise return 2 as would normally
+;; other we can return it. Otherwise return 2 as would normally.
+;; If, of all the competing matches, many dominte then we have no way of knowing which the most
+;; dominant. Then we would have to start using ordinality.
 ;;
 (defn records-rule-matches [rules record]
   (let [xs (keep (partial match record) rules)
@@ -97,10 +99,9 @@
     (if (not= 2 res-count)
       xs
       (let [[[dominator & more-dominators] [recessive & _]] (split-with :dominates xs)
-            dominated-set (:dominates dominator)
-            recessive-target (:rule/target-account recessive)]
+            dominated-set (:dominates dominator)]
         (if (and (nil? more-dominators)
                  dominated-set
-                 (dominated-set recessive-target))
+                 (dominated-set (:rule/target-account recessive)))
           [dominator]
           xs)))))

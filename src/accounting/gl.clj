@@ -23,6 +23,8 @@
    :non-exp/private-health   0
    :exp/petrol               0
    :exp/computer-expense     0
+   :exp/office-rent          0
+   :exp/travel               0
    :income/bank-interest     0})
 
 (def example-transaction-income

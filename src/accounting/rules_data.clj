@@ -58,11 +58,23 @@
                                            :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                             [:ends-with "PAYPAL AUSTRALIA"]]}]})
 
+(def -q1-2017-rules {
+                     [amp :exp/travel]      [{:field          :out/desc
+                                              :logic-operator :or
+                                              :conditions     [[:equals "Internet banking external transfer 062202 10481871 - car rental"]
+                                                               [:equals "ROAM TOLLING P/L          MELBOURNE"]]}]
+                     [amp :exp/office-rent] [{:field          :out/desc
+                                              :logic-operator :single
+                                              :conditions     [[:equals "Internet banking external transfer 062202 10481871 - renting caravan"]]}]})
+
 (def q3-2017-rules (attach-period {:period/tax-year 2017
                                    :period/quarter  :q3} -q3-2017-rules))
 
 (def q2-2017-rules (attach-period {:period/tax-year 2017
                                    :period/quarter  :q2} -q2-2017-rules))
+
+(def q1-2017-rules (attach-period {:period/tax-year 2017
+                                   :period/quarter  :q1} -q1-2017-rules))
 
 ;;
 ;; From which bank account tells you which account to put the transaction to
@@ -106,7 +118,12 @@
                                                       [:equals "HOTEL ROYAL               TORRENSVILLE"]
                                                       [:equals "NATIONAL PHARMACIES       VICTOR HARBOR"]
                                                       [:equals "RECOVERIES CORP           MELBOURNE"]
-                                                      [:starts-with "CASH ADVANCE"]]}]
+                                                      [:starts-with "CASH ADVANCE"]
+                                                      [:equals "LUNCH ON ANGAS            ADELAIDE"]
+                                                      [:equals "IGA HUTT ST               ADELAIDE"]
+                                                      [:equals "THE YIROS HUTT BY YA      ADELAIDE"]
+                                                      [:equals "GENERAL HAVELOCK PTY L    ADELAIDE"]
+                                                      [:equals "PARADE SUPERMARKET PTY    NORWOOD"]]}]
    [visa :exp/office-expense]      [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "OFFICEWORKS"]]}]
@@ -129,6 +146,7 @@
    [visa :exp/cloud-expense]       [{:field          :out/desc
                                      :logic-operator :or
                                      :conditions     [[:starts-with "GOOGLE*SVCSAPPS SEASOF"]
+                                                      [:equals "GOOGLE*SVCSAPPSSTRANDZ-OR SINGAPORE"]
                                                       [:starts-with "GOOGLE*SVCSAPPS STRAND"]
                                                       [:starts-with "LINODE.COM"]
                                                       [:starts-with "FastMail Pty Ltd"]]}]
@@ -138,16 +156,20 @@
    [visa :exp/mobile-expense]      [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:equals "TELSTRA                   MELBOURNE"]]}]
+   [visa :exp/isp]                 [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:equals "IINET LIMITED             PERTH"]]}]
    [visa :non-exp/private-health]  [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "HCF"]]}]
    [visa :exp/bank-fee]            [{:field          :out/desc
-                                     :dominates #{:personal/anz-visa}
+                                     :dominates      #{:personal/anz-visa}
                                      :logic-operator :or
                                      :conditions     [[:equals "INTEREST CHARGED ON CASH"]
                                                       [:equals "REWARD PROGRAM FEE"]
                                                       [:equals "ANNUAL FEE"]
-                                                      [:equals "CASH ADVANCE FEE - INTERNET"]]}]
+                                                      [:equals "CASH ADVANCE FEE - INTERNET"]
+                                                      [:equals "LATE PAYMENT FEE"]]}]
    [amp :personal/amp]             [{:field          :out/desc
                                      :logic-operator :or
                                      :conditions     [[:ends-with "drawings"]
@@ -157,7 +179,18 @@
                                                       [:equals "Outward Dishonour Fee - Electronic"]
                                                       [:starts-with "Dishonour of: Direct Entry Debit Item Ref:"]
                                                       [:equals "ATM Direct Charge"]
-                                                      [:equals "Purchase - IGA HUTT ST              ADELAIDE     AU"]]}]
+                                                      [:equals "Reversal of ATM Direct Charge"]
+                                                      [:starts-with "Reversal of ATM Withdrawal"]
+                                                      [:equals "Purchase - IGA HUTT ST              ADELAIDE     AU"]
+                                                      [:equals "Purchase - LUNCH ON ANGAS      ADELAIDE          AU"]
+                                                      ;; Putting money in, like a reverse drawings
+                                                      [:equals "Internet banking scheduled external transfer 012030 198414945"]
+                                                      [:equals "Purchase/Cash out - H.B. FOODS PTY LIMIT HAZELBROOK NSW"]
+                                                      [:equals "Purchase/Cash out - COLES EXPRESS 1724       FAULCONBRIDGEAU"]]}
+                                    {:field          :out/desc
+                                     :logic-operator :and
+                                     :conditions     [[:starts-with "Internet banking bill payment"]
+                                                      [:ends-with "4509499246191003"]]}]
    [coy :income/mining-sales]      [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "TRANSFER FROM MINES RESCUE PTY CS"]]}]
@@ -167,9 +200,16 @@
    [coy :income/bank-interest]     [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:starts-with "CREDIT INTEREST PAID"]]}]
+   [coy :exp/office-rent]          [{:field          :out/desc
+                                     :logic-operator :and
+                                     :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
+                                                      [:ends-with "313 TRU"]]}]
    [coy :exp/bank-fee]             [{:field          :out/desc
                                      :logic-operator :single
                                      :conditions     [[:equals "ACCOUNT SERVICING FEE"]]}]
+   [coy :exp/interest-expense]     [{:field          :out/desc
+                                     :logic-operator :single
+                                     :conditions     [[:equals "DEBIT INTEREST CHARGED"]]}]
    [coy :non-exp/ato-payment]      [{:field          :out/desc
                                      :logic-operator :or
                                      :conditions     [[:starts-with "ANZ INTERNET BANKING BPAY TAX OFFICE PAYMENT"]

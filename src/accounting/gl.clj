@@ -3,10 +3,16 @@
             [accounting.util :as u]
             [accounting.rules-data :as rd]))
 
+;; Bank amounts are as at 30/06/2016, so s/be able to run quarters 1, 2 and 3 and get
+;; balances as at 31/03/2017, which are:
+;; :bank/anz-coy    2138.16
+;; :bank/anz-visa    250.74
+;; :bank/amp         431.76
+;; They were indeed these amounts!
 (def general-ledger
-  {:bank/anz-coy              0M
-   :bank/anz-visa             0M
-   :bank/amp                  0M
+  {:bank/anz-coy              96.15M
+   :bank/anz-visa             -1024.48M
+   :bank/amp                  3010.59M
    :personal/amp              0M
    :personal/anz-visa         0M
    :income/mining-sales       0M
@@ -71,7 +77,7 @@
       splits
       )))
 
-(def dont-modify-gl (fn [x y] x))
+(def dont-modify-gl (fn [x _] x))
 
 (def how-apply-namespace
   {"income"   modify-gl
@@ -89,7 +95,7 @@
   (assert dest-account)
   (assert amount)
   (let [ns (namespace dest-account)
-        _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (-> trans t/show u/pp-str)))
+        _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (-> trans t/show-record u/pp-str)))
         f (how-apply-namespace ns)]
-    (assert f (str "Not found a function for namespace: <" ns ">, with dest-account: <" dest-account ">:\n" (-> trans t/show u/pp-str)))
+    (assert f (str "Not found a function for namespace: <" ns ">, with dest-account: <" dest-account ">:\n" (-> trans t/show-record u/pp-str)))
     (f gl trans)))

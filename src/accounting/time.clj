@@ -54,7 +54,7 @@
 (def -time-formatter (f/formatter "dd/MM/yyyy HH:mm:ss"))
 (def format-time #(f/unparse -time-formatter %))
 
-(defn show [record]
+(defn show-record [record]
   (let [fdate (-> record :out/date format-date)]
     (assoc record :out/date fdate)))
 
@@ -94,6 +94,7 @@
 
 ;; I'm assuming these Java dates are immutable - don't know why equals? exists in the clj-time library
 (defn in-set? [dates date]
+  ;(println (str "See if " (format-date date) " is in " (mapv format-date dates)))
   (dates date))
 
 (defn within-period? [period date]

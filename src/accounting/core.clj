@@ -90,7 +90,7 @@
                  :when (and (not= 1 (count rule-matches))
                             ;(not-clear-override? record rule-matches)
                             )]
-             [(t/show record) (mapv :rule/target-account rule-matches)]))))
+             [(t/show-record record) (mapv :rule/target-account rule-matches)]))))
 
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get

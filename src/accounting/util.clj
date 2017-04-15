@@ -16,6 +16,12 @@
 (def to-int #(Integer/parseInt %))
 (def to-ints (partial map to-int))
 
+#_(defn round2
+  "Round a double to the given precision (number of significant digits)"
+  [d]
+  (let [factor (Math/pow 10M 2M)]
+    (/ (Math/round (* d factor)) factor)))
+
 ;; "206.90" read-string returns a string, go figure - yet works as expected in the REPL
 ;; Answer was that it was coated twice with double quotes, so need to read-string twice
 (defn str-number? [x]
@@ -25,7 +31,7 @@
       (number? first-unquote)
       (-> first-unquote read-string number?))))
 
-(def width 150)
+(def width 120)
 
 (defn pp-str
   ([n x]
@@ -40,6 +46,8 @@
      (-> x clojure.pprint/pprint)))
   ([x]
    (pp width x)))
+
+(def pp-off identity)
 
 (defn probe-off
   ([x]

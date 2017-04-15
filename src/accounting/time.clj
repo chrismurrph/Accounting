@@ -54,6 +54,10 @@
 (def -time-formatter (f/formatter "dd/MM/yyyy HH:mm:ss"))
 (def format-time #(f/unparse -time-formatter %))
 
+(defn show [record]
+  (let [fdate (-> record :out/date format-date)]
+    (assoc record :out/date fdate)))
+
 (def change-for-quarter
   {:q1 dec
    :q2 dec

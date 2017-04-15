@@ -69,10 +69,6 @@
   (let [importer (partial -import-records periods)]
     (mapcat importer bank-accounts)))
 
-(defn show [record]
-  (let [date (-> record :out/date t/format-date)]
-    (assoc record :out/date date)))
-
 ;;
 ;; Intention to have `equal` being better then `starts-with`, but would be too much
 ;; work. Better for the problem to come out to the user, and the user to decide which
@@ -94,7 +90,7 @@
                  :when (and (not= 1 (count rule-matches))
                             ;(not-clear-override? record rule-matches)
                             )]
-             [(show record) (mapv :rule/target-account rule-matches)]))))
+             [(t/show record) (mapv :rule/target-account rule-matches)]))))
 
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get

@@ -26,7 +26,6 @@
                             (set meta/bank-accounts)
                             con/current-periods-range
                             con/current-rules)
-                          ;(remove #(= :investigate-further (first %)))
                           u/probe-off
                           (map second)
                           (sort-by :out/date)

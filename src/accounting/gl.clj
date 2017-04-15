@@ -1,52 +1,44 @@
 (ns accounting.gl
   (:require [accounting.time :as t]
-            [accounting.util :as u]))
+            [accounting.util :as u]
+            [accounting.rules-data :as rd]))
 
 (def general-ledger
-  {:bank/anz-coy             0
-   :bank/anz-visa            0
-   :bank/amp                 0
-   :personal/amp             0
-   :personal/anz-visa        0
-   :income/poker-parse-sales 0
-   :exp/office-expense       0
-   :capital/drawings         0
-   :exp/motor-vehicle        0
-   :exp/cloud-expense        0
-   :exp/niim-trip            0
-   :exp/accounting-software  0
-   :income/mining-sales      0
-   :exp/mobile-expense       0
-   :exp/bank-fee             0
-   :exp/interest-expense     0
-   :non-exp/ato-payment      0
-   :non-exp/private-health   0
-   :exp/petrol               0
-   :exp/computer-expense     0
-   :exp/office-rent          0
-   :exp/travel               0
-   :income/bank-interest     0})
-
-(def example-transaction-income
-  #:out{:date         (t/long-date-str->date "31 Mar 2017"),
-        :amount       206.90M,
-        :desc         "TRANSFER FROM R T WILSON       FROM 03645081",
-        :src-bank     :bank/anz-coy,
-        :dest-account :income/poker-parse-sales})
-
-(def example-transaction-exp
-  #:out{:date         (t/long-date-str->date "30 Mar 2017"),
-        :amount       -15.91M,
-        :desc         "OFFICEWORKS 0502          TRINITY GDNS",
-        :src-bank     :bank/anz-visa,
-        :dest-account :exp/office-expense})
-
-(def example-transaction-capital
-  #:out{:date         (t/long-date-str->date "21 Mar 2017"),
-        :amount       -400.00M,
-        :desc         "ANZ INTERNET BANKING FUNDS TFER TRANSFER 546251 TO      CHRISTOPHER MURP",
-        :src-bank     :bank/anz-coy,
-        :dest-account :capital/drawings})
+  {:bank/anz-coy              0M
+   :bank/anz-visa             0M
+   :bank/amp                  0M
+   :personal/amp              0M
+   :personal/anz-visa         0M
+   :income/mining-sales       0M
+   :income/poker-parse-sales  0M
+   :income/bank-interest      0M
+   :capital/drawings          0M
+   :exp/office-expense        0M
+   :exp/motor-vehicle         0M
+   :exp/cloud-expense         0M
+   :exp/niim-trip             0M
+   :exp/accounting-software   0M
+   :exp/mobile-expense        0M
+   :exp/bank-fee              0M
+   :exp/interest-expense      0M
+   :exp/petrol                0M
+   :exp/computer-expense      0M
+   :exp/office-rent           0M
+   :exp/travel                0M
+   :exp/donations             0M
+   :exp/isp                   0M
+   :exp/storage               0M
+   :exp/light-power-heating   0M
+   :exp/accomodation          0M
+   :exp/food                  0M
+   :exp/advertising           0M
+   :exp/meeting-entertainmant 0M
+   :exp/asic-payment          0M
+   :exp/freight-courier       0M
+   :exp/accounting-expense    0M
+   :non-exp/ato-payment       0M
+   :non-exp/private-health    0M
+   })
 
 ;;
 ;; If the ns is income we increase :src-bank and decrease :dest-account
@@ -54,32 +46,50 @@
 ;; So +ive is Debit and -ive is Credit
 ;; Decreasing income account is Credit of :income/poker-parse-sales
 ;;
-(defn modify-gl [gl src-bank dest-account amount]
+(defn modify-gl [gl {:keys [out/src-bank out/dest-account out/amount]}]
   (assert src-bank)
   (assert dest-account)
   (number? amount)
   (assert (src-bank gl) (str "Not in general ledger: " src-bank))
   (assert (dest-account gl) (str "Not in general ledger: " dest-account))
   (-> gl
-      (update src-bank #(+ % amount))
-      (update dest-account #(- % amount))))
+      (update src-bank #(+' % amount))
+      (update dest-account #(-' % amount))))
 
-(def how-apply
+(defn split-modify-gl [gl {:keys [out/src-bank out/dest-account out/amount]}]
+  (let [splits (-> dest-account name keyword rd/splits vec)]
+    (reduce
+      (fn [gl [dest-account proportion]]
+        (let [prop-amt' (*' proportion amount)
+              ;; with-precision doesn't do decimal places
+              prop-amt (bigdec (format "%.2f" prop-amt'))]
+          ;(println "got" prop-amt " from " amount " and " proportion)
+          (modify-gl gl {:out/src-bank     src-bank
+                         :out/dest-account dest-account
+                         :out/amount       prop-amt})))
+      gl
+      splits
+      )))
+
+(def dont-modify-gl (fn [x y] x))
+
+(def how-apply-namespace
   {"income"   modify-gl
    "exp"      modify-gl
    "non-exp"  modify-gl
    "capital"  modify-gl
-   "personal" modify-gl})
+   "personal" modify-gl
+   "split"    split-modify-gl})
 
 ;;
 ;; Modifies gl, used by reduce
 ;;
-(defn apply-trans [gl {:keys [out/amount out/src-bank out/dest-account] :as trans}]
-  (assert amount)
+(defn apply-trans [gl {:keys [out/src-bank out/dest-account out/amount] :as trans}]
   (assert src-bank)
   (assert dest-account)
+  (assert amount)
   (let [ns (namespace dest-account)
-        _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (u/pp-str trans)))
-        f (how-apply ns)]
-    (assert f (str "Not found a function for " ns))
-    (f gl src-bank dest-account amount)))
+        _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (-> trans t/show u/pp-str)))
+        f (how-apply-namespace ns)]
+    (assert f (str "Not found a function for namespace: <" ns ">, with dest-account: <" dest-account ">:\n" (-> trans t/show u/pp-str)))
+    (f gl trans)))

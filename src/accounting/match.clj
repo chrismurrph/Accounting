@@ -43,7 +43,7 @@
 ;; so here the function to be called is returned.
 ;;
 (defn make-many-preds-fn [preds-fn conditions]
-  (assert (> (count conditions) 1))
+  (assert (seq conditions))
   (let [hofs (map (comp condition-functions first) conditions)
         _ (assert (empty? (filter nil? hofs)) (str "Missing functions from: " conditions))
         preds (map (fn [f match-text]
@@ -75,11 +75,13 @@
     (let [field-value (field record)
           _ (assert field-value (str "No field " field " in: " (keys record)))
           f (condp = logic-operator
-              :single (let [_ (assert (= 1 (count conditions)))
-                            [how-kw match-text] (first conditions)]
-                        (assert how-kw)
-                        (assert match-text)
-                        ((condition-functions how-kw) match-text))
+              :single (let [_ (assert (= 1 (count conditions)) (str "More than 1 condition for single: " conditions))
+                            [how-kw match-text] (first conditions)
+                            _ (assert how-kw)
+                            _ (assert match-text)
+                            f (condition-functions how-kw)
+                            _ (assert f (str "Unrecognised condition: " how-kw))]
+                        (f match-text))
               :and (make-many-preds-fn every-pred conditions)
               :or (make-many-preds-fn some-fn conditions)
               (assert false (str "Only :single :and - got: <" logic-operator ">")))

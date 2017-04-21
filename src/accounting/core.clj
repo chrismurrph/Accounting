@@ -1,12 +1,10 @@
 (ns accounting.core
-  (:require [accounting.meta :as meta]
+  (:require [accounting.meta.common :as common-meta]
             [accounting.util :as u]
             [accounting.convert :as c]
             [accounting.match :as m]
-            [accounting.rules-data :as rd]
             [clojure.string :as s]
             [accounting.gl :as gl]
-            [accounting.rules-data :as d]
             [accounting.time :as t]))
 
 (defn chk-seq [xs]
@@ -52,7 +50,7 @@
 
 (defn -raw-data->csv [bank]
   (fn [period]
-    (let [file-path (meta/bank-period->file-name bank period)]
+    (let [file-path ((common-meta/bank-period->file-name (common-meta/human-meta :seaweed)) bank period)]
       (->> (slurp file-path)
            s/split-lines
            (map u/line->csv)))))
@@ -68,17 +66,6 @@
 (defn import-records [periods bank-accounts]
   (let [importer (partial -import-records periods)]
     (mapcat importer bank-accounts)))
-
-;;
-;; Intention to have `equal` being better then `starts-with`, but would be too much
-;; work. Better for the problem to come out to the user, and the user to decide which
-;; one overrides. We can make an override group and a sequence in it.
-;;
-#_(defn not-clear-override? [rec rule-matches]
-  (when (= 2 (count rule-matches))
-    (u/pp rec)
-    (u/pp rule-matches))
-  true)
 
 (defn first-without-single-rule-match [bank-accounts periods rules-in]
   (let [rules (m/bank-rules bank-accounts rules-in)
@@ -117,8 +104,7 @@
 (defn account-grouped-transactions [bank-accounts periods rules]
   (->> (attach-rules bank-accounts periods (m/bank-rules bank-accounts rules))
        (group-by first)
-       (map (fn [[k v]] [k (sort-by :out/date (map second v))]))
-       ))
+       (map (fn [[k v]] [k (sort-by :out/date (map second v))]))))
 
 (defn accounts-summary [transacts]
   (->> transacts

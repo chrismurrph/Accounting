@@ -1,8 +1,7 @@
 (ns accounting.match
   (:require [clojure.string :as s]
             [accounting.util :as u]
-            [accounting.meta :as meta]
-            [accounting.rules-data :as d]
+            [accounting.seaweed-rules-data :as d]
             [accounting.time :as t]))
 
 ;;

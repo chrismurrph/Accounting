@@ -1,7 +1,7 @@
 (ns accounting.gl
   (:require [accounting.time :as t]
             [accounting.util :as u]
-            [accounting.rules-data :as rd]))
+            [accounting.seaweed-rules-data :as rd]))
 
 ;; Bank amounts are as at 30/06/2016, so s/be able to run quarters 1, 2 and 3 and get
 ;; balances as at 31/03/2017, which are:

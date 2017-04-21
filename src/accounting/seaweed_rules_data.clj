@@ -1,5 +1,5 @@
-(ns accounting.rules-data
-  (:require [accounting.meta :as meta]
+(ns accounting.seaweed-rules-data
+  (:require [accounting.meta.seaweed :as meta]
             [accounting.util :as u]
             [accounting.time :as t]))
 

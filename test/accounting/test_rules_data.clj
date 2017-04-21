@@ -1,5 +1,5 @@
 (ns accounting.test-rules-data
-  (:require [accounting.rules-data :as rd]
+  (:require [accounting.seaweed-rules-data :as rd]
             [accounting.util :as u]))
 
 (defn x-1 []

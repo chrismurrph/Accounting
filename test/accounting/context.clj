@@ -1,7 +1,7 @@
 (ns accounting.context
-  (:require [accounting.meta :as meta]
+  (:require [accounting.meta.seaweed :as meta]
             [accounting.match :as m]
-            [accounting.rules-data :as d]
+            [accounting.seaweed-rules-data :as d]
             [accounting.util :as u]))
 
 (def quarter->rules

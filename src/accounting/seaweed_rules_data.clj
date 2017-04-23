@@ -1,15 +1,12 @@
 (ns accounting.seaweed-rules-data
   (:require [accounting.meta.seaweed :as meta]
             [accounting.util :as u]
-            [accounting.time :as t]))
+            [accounting.time :as t]
+            [accounting.common :as c]))
 
 (def amp (first meta/bank-accounts))
 (def coy (second meta/bank-accounts))
 (def visa (u/third meta/bank-accounts))
-
-(defn attach-period [period rules-in]
-  (into {} (map (fn [[k v]]
-                  [k (mapv #(assoc % :period period) v)]) rules-in)))
 
 ;;
 ;; For every transaction date that comes thru that is :office-expense we will require a
@@ -94,14 +91,14 @@
                                                    :conditions     [[:equals "AMAZON AUST SERVICES      MELBOURNE"]]}]
                      })
 
-(def q3-2017-rules (attach-period {:period/tax-year 2017
-                                   :period/quarter  :q3} -q3-2017-rules))
+(def q3-2017-rules (c/attach-period {:period/tax-year 2017
+                                     :period/quarter  :q3} -q3-2017-rules))
 
-(def q2-2017-rules (attach-period {:period/tax-year 2017
-                                   :period/quarter  :q2} -q2-2017-rules))
+(def q2-2017-rules (c/attach-period {:period/tax-year 2017
+                                     :period/quarter  :q2} -q2-2017-rules))
 
-(def q1-2017-rules (attach-period {:period/tax-year 2017
-                                   :period/quarter  :q1} -q1-2017-rules))
+(def q1-2017-rules (c/attach-period {:period/tax-year 2017
+                                     :period/quarter  :q1} -q1-2017-rules))
 
 ;;
 ;; From which bank account tells you which account to put the transaction to

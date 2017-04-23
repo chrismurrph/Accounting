@@ -29,17 +29,40 @@
   (fn [field-value]
     (s/includes? field-value includes)))
 
-(defn local-some-fn [])
-
 (def condition-functions
   {:starts-with -starts-with?
    :ends-with   -ends-with?
    :equals      -equals?
    :contains    -contains?})
 
+(def condition-types
+  (into #{} (keys condition-functions)))
+
+(defn put-field-first-condition [rule condition]
+  (assert (condition-types (first condition)))
+  (into [(:field rule)] condition))
+
+(defn field-into-conditions [rule]
+  (assert (map? rule))
+  (if (:field rule)
+    (-> rule
+        (update :conditions (fn [conds]
+                              (mapv #(put-field-first-condition rule %1) conds)))
+        (dissoc :field))
+    rule))
+
+;; Want rules to just be in the form [{}{}...]
+(defn canonicalise-rules [rules-in]
+  (->> rules-in
+       (mapcat (fn [[[source-bank target-account] v]]
+                 (map #(assoc % :rule/source-bank source-bank :rule/target-account target-account) v)))
+       (map field-into-conditions)))
+
 ;;
 ;; preds-fn is either every-pred or some-fn, both hofs,
 ;; so here the function to be called is returned.
+;; Example condition:
+;; [:out/desc :starts-with "DIRECT CREDIT"]
 ;;
 (defn make-many-preds-fn [preds-fn conditions]
   (assert (seq conditions))
@@ -65,8 +88,11 @@
 ;;
 ;; Return the rule if there's a match against it
 ;; Conditions is a vector of vectors, eg: [[:starts-with "TRANSFER FROM R T WILSON"]]
+;; This is old because an example condition now looks like this:
+;; [:out/desc :starts-with "DIRECT CREDIT"]
+;; The field is in each condition and no longer exists in the rule
 ;;
-(defn match [record {:keys [field logic-operator conditions] :as rule}]
+(defn match-old [record {:keys [field logic-operator conditions] :as rule}]
   (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
   (assert field (str "No field in rule: " rule))
   (assert (map? record))
@@ -86,6 +112,36 @@
               (assert false (str "Only :single :and - got: <" logic-operator ">")))
           _ (assert f (str "Not found a function for " rule))]
       (when-let [res (f field-value)]
+        rule))))
+
+(defn chk-condition [[field how-kw match-text]]
+  (assert field)
+  (assert how-kw)
+  (assert match-text))
+
+;; Return the rule if there's a match against it
+;; A condition looks like:
+;; [:out/desc :starts-with "DIRECT CREDIT"]
+(defn match [record {:keys [logic-operator conditions] :as rule}]
+  (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
+  (assert (map? record))
+  (when (matches-chosen-specifics? record rule)
+    (let [res (condp = logic-operator
+                :single (let [_ (assert (= 1 (count conditions)) (str "More than 1 condition for single: " conditions))
+                              [field how-kw match-text :as condition] (first conditions)
+                              _ (chk-condition condition)
+                              f (condition-functions how-kw)
+                              _ (assert f (str "Unrecognised condition: " how-kw))]
+                          ((f match-text) (field record)))
+                :and (let [f-field-values (map (fn [[field how-kw match-text]] [((condition-functions how-kw) match-text) (field record)]) conditions)]
+                       (->> f-field-values
+                            (map (fn [[f value]] (f value)))
+                            u/probe-off
+                            (every? identity)))
+                :or (let [f-field-values (map (fn [[field how-kw match-text]] [((condition-functions how-kw) match-text) (field record)]) conditions)]
+                      (->> f-field-values
+                           (some (fn [[f value]] (f value))))))]
+      (when res
         rule))))
 
 ;;

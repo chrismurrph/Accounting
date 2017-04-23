@@ -1,6 +1,7 @@
 (ns accounting.data.croquet
   (:require
-    [accounting.time :as t]))
+    [accounting.time :as t]
+    [accounting.common :as c]))
 
 (def bendigo :bank/bendigo)
 
@@ -60,16 +61,19 @@
     :when   (t/short-date-str->date "26/02/2017")
     :amount 90.00M}])
 
-(def feb-rules
+(def -feb-rules
   {
    [bendigo :income/events] [{:logic-operator :and
                               :conditions     [[:out/desc :ends-with "DEPOSIT - FISHER J"]
                                                [:out/amount :equals 200.00M]]}]
    })
 
-(def mar-rules
-  {
-   })
+(def feb-rules (c/attach-period {:period/year  2017
+                                 :period/month :feb} -feb-rules))
+
+;(def -mar-rules {})
+;(def mar-rules (c/attach-period {:period/year  2017
+;                                 :period/month :mar} -mar-rules))
 
 (def permanent-rules
   {

@@ -17,6 +17,20 @@
    "Nov" 11
    "Dec" 12})
 
+(def kw->month
+  {:jan 1
+   :feb 2
+   :mar 3
+   :apr 4
+   :may 5
+   :jun 6
+   :jul 7
+   :aug 8
+   :sep 9
+   :oct 10
+   :nov 11
+   :dec 12})
+
 (def quarter->begin-month
   {:q1 7
    :q2 10
@@ -58,22 +72,47 @@
   (let [f-ed-date (-> record :out/date format-date)]
     (assoc record :out/date f-ed-date)))
 
-(def change-for-quarter
+(def change-year-for-quarter
   {:q1 dec
    :q2 dec
    :q3 identity
    :q4 identity})
 
-(defn start-period-moment [{:keys [period/tax-year period/quarter]}]
-  (let [year ((change-for-quarter quarter) tax-year)]
+(defn -start-quarter-moment [tax-year quarter]
+  (assert tax-year)
+  (let [calendar-year ((change-year-for-quarter quarter) tax-year)]
     (->> (quarter->begin-month quarter)
-         (t/first-day-of-the-month year))))
+         (t/first-day-of-the-month calendar-year))))
 
-(defn end-period-moment [{:keys [period/tax-year period/quarter]}]
-  (let [year ((change-for-quarter quarter) tax-year)]
+(defn -end-quarter-moment [tax-year quarter]
+  (assert tax-year)
+  (assert quarter)
+  (let [year ((change-year-for-quarter quarter) tax-year)]
     (-> (->> (quarter->end-month quarter)
              (t/last-day-of-the-month year))
         (t/plus (t/days 1)))))
+
+(defn -start-month-moment [month-kw year]
+  (->> month-kw
+       kw->month
+       (t/first-day-of-the-month year)))
+
+(defn -end-month-moment [month-kw year]
+  (-> (->> month-kw
+           kw->month
+           (t/last-day-of-the-month year))
+      (t/plus (t/days 1))))
+
+(defn start-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
+  ;(println "==" tax-year (nil? tax-year) year (nil? year))
+  (if (nil? tax-year)
+    (-start-month-moment month year)
+    (-start-quarter-moment tax-year quarter)))
+
+(defn end-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
+  (if (nil? tax-year)
+    (-end-month-moment month year)
+    (-end-quarter-moment tax-year quarter)))
 
 (defn equal? [this that]
   (t/equal? this that))
@@ -87,7 +126,7 @@
 ;;
 (defn within-range? [start-moment end-moment date]
   #_(when (= "08/02/2017" (format-date date))
-    (println (format-time date) (format-time end-moment)))
+      (println (format-time date) (format-time end-moment)))
   (and (or (t/after? date start-moment)
            (t/equal? date start-moment))
        (t/before? date end-moment)))

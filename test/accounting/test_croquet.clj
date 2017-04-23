@@ -4,19 +4,16 @@
             [accounting.util :as u]
             [accounting.gl :as gl]
             [accounting.data.croquet :as d]
-            [accounting.match :as m]))
+            [accounting.match :as m]
+            [accounting.croquet-context :as con]))
 
-(def current-range [{:period/year  2017
-                     :period/month :feb}
-                    {:period/year  2017
-                     :period/month :mar}
-                    ])
-(def current-rules (m/canonicalise-rules d/permanent-rules))
+(def current-range con/current-range)
+(def current-rules con/current-rules)
 (def croquet-bank-accounts (-> meta/human-meta :croquet :bank-accounts))
 (def ledgers (-> meta/human-meta :croquet :ledgers))
 
 (defn x-2 []
-  (-> (c/first-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)
+  (-> (c/records-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)
       u/pp))
 
 (defn x-5 []

@@ -18,7 +18,10 @@
     (let [err-msg (validate-fn field-value)]
       (if err-msg
         (assert false err-msg)
-        (convert-fn field-value)))))
+        (do
+          ;; Doesn't accept commas. Note we won't be using read-string forever
+          ;(println "CONV: " field-value)
+          (convert-fn field-value))))))
 
 (defn make-map [kws xs]
   (zipmap (map c/in->out-kw kws) xs))
@@ -67,18 +70,18 @@
   (let [importer (partial -import-records customer-kw periods)]
     (mapcat importer bank-accounts)))
 
-(defn first-without-single-rule-match [customer-kw bank-accounts periods rules-in]
+(defn records-without-single-rule-match [customer-kw bank-accounts periods rules-in]
   (let [rules (m/bank-rules bank-accounts rules-in)
         _ (assert (seq rules) (str "No rules found for " bank-accounts " from " (count rules-in)))
         ;_ (u/pp rules)
         matcher (partial m/records-rule-matches rules)
         records (import-records customer-kw periods bank-accounts)]
-    (first (for [record records
-                 :let [rule-matches (matcher record)]
-                 :when (and (not= 1 (count rule-matches))
-                            ;(not-clear-override? record rule-matches)
-                            )]
-             [(t/show-record record) (mapv :rule/target-account rule-matches)]))))
+    (for [record records
+          :let [rule-matches (matcher record)]
+          :when (and (not= 1 (count rule-matches))
+                     ;(not-clear-override? record rule-matches)
+                     )]
+      [(t/show-record record) (mapv :rule/target-account rule-matches)])))
 
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get

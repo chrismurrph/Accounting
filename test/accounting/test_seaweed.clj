@@ -8,11 +8,12 @@
 
 (def current-range con/current-range)
 (def current-rules con/current-rules)
-(def bank-accounts (meta/human-meta :seaweed :bank-accounts))
-(def splits (meta/human-meta :seaweed :splits))
+(def bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
+(def splits (-> meta/human-meta :seaweed :splits))
 
 (defn x-2 []
-  (-> (c/first-without-single-rule-match :seaweed (set bank-accounts) current-range current-rules)
+  (-> (c/records-without-single-rule-match :seaweed (set bank-accounts) current-range current-rules)
+      first
       u/pp))
 
 (defn x-3 []

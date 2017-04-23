@@ -16,6 +16,12 @@
 (def to-int #(Integer/parseInt %))
 (def to-ints (partial map to-int))
 
+;;
+;; When working put in utils and use from there, and rename to remove-quotes
+;;
+(defn my-read-string [x]
+  (subs x 1 (-> x count dec)))
+
 #_(defn round2
   "Round a double to the given precision (number of significant digits)"
   [d]
@@ -24,12 +30,18 @@
 
 ;; "206.90" read-string returns a string, go figure - yet works as expected in the REPL
 ;; Answer was that it was coated twice with double quotes, so need to read-string twice
-(defn str-number? [x]
+(defn str-number-old? [x]
   (assert (string? x))
-  (let [first-unquote (-> x read-string)]
+  (let [first-unquote (read-string x)]
     (if ((complement string?) first-unquote)
       (number? first-unquote)
       (-> first-unquote read-string number?))))
+
+(defn str-number? [x]
+  (try
+    (Float/parseFloat (re-matches #"-?\d+\.?\d*" x))
+    (catch Exception _
+      nil)))
 
 (def width 120)
 

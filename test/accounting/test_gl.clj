@@ -1,6 +1,7 @@
 (ns accounting.test-gl
   (:require [accounting.gl :as g]
-            [accounting.time :as t]))
+            [accounting.time :as t]
+            [accounting.data.seaweed :as d]))
 
 (def example-transaction-income
   #:out{:date         (t/long-date-str->date "31 Mar 2017"),
@@ -25,4 +26,4 @@
 
 
 (defn x-1 []
-  (g/apply-trans g/general-ledger example-transaction-capital))
+  (g/apply-trans {} d/general-ledger example-transaction-capital))

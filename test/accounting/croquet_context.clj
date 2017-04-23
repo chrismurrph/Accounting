@@ -1,9 +1,15 @@
 (ns accounting.croquet-context
-  (:require [accounting.meta.seaweed :as meta]
+  (:require [accounting.data.meta.croquet :as meta]
             [accounting.match :as m]
-            [accounting.croquet-rules-data :as croquet-d]
+            [accounting.data.croquet :as croquet-d]
             [accounting.util :as u]))
 
-(def current-croquet-rules
-  (->> croquet-d/rules
-       m/canonicalise-rules))
+(def month->rules
+  {:feb croquet-d/feb-rules
+   :mar croquet-d/mar-rules
+   })
+
+(def current-rules
+  (let [initial-rules (merge-with (comp vec concat) croquet-d/permanent-rules (apply concat (map month->rules [:feb :mar])))]
+    (->> initial-rules
+         m/canonicalise-rules)))

@@ -1,5 +1,6 @@
-(ns accounting.meta.seaweed
-  (:require [clojure.string :as s]
+(ns accounting.data.meta.seaweed
+  (:require [accounting.data.seaweed :as data]
+            [clojure.string :as s]
             [clojure.set :as set]
             [accounting.util :as u]))
 
@@ -9,6 +10,8 @@
 (def tax-expense-accounts #{})
 (def non-tax-expense-accounts #{:non-expense/ato-payment})
 (def negative-equity-account #{:capital/drawings})
+
+(def splits data/splits)
 
 (def all-accounts (set/union (set bank-accounts)
                              other-asset-accounts
@@ -21,8 +24,8 @@
 ;; Always start with quarter even thou in that directory
 ;; "Q3_AMP_TransactionHistory.csv"
 (def file-names
-  {:bank/amp "_AMP_TransactionHistory.csv"
-   :bank/anz-coy "_ANZ_coy.csv"
+  {:bank/amp      "_AMP_TransactionHistory.csv"
+   :bank/anz-coy  "_ANZ_coy.csv"
    :bank/anz-visa "_ANZ_credit_card.csv"})
 
 ;; tax-year is year ending i.e. 30th June of the second calendar year in the financial year

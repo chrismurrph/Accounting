@@ -1,7 +1,7 @@
-(ns accounting.meta.common
+(ns accounting.data.meta.common
   (:require [clojure.string :as s]
-            [accounting.meta.seaweed :as seasoft]
-            [accounting.meta.croquet :as croquet]))
+            [accounting.data.meta.seaweed :as seasoft]
+            [accounting.data.meta.croquet :as croquet]))
 
 (def quarters #{:q1 :q2 :q3 :q4})
 (def months #{:jan :feb :mar :apr :may :jun :jul :aug :sep :oct :nov :dec})
@@ -49,10 +49,13 @@
 
 (def human-meta
   {:seaweed {:file-names seasoft/file-names
+             :splits seasoft/splits
              :tax-years seasoft/tax-years
              :data-root seasoft/data-root
              :bank-accounts seasoft/bank-accounts}
    :croquet {:file-names croquet/file-names
+             :splits croquet/splits
+             :ledgers croquet/ledgers
              :years croquet/years
              :data-root croquet/data-root
              :bank-accounts croquet/bank-accounts}})

@@ -1,10 +1,9 @@
 (ns accounting.test-croquet
   (:require [accounting.core :as c]
-            [accounting.meta.common :as meta]
+            [accounting.data.meta.common :as meta]
             [accounting.util :as u]
             [accounting.gl :as gl]
-            [accounting.croquet-rules-data :as d]
-    ;[accounting.croquet-context :as con]
+            [accounting.data.croquet :as d]
             [accounting.match :as m]))
 
 (def current-range [{:period/year  2017
@@ -12,8 +11,9 @@
                     {:period/year  2017
                      :period/month :mar}
                     ])
-(def current-rules (m/canonicalise-rules d/rules))
+(def current-rules (m/canonicalise-rules d/permanent-rules))
 (def croquet-bank-accounts (-> meta/human-meta :croquet :bank-accounts))
+(def ledgers (-> meta/human-meta :croquet :ledgers))
 
 (defn x-2 []
   (-> (c/first-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)
@@ -29,4 +29,4 @@
                           (map second)
                           (sort-by :out/date)
                           )]
-    (u/pp (reduce gl/apply-trans gl/general-ledger transactions))))
+    (u/pp (reduce (partial gl/apply-trans {:ledgers ledgers}) d/general-ledger transactions))))

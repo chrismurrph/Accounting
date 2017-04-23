@@ -1,12 +1,13 @@
-(ns accounting.seaweed-rules-data
-  (:require [accounting.meta.seaweed :as meta]
-            [accounting.util :as u]
+(ns accounting.data.seaweed
+  (:require [accounting.util :as u]
             [accounting.time :as t]
             [accounting.common :as c]))
 
-(def amp (first meta/bank-accounts))
-(def coy (second meta/bank-accounts))
-(def visa (u/third meta/bank-accounts))
+(def amp :bank/amp)
+(def coy :bank/anz-coy)
+(def visa :bank/anz-visa)
+
+(def splits {:agl-gas {:exp/light-power-heating 0.2M :personal/anz-visa 0.8M}})
 
 ;;
 ;; For every transaction date that comes thru that is :office-expense we will require a
@@ -305,5 +306,46 @@
                                        :conditions     [[:equals "ANZ ATM CASULA BP EXPRESS        CASULA       NS"]]}
                                       ]})
 
-(def splits {:agl-gas {:exp/light-power-heating 0.2M :personal/anz-visa 0.8M}})
+;; Bank amounts are as at 30/06/2016, so s/be able to run quarters 1, 2 and 3 and get
+;; balances as at 31/03/2017, which are:
+;; :bank/anz-coy    2138.16
+;; :bank/anz-visa    250.74
+;; :bank/amp         431.76
+;; They were indeed these amounts!
+(def general-ledger
+  {:bank/anz-coy              96.15M
+   :bank/anz-visa             -1024.48M
+   :bank/amp                  3010.59M
+   :personal/amp              0M
+   :personal/anz-visa         0M
+   :income/mining-sales       0M
+   :income/poker-parse-sales  0M
+   :income/bank-interest      0M
+   :capital/drawings          0M
+   :exp/office-expense        0M
+   :exp/motor-vehicle         0M
+   :exp/cloud-expense         0M
+   :exp/niim-trip             0M
+   :exp/accounting-software   0M
+   :exp/mobile-expense        0M
+   :exp/bank-fee              0M
+   :exp/interest-expense      0M
+   :exp/petrol                0M
+   :exp/computer-expense      0M
+   :exp/office-rent           0M
+   :exp/travel                0M
+   :exp/donations             0M
+   :exp/isp                   0M
+   :exp/storage               0M
+   :exp/light-power-heating   0M
+   :exp/accomodation          0M
+   :exp/food                  0M
+   :exp/advertising           0M
+   :exp/meeting-entertainmant 0M
+   :exp/asic-payment          0M
+   :exp/freight-courier       0M
+   :exp/accounting-expense    0M
+   :non-exp/ato-payment       0M
+   :non-exp/private-health    0M
+   })
 

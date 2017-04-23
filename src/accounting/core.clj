@@ -1,5 +1,5 @@
 (ns accounting.core
-  (:require [accounting.meta.common :as common-meta]
+  (:require [accounting.data.meta.common :as common-meta]
             [accounting.util :as u]
             [accounting.convert :as c]
             [accounting.match :as m]

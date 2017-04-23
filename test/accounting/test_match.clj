@@ -4,7 +4,7 @@
             [accounting.seasoft-context :as seasoft-con]
             [accounting.croquet-context :as croquet-con]
             [accounting.time :as t]
-            [accounting.meta.croquet :as meta]))
+            [accounting.data.meta.croquet :as meta]))
 
 (def example-transaction-capital
   #:out{:date         (t/long-date-str->date "21 Mar 2017"),
@@ -39,21 +39,21 @@
                     [:out/amount :equals 235.00M]]})
 
 (defn x-1 []
-  (u/pp (m/bank-rules #{:bank/anz-coy} seasoft-con/current-seaweed-rules)))
+  (u/pp (m/bank-rules #{:bank/anz-coy} seasoft-con/current-rules)))
 
 (defn x-2 []
-  (->> seasoft-con/current-seaweed-rules
+  (->> seasoft-con/current-rules
        first
        u/pp))
 
 (defn x-3 []
-  (->> croquet-con/current-croquet-rules
+  (->> croquet-con/current-rules
        (take 1)
        u/pp))
 
 ;; Expected to not match
 (defn x-4 []
-  (->> croquet-con/current-croquet-rules
+  (->> croquet-con/current-rules
        first
        (m/match example-transaction-capital)
        u/pp))

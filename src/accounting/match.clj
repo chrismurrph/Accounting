@@ -1,7 +1,7 @@
 (ns accounting.match
   (:require [clojure.string :as s]
             [accounting.util :as u]
-            [accounting.seaweed-rules-data :as d]
+            [accounting.data.seaweed :as d]
             [accounting.time :as t]))
 
 ;;
@@ -29,11 +29,16 @@
   (fn [field-value]
     (s/includes? field-value includes)))
 
+(defn -less-than? [less-than]
+  (fn [field-value]
+    (< field-value less-than)))
+
 (def condition-functions
   {:starts-with -starts-with?
    :ends-with   -ends-with?
    :equals      -equals?
-   :contains    -contains?})
+   :contains    -contains?
+   :less-than   -less-than?})
 
 (def condition-types
   (into #{} (keys condition-functions)))
@@ -119,6 +124,12 @@
   (assert how-kw)
   (assert match-text))
 
+(defn field-calculator-hof [record]
+  (fn [[field how-kw match-text]]
+    (let [f (condition-functions how-kw)]
+      (assert f (str "Not found a function for: " how-kw))
+      [(f match-text) (field record)])))
+
 ;; Return the rule if there's a match against it
 ;; A condition looks like:
 ;; [:out/desc :starts-with "DIRECT CREDIT"]
@@ -126,19 +137,20 @@
   (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
   (assert (map? record))
   (when (matches-chosen-specifics? record rule)
-    (let [res (condp = logic-operator
+    (let [field-calculator (field-calculator-hof record)
+          res (condp = logic-operator
                 :single (let [_ (assert (= 1 (count conditions)) (str "More than 1 condition for single: " conditions))
                               [field how-kw match-text :as condition] (first conditions)
                               _ (chk-condition condition)
                               f (condition-functions how-kw)
                               _ (assert f (str "Unrecognised condition: " how-kw))]
                           ((f match-text) (field record)))
-                :and (let [f-field-values (map (fn [[field how-kw match-text]] [((condition-functions how-kw) match-text) (field record)]) conditions)]
+                :and (let [f-field-values (map field-calculator conditions)]
                        (->> f-field-values
                             (map (fn [[f value]] (f value)))
                             u/probe-off
                             (every? identity)))
-                :or (let [f-field-values (map (fn [[field how-kw match-text]] [((condition-functions how-kw) match-text) (field record)]) conditions)]
+                :or (let [f-field-values (map field-calculator conditions)]
                       (->> f-field-values
                            (some (fn [[f value]] (f value))))))]
       (when res

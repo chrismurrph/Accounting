@@ -32,7 +32,7 @@
 (defn quoted-amount-validate [x]
   ;(println (str x "," (u/str-number? x) "," (type (-> x read-string))))
   (cond
-    ((comp u/str-number? u/my-read-string) x) nil
+    ((comp u/str->number? u/remove-outer-quotes) x) nil
     :default (str ":quoted-amount value needs to be a number - but is: " x)))
 
 (defn dollar-amount-convert [amount]
@@ -46,9 +46,9 @@
   {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn t/long-date-str->date}
    :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn t/short-date-str->date}
    :in/desc          {:field-kw :in/desc :validate-fn default-validate :convert-fn identity}
-   :in/quoted-desc   {:field-kw :in/desc :validate-fn default-validate :convert-fn u/my-read-string}
+   :in/quoted-desc   {:field-kw :in/desc :validate-fn default-validate :convert-fn u/remove-outer-quotes}
    :in/dollar-amount {:field-kw :in/dollar-amount :validate-fn dollar-amount-validate :convert-fn dollar-amount-convert}
-   :in/quoted-amount {:field-kw :in/quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec u/my-read-string)}
+   :in/quoted-amount {:field-kw :in/quoted-amount :validate-fn quoted-amount-validate :convert-fn (comp bigdec u/remove-outer-quotes)}
    :in/ignore        {:field-kw :in/ignore}
    :in/mock          {:field-kw :in/mock}})
 

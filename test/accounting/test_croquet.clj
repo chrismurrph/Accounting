@@ -13,8 +13,12 @@
 (def ledgers (-> meta/human-meta :croquet :ledgers))
 
 (defn x-2 []
-  (-> (c/records-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)
-      u/pp))
+  (let [unmatched-records (c/records-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)]
+    (->> unmatched-records
+         (take 10)
+         (cons (count unmatched-records))
+         reverse
+         u/pp)))
 
 (defn x-5 []
   (let [transactions (->> (c/attach-rules

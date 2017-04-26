@@ -6,7 +6,7 @@
 
 (def month->rules
   {:feb croquet-d/feb-rules
-   ;:mar croquet-d/mar-rules
+   :mar croquet-d/mar-rules
    })
 
 (def current-range [{:period/year  2017

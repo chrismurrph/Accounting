@@ -19,7 +19,7 @@
 ;;
 ;; When working put in utils and use from there, and rename to remove-quotes
 ;;
-(defn my-read-string [x]
+(defn remove-outer-quotes [x]
   (subs x 1 (-> x count dec)))
 
 #_(defn round2
@@ -37,7 +37,7 @@
       (number? first-unquote)
       (-> first-unquote read-string number?))))
 
-(defn str-number? [x]
+(defn str->number? [x]
   (try
     (Float/parseFloat (re-matches #"-?\d+\.?\d*" x))
     (catch Exception _

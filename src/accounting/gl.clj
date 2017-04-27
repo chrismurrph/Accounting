@@ -24,13 +24,13 @@
 ;; Need a short-circuiting reduce i.e. iterate
 ;;
 (defn get-within [date-kw begin end amount records]
-  (assert (pos? amount))
-  (let [
-        after-begin? (t/after-begin-bound? begin)
+  (let [after-begin? (t/after-begin-bound? begin)
         before-end? (t/before-end-bound? end)
         start-from-records (->> records
                                 (sort-by date-kw)
                                 (drop-while #(-> % date-kw after-begin? not)))]
+    (u/pp (map t/show-record start-from-records))
+    (println "amount" amount)
     (->> (iterate iteree {:unprocessed          start-from-records
                           :accumulated-amount   0M
                           :creeping-recalc-date nil
@@ -39,18 +39,23 @@
                        (and (<= accumulated-amount amount)
                             (or (nil? creeping-recalc-date) (before-end? creeping-recalc-date)))
                        ))
+         (u/probe-on "taken")
          last
-         )))
+         (u/probe-on "last"))))
 
 (defn ledger-modify-data [context {:keys [gl ledgers] :as data} {:keys [out/date out/src-bank out/dest-account out/amount]}]
   (assert (map? gl))
   (assert (map? ledgers))
   (let [{:keys [records recalc-date]} ((-> dest-account name keyword) ledgers)
+        _ (assert recalc-date (str "No recalc-date for " dest-account))
         [begin end] [(t/add-day recalc-date) date]
+        _ (assert (t/gte? end begin) (str "recalc-date needs to be set before " (t/show begin) ", " (t/show end) " for " dest-account))
         ;; Later we will not always get all amounts, but sometimes stop short when :out/amount has been reached
         ;; This will mean an earlier recalc-date for next time. For this code get-up-to that takes a
         {:keys [accumulated-amount creeping-recalc-date result]} (get-within :when begin end amount records)
-        _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount ", whereas we were expecting " amount " from " begin ", " end ", " (count records)))
+        _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount
+                                                     ", whereas we were expecting " amount " from "
+                                                     (t/show begin) ", " (t/show end) ", " (count records)))
         totals-by-account (account->amount result)
         _ (println totals-by-account)
         new-gl (reduce (fn [acc [account amount]]

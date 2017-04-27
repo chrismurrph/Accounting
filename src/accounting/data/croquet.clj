@@ -78,7 +78,7 @@
     :amount 90.00M}])
 
 (def -ledgers {:cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash}
-               :expenses-owed expenses-owed})
+               :expenses-owed {:recalc-date (t/short-date-str->date "07/02/2017") :records expenses-owed}})
 
 (def -feb-rules
   {

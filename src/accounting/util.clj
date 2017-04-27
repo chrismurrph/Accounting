@@ -64,7 +64,7 @@
 (defn probe-off
   ([x]
    x)
-  ([x msg]
+  ([msg x]
    x))
 
 (defn probe-on
@@ -72,7 +72,7 @@
    (-> x
        pp)
    x)
-  ([x msg]
+  ([msg x]
    (println msg x)
    x))
 

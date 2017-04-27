@@ -70,8 +70,11 @@
 (def format-time #(f/unparse -time-formatter %))
 
 (defn show-record [record]
-  (let [f-ed-date (-> record :out/date format-date)]
-    (assoc record :out/date f-ed-date)))
+  (let [f-ed-out-date (-> record :out/date format-date)
+        f-ed-when-date (-> record :when format-date)]
+    (-> record
+        (assoc :out/date f-ed-out-date)
+        (assoc :when f-ed-when-date))))
 
 (def change-year-for-quarter
   {:q1 dec
@@ -115,6 +118,16 @@
 
 (defn equal? [this that]
   (t/equal? this that))
+
+(defn gt? [this that]
+  (t/after? this that))
+
+(defn gte? [this that]
+  (or (t/after? this that)
+      (t/equal? this that)))
+
+(defn lt? [this that]
+  (t/before? this that))
 
 (defn after-begin-bound? [begin-moment]
   (fn [date]

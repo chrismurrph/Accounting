@@ -1,5 +1,6 @@
 (ns accounting.data.meta.croquet
-  (:require [accounting.data.croquet :as data]))
+  (:require [accounting.data.croquet :as data]
+            [accounting.time :as t]))
 
 (def bank-accounts [:bank/bendigo])
 
@@ -8,7 +9,7 @@
 
 (def splits data/splits)
 
-(def ledgers {:cash-deposts data/receive-cash
+(def ledgers {:cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records data/receive-cash}
               :expenses-owed data/expenses-owed})
 
 (def years #{2017})

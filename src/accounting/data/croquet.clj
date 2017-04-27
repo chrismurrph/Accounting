@@ -31,7 +31,7 @@
    {:type   :income/game-fees
     :when   (t/short-date-str->date "06/02/2017")
     :amount 20.00M}
-   
+
    {:type   :income/game-fees
     :when   (t/short-date-str->date "21/02/2017")
     :amount 15.00M}

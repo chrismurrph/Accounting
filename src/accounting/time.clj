@@ -64,6 +64,7 @@
 
 (def -date-formatter (f/formatter "dd/MM/yyyy"))
 (def format-date #(f/unparse -date-formatter %))
+(def show format-date)
 
 (def -time-formatter (f/formatter "dd/MM/yyyy HH:mm:ss"))
 (def format-time #(f/unparse -time-formatter %))
@@ -88,9 +89,8 @@
   (assert tax-year)
   (assert quarter)
   (let [year ((change-year-for-quarter quarter) tax-year)]
-    (-> (->> (quarter->end-month quarter)
-             (t/last-day-of-the-month year))
-        (t/plus (t/days 1)))))
+    (->> (quarter->end-month quarter)
+         (t/last-day-of-the-month year))))
 
 (defn -start-month-moment [month-kw year]
   (->> month-kw
@@ -98,10 +98,9 @@
        (t/first-day-of-the-month year)))
 
 (defn -end-month-moment [month-kw year]
-  (-> (->> month-kw
-           kw->month
-           (t/last-day-of-the-month year))
-      (t/plus (t/days 1))))
+  (->> month-kw
+       kw->month
+       (t/last-day-of-the-month year)))
 
 (defn start-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
   ;(println "==" tax-year (nil? tax-year) year (nil? year))
@@ -117,19 +116,33 @@
 (defn equal? [this that]
   (t/equal? this that))
 
+(defn after-begin-bound? [begin-moment]
+  (fn [date]
+    (let [res (or (t/after? date begin-moment)
+                  (t/equal? date begin-moment))]
+      ;(println "after-begin-bound? " (show begin-moment) (show date) res)
+      res)))
+
+(defn before-end-bound? [end-moment]
+  (fn [date]
+    (let [res (or (t/before? date end-moment)
+                  (t/equal? date end-moment))]
+      ;(println "before-end-bound? " (show end-moment) (show date) res)
+      res)))
+
 ;;
-;; Events are assumed to happen right at the beginning of days.
-;; Consider event on first day of a quarter.
-;; We want it to be in the correct quarter. So always:
-;; begin-quarter <= event < end-quarter
-;; Events occuring on last day will be 24 hours before end of quarter so < is fine!
+;; Simplest way is if the dates we use always abut each other. We are not going to
+;; actually have times so s/not need to think about which part of the day.
+;; 31st and 1st abut each other and we always do inclusive selections: <= on both sides.
+;; The recalc date can be thought of as a previous period. So we add one day to it for the start
+;; moment.
 ;;
-(defn within-range? [start-moment end-moment date]
-  #_(when (= "08/02/2017" (format-date date))
-      (println (format-time date) (format-time end-moment)))
-  (and (or (t/after? date start-moment)
-           (t/equal? date start-moment))
-       (t/before? date end-moment)))
+(defn within-range? [start-moment end-moment]
+  (let [begin? (after-begin-bound? start-moment)
+        end? (before-end-bound? end-moment)]
+    (fn [date]
+      (and (begin? date)
+           (end? date)))))
 
 ;; I'm assuming these Java dates are immutable - don't know why equals? exists in the clj-time library
 (defn in-set? [dates date]
@@ -137,7 +150,21 @@
   (dates date))
 
 (defn within-period? [period date]
+  (assert period)
+  (assert date)
   (let [start-moment (start-period-moment period)
-        end-moment (end-period-moment period)]
-    (within-range? start-moment end-moment date)))
+        end-moment (end-period-moment period)
+        res ((within-range? start-moment end-moment) date)]
+    res))
+
+(defn get-within [date-kw]
+  (fn [begin end xs]
+    (let [within? (within-range? begin end)]
+      (->> xs
+           (sort-by date-kw)
+           ;; later use a combination of drop-while and take-while and don't use within but less and greater than fns
+           (filter #(-> % date-kw within?))))))
+
+(defn add-day [date]
+  (t/plus date (t/days 1)))
 

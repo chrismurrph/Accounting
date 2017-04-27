@@ -122,7 +122,7 @@
        (or (nil? on-dates) (t/in-set? on-dates (:out/date record)))
        (or (nil? between-dates-inclusive)
            (let [[start end] between-dates-inclusive]
-             (t/within-range? start end (:out/date record))))
+             ((t/within-range? start end) (:out/date record))))
        (or (nil? amount) (= amount (:out/amount record)))))
 
 ;;

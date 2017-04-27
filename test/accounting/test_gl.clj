@@ -1,7 +1,9 @@
 (ns accounting.test-gl
   (:require [accounting.gl :as g]
             [accounting.time :as t]
-            [accounting.data.seaweed :as d]))
+            [accounting.data.seaweed :as d]
+            [accounting.data.croquet :as data]
+            [accounting.util :as u]))
 
 (def example-transaction-income
   #:out{:date         (t/long-date-str->date "31 Mar 2017"),
@@ -27,3 +29,9 @@
 
 (defn x-1 []
   (g/apply-trans {} d/general-ledger example-transaction-capital))
+
+(defn x-2 []
+  (let [begin (t/short-date-str->date "31/01/2017")
+        end (t/short-date-str->date "21/02/2017")
+        within (g/get-within :when begin end 140.00M data/receive-cash)]
+    (u/pp within)))

@@ -77,6 +77,9 @@
     :when   (t/short-date-str->date "26/02/2017")
     :amount 90.00M}])
 
+(def -ledgers {:cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash}
+               :expenses-owed expenses-owed})
+
 (def -feb-rules
   {
    [bendigo :exp/food] [{:logic-operator :and
@@ -190,10 +193,11 @@
                                                                   [:out/amount :equals -150.00M]]}]
    })
 
-(def general-ledger {:bank/bendigo             0M
+(def data {:gl      {:bank/bendigo             0M
                      :capital/funds-introduced 0M
                      :income/membership-fees   0M
                      :income/bank-interest     0M
+                     :income/game-fees         0M
                      :exp/uniforms             0M
                      :exp/rent                 0M
                      :exp/bank-fees            0M
@@ -202,4 +206,6 @@
                      :exp/printing             0M
                      :exp/cleaning             0M
                      :exp/plumbing             0M
-                     })
+                     :exp/pennants             0M
+                     }
+           :ledgers -ledgers})

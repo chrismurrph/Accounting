@@ -42,20 +42,9 @@
          last
          )))
 
-(defn get-within-1 [date-kw begin end amount records]
-  (let [begin? (t/after-begin-bound? begin)
-        end? (t/before-end-bound? end)
-        within-records (->> records
-                            (sort-by date-kw)
-                            (drop-while #(-> % date-kw begin? not))
-                            (take-while #(-> % date-kw end? not)))
-        running-totals (reductions (fn [acc ele]
-                                     (let [amt (:amount ele)
-                                           new-acc (+ (second acc) amt)]
-                                       [(= new-acc amount) new-acc])) [nil 0M] within-records)]
-    running-totals))
-
-(defn ledger-modify-gl [{:keys [ledgers] :as context} gl {:keys [out/date out/src-bank out/dest-account out/amount]}]
+(defn ledger-modify-data [context {:keys [gl ledgers] :as data} {:keys [out/date out/src-bank out/dest-account out/amount]}]
+  (assert (map? gl))
+  (assert (map? ledgers))
   (let [{:keys [records recalc-date]} ((-> dest-account name keyword) ledgers)
         [begin end] [(t/add-day recalc-date) date]
         ;; Later we will not always get all amounts, but sometimes stop short when :out/amount has been reached
@@ -63,12 +52,15 @@
         {:keys [accumulated-amount creeping-recalc-date result]} (get-within :when begin end amount records)
         _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount ", whereas we were expecting " amount " from " begin ", " end ", " (count records)))
         totals-by-account (account->amount result)
+        _ (println totals-by-account)
         new-gl (reduce (fn [acc [account amount]]
+                         (assert (account acc) (str "Not in general ledger: " account))
                          (-> acc
                              (update src-bank #(+' % amount))
                              (update account #(-' % amount)))) gl totals-by-account)
+        new-ledgers ledgers
         ]
-    new-gl
+    {:gl new-gl :ledgers new-ledgers}
     ;(println amount)
     ;(println accumulated-amount)
     ;(u/pp totals-by-account)
@@ -80,46 +72,48 @@
 ;; So +ive is Debit and -ive is Credit
 ;; Decreasing income account is Credit of :income/poker-parse-sales
 ;;
-(defn modify-gl [context gl {:keys [out/src-bank out/dest-account out/amount]}]
+(defn modify-data [context {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
   (assert src-bank)
   (assert dest-account)
   (number? amount)
   (assert (src-bank gl) (str "Not in general ledger: " src-bank))
   (assert (dest-account gl) (str "Not in general ledger: " dest-account))
-  (-> gl
-      (update src-bank #(+' % amount))
-      (update dest-account #(-' % amount))))
+  {:gl      (-> gl
+                (update src-bank #(+' % amount))
+                (update dest-account #(-' % amount)))
+   :ledgers ledgers})
 
-(defn split-modify-gl [{:keys [splits] :as context} gl {:keys [out/src-bank out/dest-account out/amount]}]
+(defn split-modify-data [{:keys [splits] :as context} {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
   (let [split-ups (-> dest-account name keyword splits vec)]
-    (reduce
-      (fn [gl [dest-account proportion]]
-        (let [prop-amt' (*' proportion amount)
-              ;; with-precision doesn't do decimal places
-              prop-amt (bigdec (format "%.2f" prop-amt'))]
-          ;(println "got" prop-amt " from " amount " and " proportion)
-          (modify-gl context gl {:out/src-bank     src-bank
-                                 :out/dest-account dest-account
-                                 :out/amount       prop-amt})))
-      gl
-      split-ups
-      )))
+    {:gl (reduce
+           (fn [gl [dest-account proportion]]
+             (let [prop-amt' (*' proportion amount)
+                   ;; with-precision doesn't do decimal places
+                   prop-amt (bigdec (format "%.2f" prop-amt'))]
+               ;(println "got" prop-amt " from " amount " and " proportion)
+               (modify-data context gl {:out/src-bank     src-bank
+                                        :out/dest-account dest-account
+                                        :out/amount       prop-amt})))
+           gl
+           split-ups
+           )
+     :ledgers ledgers}))
 
 (def dont-modify-gl (fn [x _] x))
 
 (def how-apply-namespace
-  {"income"   modify-gl
-   "exp"      modify-gl
-   "non-exp"  modify-gl
-   "capital"  modify-gl
-   "personal" modify-gl
-   "split"    split-modify-gl
-   "ledger"   ledger-modify-gl})
+  {"income"   modify-data
+   "exp"      modify-data
+   "non-exp"  modify-data
+   "capital"  modify-data
+   "personal" modify-data
+   "split"    split-modify-data
+   "ledger"   ledger-modify-data})
 
 ;;
-;; Modifies gl, used by reduce
+;; Modifies data (which includes gl), used by reduce
 ;;
-(defn apply-trans [context gl {:keys [out/src-bank out/dest-account out/amount] :as trans}]
+(defn apply-trans [context data {:keys [out/src-bank out/dest-account out/amount] :as trans}]
   (assert src-bank)
   (assert dest-account)
   (assert amount)
@@ -127,4 +121,4 @@
         _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (-> trans t/show-record u/pp-str)))
         f (how-apply-namespace ns)]
     (assert f (str "Not found a function for namespace: <" ns ">, with dest-account: <" dest-account ">:\n" (-> trans t/show-record u/pp-str)))
-    (f context gl trans)))
+    (f context data trans)))

@@ -30,4 +30,4 @@
                           (map second)
                           (sort-by :out/date)
                           )]
-    (u/pp (reduce (partial gl/apply-trans {:ledgers ledgers}) d/general-ledger transactions))))
+    (u/pp (reduce (partial gl/apply-trans {}) d/data transactions))))

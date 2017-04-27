@@ -55,7 +55,6 @@
              :bank-accounts seasoft/bank-accounts}
    :croquet {:file-names croquet/file-names
              :splits croquet/splits
-             :ledgers croquet/ledgers
              :years croquet/years
              :data-root croquet/data-root
              :bank-accounts croquet/bank-accounts}})

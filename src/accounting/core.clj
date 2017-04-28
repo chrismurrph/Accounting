@@ -81,7 +81,7 @@
           :when (and (not= 1 (count rule-matches))
                      ;(not-clear-override? record rule-matches)
                      )]
-      [(t/show-record record) (mapv :rule/target-account rule-matches)])))
+      [(t/show-trans-record record) (mapv :rule/target-account rule-matches)])))
 
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get
@@ -101,7 +101,7 @@
       (do
         ;; `first-without-single-rule-match` is designed to find this out, so start using it!
         (assert rule (str "No rule will match: <" (select-keys record [:out/desc :out/src-bank]) ">"))
-        (u/assrt (empty? tail) (str "Don't expect more than one rule per record:\n" (u/pp-str rule) (u/pp-str tail)))
+        (u/assrt (empty? tail) (str "Don't expect more than one rule per record\nRULE:\n" (u/pp-str rule) "\nTAIL:\n" (u/pp-str tail) "\nFOR:\n" (u/pp-str (t/show-trans-record record))))
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
 

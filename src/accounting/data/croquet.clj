@@ -13,7 +13,7 @@
 (def expenses-owed
   [{:when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
-    :amount 244.58M}])
+    :amount -244.58M}])
 
 (def receive-cash
   [{:type   :income/game-fees
@@ -78,7 +78,7 @@
     :amount 90.00M}])
 
 (def -ledgers {:cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash}
-               :expenses-owed {:recalc-date (t/short-date-str->date "07/02/2017") :records expenses-owed}})
+               :expenses-owed {:recalc-date (t/short-date-str->date "20/02/2017") :records expenses-owed}})
 
 (def -feb-rules
   {
@@ -139,7 +139,8 @@
    [bendigo :ledger/expenses-owed]             [{:logic-operator :and
                                                  :who            "Bob Vincent"
                                                  :conditions     [[:out/desc :starts-with "PAY ANYONE"]
-                                                                  [:out/desc :ends-with "RG VINCENT"]]}]
+                                                                  [:out/desc :ends-with "RG VINCENT"]
+                                                                  [:out/amount :not-equals -120.00M]]}]
    [bendigo :exp/printing]                     [{:logic-operator :and
                                                  :conditions     [[:out/desc :starts-with "PAY ANYONE"]
                                                                   [:out/desc :ends-with "JUDY WILLA"]
@@ -150,6 +151,11 @@
    [bendigo :exp/house-keeping]                [{:logic-operator :and
                                                  :conditions     [[:out/desc :equals "WITHDRAWAL - CASH"]
                                                                   [:out/amount :equals -100.00M]]}]
+   [bendigo :exp/hedge-clipping]               [{:logic-operator :and
+                                                 :conditions     [[:out/desc :equals "PAY ANYONE BBL147728356THE SOUTH TERRACE 0105739933RG VINCENT"]
+                                                                  [:out/amount :equals -120.00M]
+                                                                  ;; Perhaps it is 2nd Wed of month, but we can make that condition later if needs be...
+                                                                  [:out/date :day-of-month 8]]}]
    [bendigo :exp/cleaning]                     [{:logic-operator :and
                                                  :conditions     [[:out/desc :equals "WITHDRAWAL - CASH"]
                                                                   [:out/amount :equals -50.00M]]}
@@ -198,6 +204,7 @@
                      :income/membership-fees   0M
                      :income/bank-interest     0M
                      :income/game-fees         0M
+                     :income/events            0M
                      :exp/uniforms             0M
                      :exp/rent                 0M
                      :exp/bank-fees            0M
@@ -207,5 +214,6 @@
                      :exp/cleaning             0M
                      :exp/plumbing             0M
                      :exp/pennants             0M
+                     :exp/hedge-clipping       0M
                      }
            :ledgers -ledgers})

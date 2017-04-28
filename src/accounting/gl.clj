@@ -29,8 +29,8 @@
         start-from-records (->> records
                                 (sort-by date-kw)
                                 (drop-while #(-> % date-kw after-begin? not)))]
-    (u/pp (map t/show-record start-from-records))
-    (println "amount" amount)
+    ;(u/pp (map t/show-ledger-record start-from-records))
+    ;(println "amount" amount)
     (->> (iterate iteree {:unprocessed          start-from-records
                           :accumulated-amount   0M
                           :creeping-recalc-date nil
@@ -39,36 +39,41 @@
                        (and (<= accumulated-amount amount)
                             (or (nil? creeping-recalc-date) (before-end? creeping-recalc-date)))
                        ))
-         (u/probe-on "taken")
          last
-         (u/probe-on "last"))))
+         )))
+
+(defn show-ledger-records [records]
+  (mapv #(-> % t/show-ledger-record) records))
 
 (defn ledger-modify-data [context {:keys [gl ledgers] :as data} {:keys [out/date out/src-bank out/dest-account out/amount]}]
   (assert (map? gl))
   (assert (map? ledgers))
-  (let [{:keys [records recalc-date]} ((-> dest-account name keyword) ledgers)
+  (let [ledger-kw (-> dest-account name keyword)
+        {:keys [records recalc-date]} (ledger-kw ledgers)
         _ (assert recalc-date (str "No recalc-date for " dest-account))
-        [begin end] [(t/add-day recalc-date) date]
-        _ (assert (t/gte? end begin) (str "recalc-date needs to be set before " (t/show begin) ", " (t/show end) " for " dest-account))
-        ;; Later we will not always get all amounts, but sometimes stop short when :out/amount has been reached
-        ;; This will mean an earlier recalc-date for next time. For this code get-up-to that takes a
-        {:keys [accumulated-amount creeping-recalc-date result]} (get-within :when begin end amount records)
-        _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount
-                                                     ", whereas we were expecting " amount " from "
-                                                     (t/show begin) ", " (t/show end) ", " (count records)))
-        totals-by-account (account->amount result)
-        _ (println totals-by-account)
-        new-gl (reduce (fn [acc [account amount]]
-                         (assert (account acc) (str "Not in general ledger: " account))
-                         (-> acc
-                             (update src-bank #(+' % amount))
-                             (update account #(-' % amount)))) gl totals-by-account)
-        new-ledgers ledgers
-        ]
-    {:gl new-gl :ledgers new-ledgers}
-    ;(println amount)
-    ;(println accumulated-amount)
-    ;(u/pp totals-by-account)
+        [begin end] [(t/add-day recalc-date) date]]
+    (if (t/gte? end begin)
+      (let [{:keys [accumulated-amount creeping-recalc-date result]} (get-within :when begin end amount records)
+            ;; The ledger just doesn't have the entries
+            _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount
+                                                         ", whereas we were expecting " amount " for " ledger-kw " from "
+                                                         (t/show begin) " to " (t/show end) ", in count:\n" (show-ledger-records records)
+                                                         "\ngathered:\n" (u/pp-str (map t/show-ledger-record result))))
+            totals-by-account (account->amount result)
+            _ (println totals-by-account)
+            new-gl (reduce (fn [acc [account amount]]
+                             (u/assrt (account acc) (str "Not in general ledger: " account))
+                             (-> acc
+                                 (update src-bank #(+' % amount))
+                                 (update account #(-' % amount)))) gl totals-by-account)
+            new-ledgers (assoc-in ledgers [ledger-kw :recalc-date] creeping-recalc-date)]
+        (println "old,new:" (-> ledgers ledger-kw :recalc-date t/show) (-> new-ledgers ledger-kw :recalc-date t/show) "for" ledger-kw)
+        {:gl new-gl :ledgers new-ledgers})
+      (do
+        (u/warning (str "There is a " dest-account " on " (t/show end)
+                        ", which we won't have ledger for, as this ledger starts at " (t/show begin)
+                        ", ledger record/s:\n" (show-ledger-records records)))
+        {:gl gl :ledgers ledgers}))
     ))
 
 ;;
@@ -81,8 +86,8 @@
   (assert src-bank)
   (assert dest-account)
   (number? amount)
-  (assert (src-bank gl) (str "Not in general ledger: " src-bank))
-  (assert (dest-account gl) (str "Not in general ledger: " dest-account))
+  (u/assrt (src-bank gl) (str "Not in general ledger: " src-bank))
+  (u/assrt (dest-account gl) (str "Not in general ledger: " dest-account))
   {:gl      (-> gl
                 (update src-bank #(+' % amount))
                 (update dest-account #(-' % amount)))
@@ -123,7 +128,7 @@
   (assert dest-account)
   (assert amount)
   (let [ns (namespace dest-account)
-        _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (-> trans t/show-record u/pp-str)))
+        _ (u/assrt ns (str "No namespace for: <" dest-account ">:\n" (-> trans t/show-trans-record u/pp-str)))
         f (how-apply-namespace ns)]
-    (assert f (str "Not found a function for namespace: <" ns ">, with dest-account: <" dest-account ">:\n" (-> trans t/show-record u/pp-str)))
+    (assert f (str "Not found a function for namespace: <" ns ">, with dest-account: <" dest-account ">:\n" (-> trans t/show-trans-record u/pp-str)))
     (f context data trans)))

@@ -66,14 +66,22 @@
 (def format-date #(f/unparse -date-formatter %))
 (def show format-date)
 
+(defn day-of-month [date]
+  (->> date
+       (f/unparse (f/formatter "dd"))
+       Long/parseLong))
+
 (def -time-formatter (f/formatter "dd/MM/yyyy HH:mm:ss"))
 (def format-time #(f/unparse -time-formatter %))
 
-(defn show-record [record]
-  (let [f-ed-out-date (-> record :out/date format-date)
-        f-ed-when-date (-> record :when format-date)]
+(defn show-trans-record [record]
+  (let [f-ed-out-date (-> record :out/date format-date)]
     (-> record
-        (assoc :out/date f-ed-out-date)
+        (assoc :out/date f-ed-out-date))))
+
+(defn show-ledger-record [record]
+  (let [f-ed-when-date (-> record :when format-date)]
+    (-> record
         (assoc :when f-ed-when-date))))
 
 (def change-year-for-quarter

@@ -25,6 +25,10 @@
   (fn [field-value]
     (= field-value equals)))
 
+(defn -day-of-month? [day-of-month]
+  (fn [field-value]
+    (= (t/day-of-month field-value) day-of-month)))
+
 (defn -contains? [includes]
   (fn [field-value]
     (s/includes? field-value includes)))
@@ -67,6 +71,7 @@
    :starts-with     -starts-with?
    :ends-with       -ends-with?
    :equals          -equals?
+   :day-of-month    -day-of-month?
    :contains        -contains?
    :not-starts-with -not-starts-with?
    :not-ends-with   -not-ends-with?

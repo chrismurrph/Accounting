@@ -94,3 +94,6 @@
         (sleep 400)
         (throw (new AssertionError (str "Assert failed: " ~message "\n" (pr-str '~x))))))))
 
+(defn warning [txt]
+  (println "WARN: " txt))
+

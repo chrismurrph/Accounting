@@ -10,7 +10,10 @@
 (def current-range con/current-range)
 (def current-rules con/current-rules)
 (def croquet-bank-accounts (-> meta/human-meta :croquet :bank-accounts))
-(def ledgers (-> meta/human-meta :croquet :ledgers))
+(def croquet-splits (-> meta/human-meta :croquet :splits))
+
+;; Now s/always be kept in data so that recalc-date can be changed
+;;(def ledgers (-> meta/human-meta :croquet :ledgers))
 
 (defn x-2 []
   (let [unmatched-records (c/records-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)]
@@ -30,4 +33,4 @@
                           (map second)
                           (sort-by :out/date)
                           )]
-    (u/pp (reduce (partial gl/apply-trans {}) d/data transactions))))
+    (u/pp (reduce (partial gl/apply-trans {:splits croquet-splits}) d/data transactions))))

@@ -15,6 +15,36 @@
     :who    "Bob"
     :amount -244.58M}])
 
+(def receive-cash-and-cheques
+  [{:type   :income/game-fees
+    :when   (t/short-date-str->date "07/02/2017")
+    :amount 30.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "14/02/2017")
+    :amount 27.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "15/02/2017")
+    :amount 31.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "17/02/2017")
+    :amount 37.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "19/02/2017")
+    :amount 10.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "20/02/2017")
+    :amount 32.00M}
+   {:type   :income/visiting-club
+    :when   (t/short-date-str->date "20/02/2017")
+    :amount 45.00M}
+   {:type   :income/events
+    :when   (t/short-date-str->date "20/02/2017")
+    :amount 275.00M}
+   {:type   :income/membership-fees
+    :when   (t/short-date-str->date "20/02/2017")
+    :amount 235.00M
+    :from   "Rose"}])
+
 (def receive-cash
   [{:type   :income/game-fees
     :when   (t/short-date-str->date "31/01/2017")
@@ -31,6 +61,15 @@
    {:type   :income/game-fees
     :when   (t/short-date-str->date "06/02/2017")
     :amount 20.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "12/02/2017")
+    :amount 45.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "13/02/2017")
+    :amount 49.00M}
+   {:type   :income/visiting-club
+    :when   (t/short-date-str->date "13/02/2017")
+    :amount 70.00M}
 
    {:type   :income/game-fees
     :when   (t/short-date-str->date "21/02/2017")
@@ -77,7 +116,8 @@
     :when   (t/short-date-str->date "26/02/2017")
     :amount 90.00M}])
 
-(def -ledgers {:cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash}
+(def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash-and-cheques}
+               :cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash}
                :expenses-owed {:recalc-date (t/short-date-str->date "20/02/2017") :records expenses-owed}})
 
 (def -feb-rules
@@ -205,6 +245,7 @@
                      :income/bank-interest     0M
                      :income/game-fees         0M
                      :income/events            0M
+                     :income/visiting-club     0M
                      :exp/uniforms             0M
                      :exp/rent                 0M
                      :exp/bank-fees            0M
@@ -215,5 +256,8 @@
                      :exp/plumbing             0M
                      :exp/pennants             0M
                      :exp/hedge-clipping       0M
+                     :exp/water                0M
+                     :exp/food                 0M
+                     :exp/house-keeping        0M
                      }
            :ledgers -ledgers})

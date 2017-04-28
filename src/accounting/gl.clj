@@ -11,13 +11,22 @@
        ))
 
 (defn iteree [{:keys [unprocessed accumulated-amount result]}]
-  (let [[{:keys [amount when] :as h} & tail] unprocessed
-        next-result (conj result h)
-        ]
-    {:unprocessed          tail
-     :creeping-recalc-date when
-     :accumulated-amount   (+ accumulated-amount amount)
-     :result               next-result}))
+  (assert accumulated-amount)
+  (let [[{:keys [amount when] :as h} & tail] unprocessed]
+    (if h
+      (let [_ (assert amount (str "No amount in <" h ">"))
+            next-result (conj result h)]
+        {:unprocessed          tail
+         :creeping-recalc-date when
+         :accumulated-amount   (+ accumulated-amount amount)
+         :result               next-result})
+      (do
+        (assert false (str "Processed all and only got: " accumulated-amount "\n" (u/pp-str (mapv t/show-ledger-record result))))
+        #_{:unprocessed          []
+         :creeping-recalc-date when
+         :accumulated-amount   accumulated-amount
+         :result               result}
+        ))))
 
 ;;
 ;; Returns the records between the period up to making the amount
@@ -29,14 +38,16 @@
         start-from-records (->> records
                                 (sort-by date-kw)
                                 (drop-while #(-> % date-kw after-begin? not)))]
-    ;(u/pp (map t/show-ledger-record start-from-records))
+    (assert (seq start-from-records) (str "No records from " (count records) " " (-> records first t/show-trans-record)))
+    (u/pp (map t/show-ledger-record start-from-records))
     ;(println "amount" amount)
     (->> (iterate iteree {:unprocessed          start-from-records
                           :accumulated-amount   0M
                           :creeping-recalc-date nil
                           :result               []})
-         (take-while (fn [{:keys [accumulated-amount creeping-recalc-date]}]
-                       (and (<= accumulated-amount amount)
+         (take-while (fn [{:keys [accumulated-amount creeping-recalc-date unprocessed]}]
+                       (and (seq unprocessed)
+                            (<= accumulated-amount amount)
                             (or (nil? creeping-recalc-date) (before-end? creeping-recalc-date)))
                        ))
          last
@@ -83,6 +94,8 @@
 ;; Decreasing income account is Credit of :income/poker-parse-sales
 ;;
 (defn modify-data [context {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
+  (assert gl (str "No gl in: " data))
+  (assert ledgers)
   (assert src-bank)
   (assert dest-account)
   (number? amount)
@@ -94,19 +107,20 @@
    :ledgers ledgers})
 
 (defn split-modify-data [{:keys [splits] :as context} {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
+  (assert splits)
   (let [split-ups (-> dest-account name keyword splits vec)]
-    {:gl (reduce
-           (fn [gl [dest-account proportion]]
-             (let [prop-amt' (*' proportion amount)
-                   ;; with-precision doesn't do decimal places
-                   prop-amt (bigdec (format "%.2f" prop-amt'))]
-               ;(println "got" prop-amt " from " amount " and " proportion)
-               (modify-data context gl {:out/src-bank     src-bank
-                                        :out/dest-account dest-account
-                                        :out/amount       prop-amt})))
-           gl
-           split-ups
-           )
+    {:gl      (reduce
+                (fn [gl [dest-account proportion]]
+                  (let [prop-amt' (*' proportion amount)
+                        ;; with-precision doesn't do decimal places
+                        prop-amt (bigdec (format "%.2f" prop-amt'))]
+                    ;(println "got" prop-amt " from " amount " and " proportion)
+                    (modify-data context data {:out/src-bank     src-bank
+                                               :out/dest-account dest-account
+                                               :out/amount       prop-amt})))
+                gl
+                split-ups
+                )
      :ledgers ledgers}))
 
 (def dont-modify-gl (fn [x _] x))

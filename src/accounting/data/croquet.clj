@@ -7,13 +7,19 @@
 
 (def splits {:house-keeping-and-cleaning {:exp/house-keeping 0.666M :exp/cleaning 0.333M}})
 
-;;
-;; whos are important for expenses and are references in bank rules
-;;
 (def expenses-owed
-  [{:when   (t/short-date-str->date "21/02/2017")
+  [{:type   :exp/garden
+    :when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
-    :amount -244.58M}])
+    :amount -99.90M}
+   {:type   :exp/kitchen
+    :when   (t/short-date-str->date "21/02/2017")
+    :who    "Bob"
+    :amount -72.34M}
+   {:type   :exp/stationary
+    :when   (t/short-date-str->date "21/02/2017")
+    :who    "Bob"
+    :amount -72.34M}])
 
 (def receive-cash-and-cheques
   [{:type   :income/game-fees
@@ -107,6 +113,10 @@
     :when   (t/short-date-str->date "26/02/2017")
     :amount 235.00M
     :from   "Williams"}
+   {:type   :income/membership-fees
+    :when   (t/short-date-str->date "26/02/2017")
+    :amount 117.50M
+    :from   "Chotty"}
 
    {:type   :income/visiting-club
     :when   (t/short-date-str->date "26/02/2017")
@@ -116,9 +126,9 @@
     :when   (t/short-date-str->date "26/02/2017")
     :amount 90.00M}])
 
-(def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash-and-cheques}
-               :cash-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash}
-               :expenses-owed {:recalc-date (t/short-date-str->date "20/02/2017") :records expenses-owed}})
+(def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash-and-cheques :op <}
+               :cash-deposits            {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash :op <}
+               :expenses-owed            {:recalc-date (t/short-date-str->date "20/02/2017") :records expenses-owed :op >}})
 
 (def -feb-rules
   {
@@ -239,25 +249,30 @@
                                                                   [:out/amount :equals -150.00M]]}]
    })
 
-(def data {:gl      {:bank/bendigo             0M
-                     :capital/funds-introduced 0M
-                     :income/membership-fees   0M
-                     :income/bank-interest     0M
-                     :income/game-fees         0M
-                     :income/events            0M
-                     :income/visiting-club     0M
-                     :exp/uniforms             0M
-                     :exp/rent                 0M
-                     :exp/bank-fees            0M
-                     :exp/bank-interest        0M
-                     :exp/greenkeeping         0M
-                     :exp/printing             0M
-                     :exp/cleaning             0M
-                     :exp/plumbing             0M
-                     :exp/pennants             0M
-                     :exp/hedge-clipping       0M
-                     :exp/water                0M
-                     :exp/food                 0M
-                     :exp/house-keeping        0M
+(def data {:gl      {:bank/bendigo                 0M
+                     :capital/funds-introduced     0M
+                     :income/membership-fees       0M
+                     :income/bank-interest         0M
+                     :income/game-fees             0M
+                     :income/events                0M
+                     :income/visiting-club         0M
+                     :income/member-shirt-payments 0M
+                     :exp/uniforms                 0M
+                     :exp/rent                     0M
+                     :exp/bank-fees                0M
+                     :exp/bank-interest            0M
+                     :exp/greenkeeping             0M
+                     :exp/printing                 0M
+                     :exp/cleaning                 0M
+                     :exp/plumbing                 0M
+                     :exp/pennants                 0M
+                     :exp/hedge-clipping           0M
+                     :exp/garden                   0M
+                     :exp/kitchen                  0M
+                     :exp/stationary               0M
+                     :exp/water                    0M
+                     :exp/food                     0M
+                     :exp/house-keeping            0M
+                     :exp/insurance                0M
                      }
            :ledgers -ledgers})

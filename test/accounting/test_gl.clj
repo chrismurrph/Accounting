@@ -27,11 +27,12 @@
         :dest-account :capital/drawings})
 
 
-(defn x-1 []
-  (g/apply-trans {} d/general-ledger example-transaction-capital))
+(comment "Put back when accounting.data.seaweed has data"
+         (defn x-1 []
+           (g/apply-trans {} d/data example-transaction-capital)))
 
 (defn x-2 []
   (let [begin (t/short-date-str->date "31/01/2017")
         end (t/short-date-str->date "21/02/2017")
-        within (g/get-within :when begin end 140.00M data/receive-cash)]
+        within (g/get-within :when < begin end 140.00M data/receive-cash)]
     (u/pp within)))

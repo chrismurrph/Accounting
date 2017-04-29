@@ -12,71 +12,81 @@
 
 (defn iteree [{:keys [unprocessed accumulated-amount result]}]
   (assert accumulated-amount)
-  (let [[{:keys [amount when] :as h} & tail] unprocessed]
+  (let [[{:keys [amount when type] :as h} & tail] unprocessed]
     (if h
-      (let [_ (assert amount (str "No amount in <" h ">"))
+      (let [_ (assert type (str "No type in <" (t/show-ledger-record h) ">"))
+            _ (assert amount (str "No amount in <" (t/show-ledger-record h) ">"))
+            _ (assert when (str "No when in <" (t/show-ledger-record h) ">"))
             next-result (conj result h)]
         {:unprocessed          tail
          :creeping-recalc-date when
          :accumulated-amount   (+ accumulated-amount amount)
          :result               next-result})
       (do
+        (println (reduce + (map :amount result)))
         (assert false (str "Processed all and only got: " accumulated-amount "\n" (u/pp-str (mapv t/show-ledger-record result))))
         #_{:unprocessed          []
-         :creeping-recalc-date when
-         :accumulated-amount   accumulated-amount
-         :result               result}
+           :creeping-recalc-date when
+           :accumulated-amount   accumulated-amount
+           :result               result}
         ))))
 
 ;;
 ;; Returns the records between the period up to making the amount
 ;; Need a short-circuiting reduce i.e. iterate
 ;;
-(defn get-within [date-kw begin end amount records]
+(defn get-within [debug-ledger-kw date-kw op begin end amount records]
   (let [after-begin? (t/after-begin-bound? begin)
         before-end? (t/before-end-bound? end)
         start-from-records (->> records
                                 (sort-by date-kw)
                                 (drop-while #(-> % date-kw after-begin? not)))]
-    (assert (seq start-from-records) (str "No records from " (count records) " " (-> records first t/show-trans-record)))
+    (u/assrt (seq start-from-records) (str "No records from " (count records) " after "
+                                           (t/show begin) " and before " (t/show end) " (needed for " debug-ledger-kw ") for " amount
+                                           #_(u/pp-str (mapv t/show-ledger-record records))))
     (u/pp (map t/show-ledger-record start-from-records))
-    ;(println "amount" amount)
     (->> (iterate iteree {:unprocessed          start-from-records
                           :accumulated-amount   0M
                           :creeping-recalc-date nil
                           :result               []})
-         (take-while (fn [{:keys [accumulated-amount creeping-recalc-date unprocessed]}]
+         (drop-while (fn [{:keys [accumulated-amount creeping-recalc-date unprocessed]}]
                        (and (seq unprocessed)
-                            (<= accumulated-amount amount)
+                            (op accumulated-amount amount)
                             (or (nil? creeping-recalc-date) (before-end? creeping-recalc-date)))
                        ))
-         last
+         first
          )))
 
 (defn show-ledger-records [records]
   (mapv #(-> % t/show-ledger-record) records))
 
-(defn ledger-modify-data [context {:keys [gl ledgers] :as data} {:keys [out/date out/src-bank out/dest-account out/amount]}]
+(defn chk [{:keys [gl ledgers] :as data}]
   (assert (map? gl))
-  (assert (map? ledgers))
+  (assert (not (:gl gl)) (str "weird that :gl is in gl: " (keys gl) ", " (keys data)))
+  (assert (or (nil? ledgers) (map? ledgers))))
+
+(defn ledger-modify-data [context {:keys [gl ledgers] :as data} {:keys [out/date out/src-bank out/dest-account out/amount]}]
+  (chk data)
   (let [ledger-kw (-> dest-account name keyword)
-        {:keys [records recalc-date]} (ledger-kw ledgers)
+        {:keys [records recalc-date op]} (ledger-kw ledgers)
         _ (assert recalc-date (str "No recalc-date for " dest-account))
         [begin end] [(t/add-day recalc-date) date]]
     (if (t/gte? end begin)
-      (let [{:keys [accumulated-amount creeping-recalc-date result]} (get-within :when begin end amount records)
+      (let [{:keys [accumulated-amount creeping-recalc-date result]} (get-within ledger-kw :when op begin end amount records)
             ;; The ledger just doesn't have the entries
             _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount
-                                                         ", whereas we were expecting " amount " for " ledger-kw " from "
-                                                         (t/show begin) " to " (t/show end) ", in count:\n" (show-ledger-records records)
+                                                         ", whereas we were expecting " amount ", so short " (- amount accumulated-amount) " for " ledger-kw " from "
+                                                         (t/show begin) " to " (t/show end) ", in:\n" (u/pp-str (show-ledger-records records))
                                                          "\ngathered:\n" (u/pp-str (map t/show-ledger-record result))))
             totals-by-account (account->amount result)
             _ (println totals-by-account)
             new-gl (reduce (fn [acc [account amount]]
-                             (u/assrt (account acc) (str "Not in general ledger: " account))
+                             (u/assrt (account acc) (str "Not in general ledger: " account ", gl:\n" (u/pp-str gl)))
                              (-> acc
                                  (update src-bank #(+' % amount))
-                                 (update account #(-' % amount)))) gl totals-by-account)
+                                 (update account #(-' % amount))))
+                           gl
+                           totals-by-account)
             new-ledgers (assoc-in ledgers [ledger-kw :recalc-date] creeping-recalc-date)]
         (println "old,new:" (-> ledgers ledger-kw :recalc-date t/show) (-> new-ledgers ledger-kw :recalc-date t/show) "for" ledger-kw)
         {:gl new-gl :ledgers new-ledgers})
@@ -94,8 +104,7 @@
 ;; Decreasing income account is Credit of :income/poker-parse-sales
 ;;
 (defn modify-data [context {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
-  (assert gl (str "No gl in: " data))
-  (assert ledgers)
+  (chk data)
   (assert src-bank)
   (assert dest-account)
   (number? amount)
@@ -107,6 +116,7 @@
    :ledgers ledgers})
 
 (defn split-modify-data [{:keys [splits] :as context} {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
+  (chk data)
   (assert splits)
   (let [split-ups (-> dest-account name keyword splits vec)]
     {:gl      (reduce
@@ -115,9 +125,9 @@
                         ;; with-precision doesn't do decimal places
                         prop-amt (bigdec (format "%.2f" prop-amt'))]
                     ;(println "got" prop-amt " from " amount " and " proportion)
-                    (modify-data context data {:out/src-bank     src-bank
-                                               :out/dest-account dest-account
-                                               :out/amount       prop-amt})))
+                    (:gl (modify-data context {:gl gl} {:out/src-bank     src-bank
+                                                        :out/dest-account dest-account
+                                                        :out/amount       prop-amt}))))
                 gl
                 split-ups
                 )
@@ -136,8 +146,11 @@
 
 ;;
 ;; Modifies data (which includes gl), used by reduce
+;; Thus f must return data
 ;;
 (defn apply-trans [context data {:keys [out/src-bank out/dest-account out/amount] :as trans}]
+  (assert (:gl data))
+  (assert (-> data :gl :exp/bank-interest))
   (assert src-bank)
   (assert dest-account)
   (assert amount)

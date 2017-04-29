@@ -32,5 +32,6 @@
                           u/probe-off
                           (map second)
                           (sort-by :out/date)
+                          c/compact-transactions
                           )]
     (u/pp (reduce (partial gl/apply-trans {:splits croquet-splits}) d/data transactions))))

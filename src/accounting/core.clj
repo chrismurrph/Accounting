@@ -83,6 +83,22 @@
                      )]
       [(t/show-trans-record record) (mapv :rule/target-account rule-matches)])))
 
+;; Because out formula matches on whole amounts, this sort of thing can stuff us up:
+;; 14/03/2017,"20.00","DEPOSIT - CASH"
+;; 14/03/2017,"575.00","DEPOSIT - CASH"
+;; So we make these two entries above into one.
+;;
+(defn compact-trans [transactions]
+  (let [summed-amounts (reduce + (map :out/amount transactions))]
+    (assoc (first transactions) :out/amount summed-amounts)))
+
+(defn compact-transactions [transactions]
+  ;(println "first of" (count transactions) "is\n" (-> transactions first t/show-trans-record u/pp-str))
+  ;(println "partitioned count: " (count (partition-by (juxt :out/date :out/desc) transactions)))
+  (->> transactions
+       (partition-by (juxt :out/date :out/desc :out/src-bank #_:out/dest-account))
+       (map compact-trans)))
+
 ;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get
 ;; a list of transactions for each account, which we do in a later step.

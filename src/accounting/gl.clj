@@ -41,10 +41,10 @@
         start-from-records (->> records
                                 (sort-by date-kw)
                                 (drop-while #(-> % date-kw after-begin? not)))]
-    (u/assrt (seq start-from-records) (str "No records from " (count records) " after "
-                                           (t/show begin) " and before " (t/show end) " (needed for " debug-ledger-kw ") for " amount
+    (u/assrt (seq start-from-records) (str "No records from " (count records) " (incl)after "
+                                           (t/show begin) " and (incl)before " (t/show end) " (needed for " debug-ledger-kw ") for " amount
                                            #_(u/pp-str (mapv t/show-ledger-record records))))
-    (u/pp (map t/show-ledger-record start-from-records))
+    ;(u/pp (map t/show-ledger-record start-from-records))
     (->> (iterate iteree {:unprocessed          start-from-records
                           :accumulated-amount   0M
                           :creeping-recalc-date nil
@@ -72,14 +72,18 @@
         _ (assert recalc-date (str "No recalc-date for " dest-account))
         [begin end] [(t/add-day recalc-date) date]]
     (if (t/gte? end begin)
-      (let [{:keys [accumulated-amount creeping-recalc-date result]} (get-within ledger-kw :when op begin end amount records)
+      (let [debug-ledger-kw ledger-kw
+            {:keys [accumulated-amount creeping-recalc-date result]} (get-within debug-ledger-kw :when op begin end amount records)
             ;; The ledger just doesn't have the entries
-            _ (assert (= accumulated-amount amount) (str "Total gathered is " accumulated-amount
-                                                         ", whereas we were expecting " amount ", so short " (- amount accumulated-amount) " for " ledger-kw " from "
-                                                         (t/show begin) " to " (t/show end) ", in:\n" (u/pp-str (show-ledger-records records))
-                                                         "\ngathered:\n" (u/pp-str (map t/show-ledger-record result))))
+            ;; This error message can look confusing because the gathered is 'from all types'
+            ;; Logic is that if there's a shortfall from all types then there's also a shortfall from the types that come
+            ;; within ledger-kw
+            _ (u/assrt (= accumulated-amount amount) (str "Total gathered (from all types) is " accumulated-amount
+                                                          ", whereas we were expecting " amount ", so short " (- amount accumulated-amount) " for " ledger-kw " from "
+                                                          (t/show begin) " to " (t/show end) #_", in:\n" #_(u/pp-str (show-ledger-records records))
+                                                          "\ngathered (from all types):\n" (u/pp-str (map t/show-ledger-record result))))
             totals-by-account (account->amount result)
-            _ (println totals-by-account)
+            ;_ (println totals-by-account)
             new-gl (reduce (fn [acc [account amount]]
                              (u/assrt (account acc) (str "Not in general ledger: " account ", gl:\n" (u/pp-str gl)))
                              (-> acc
@@ -88,7 +92,7 @@
                            gl
                            totals-by-account)
             new-ledgers (assoc-in ledgers [ledger-kw :recalc-date] creeping-recalc-date)]
-        (println "old,new:" (-> ledgers ledger-kw :recalc-date t/show) (-> new-ledgers ledger-kw :recalc-date t/show) "for" ledger-kw)
+        ;(println "old,new:" (-> ledgers ledger-kw :recalc-date t/show) (-> new-ledgers ledger-kw :recalc-date t/show) "for" ledger-kw)
         {:gl new-gl :ledgers new-ledgers})
       (do
         (u/warning (str "There is a " dest-account " on " (t/show end)

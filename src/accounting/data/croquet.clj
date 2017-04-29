@@ -12,14 +12,36 @@
     :when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
     :amount -99.90M}
-   {:type   :exp/kitchen
+   {:type   :exp/non-garden
     :when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
     :amount -72.34M}
    {:type   :exp/stationary
     :when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
-    :amount -72.34M}])
+    :amount -72.34M}
+
+   {:type   :exp/stationary
+    :when   (t/short-date-str->date "22/02/2017")
+    :who    "Bob"
+    :amount -9.00M}
+   {:type   :exp/garden
+    :when   (t/short-date-str->date "22/02/2017")
+    :who    "Bob"
+    :amount -53.90M}
+   {:type   :exp/garden
+    :when   (t/short-date-str->date "22/02/2017")
+    :who    "Bob"
+    :amount -8.05M}
+   {:type   :exp/non-garden
+    :when   (t/short-date-str->date "22/02/2017")
+    :who    "Bob"
+    :amount -10.65M}
+   {:type   :exp/non-garden
+    :when   (t/short-date-str->date "22/02/2017")
+    :who    "Bob"
+    :amount -35.00M}
+   ])
 
 (def receive-cash-and-cheques
   [{:type   :income/game-fees
@@ -124,7 +146,65 @@
     :from   "Millswood"}
    {:type   :income/member-shirt-payments
     :when   (t/short-date-str->date "26/02/2017")
-    :amount 90.00M}])
+    :amount 90.00M}
+
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "28/02/2017")
+    :amount 10.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "01/03/2017")
+    :amount 16.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "03/03/2017")
+    :amount 12.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "05/03/2017")
+    :amount 14.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "06/03/2017")
+    :amount 22.00M}
+
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "07/03/2017")
+    :amount 14.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "08/03/2017")
+    :amount 26.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "10/03/2017")
+    :amount 34.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "12/03/2017")
+    :amount 16.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "13/03/2017")
+    :amount 35.00M}
+
+   {:type   :income/membership-fees
+    :when   (t/short-date-str->date "14/03/2017")
+    :amount 235.00M
+    :from   "Hugh Duckett"}
+   {:type   :income/membership-fees
+    :when   (t/short-date-str->date "14/03/2017")
+    :amount 235.00M
+    :from   "Arthur Ruttley"}
+
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "14/03/2017")
+    :amount 17.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "15/03/2017")
+    :amount 27.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "19/03/2017")
+    :amount 28.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "20/03/2017")
+    :amount 24.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "17/03/2017")
+    :amount 24.00M}
+   ])
 
 (def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash-and-cheques :op <}
                :cash-deposits            {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash :op <}
@@ -268,11 +348,14 @@
                      :exp/pennants                 0M
                      :exp/hedge-clipping           0M
                      :exp/garden                   0M
-                     :exp/kitchen                  0M
+                     :exp/non-garden               0M
                      :exp/stationary               0M
                      :exp/water                    0M
                      :exp/food                     0M
                      :exp/house-keeping            0M
                      :exp/insurance                0M
+                     :exp/building-maintenance     0M
+                     :exp/uniform                  0M
+                     :exp/po-box                   0M
                      }
            :ledgers -ledgers})

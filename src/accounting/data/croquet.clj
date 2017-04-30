@@ -12,7 +12,7 @@
     :when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
     :amount -99.90M}
-   {:type   :exp/non-garden
+   {:type   :exp/general-upkeep
     :when   (t/short-date-str->date "21/02/2017")
     :who    "Bob"
     :amount -72.34M}
@@ -33,11 +33,11 @@
     :when   (t/short-date-str->date "22/02/2017")
     :who    "Bob"
     :amount -8.05M}
-   {:type   :exp/non-garden
+   {:type   :exp/general-upkeep
     :when   (t/short-date-str->date "22/02/2017")
     :who    "Bob"
     :amount -10.65M}
-   {:type   :exp/non-garden
+   {:type   :exp/general-upkeep
     :when   (t/short-date-str->date "22/02/2017")
     :who    "Bob"
     :amount -35.00M}
@@ -208,6 +208,28 @@
     :when   (t/short-date-str->date "20/03/2017")
     :amount 235.00M
     :from   "Margo"}
+
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "21/03/2017")
+    :amount 6.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "23/03/2017")
+    :amount 18.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "26/03/2017")
+    :amount 20.00M}
+   {:type   :income/game-fees
+    :when   (t/short-date-str->date "27/03/2017")
+    :amount 29.00M}
+
+   {:type   :income/events
+    :when   (t/short-date-str->date "22/03/2017")
+    :amount 195.00M}
+
+   {:type   :exp/pennants
+    :when   (t/short-date-str->date "22/03/2017")
+    :amount 40.00M}
+
    ])
 
 ;;
@@ -361,7 +383,7 @@
                      :exp/pennants                 0M
                      :exp/hedge-clipping           0M
                      :exp/garden                   0M
-                     :exp/non-garden               0M
+                     :exp/general-upkeep           0M
                      :exp/stationary               0M
                      :exp/water                    0M
                      :exp/food                     0M

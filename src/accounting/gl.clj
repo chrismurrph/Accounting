@@ -72,7 +72,6 @@
         {:keys [records recalc-date op]} (ledger-kw ledgers)
         _ (assert recalc-date (str "No recalc-date for " dest-account))
         [begin end] [recalc-date date]]
-    (println (first records))
     (if (t/gte? end begin)
       (let [debug-ledger-kw ledger-kw
             {:keys [accumulated-amount creeping-recalc-date result]} (get-within debug-ledger-kw :when op begin end amount #_records (filter #(not (:already-transferred %)) records))
@@ -88,7 +87,7 @@
                                                           (t/show begin) " to " (t/show end) #_", in:\n" #_(u/pp-str (show-ledger-records records))
                                                           "\ngathered (from all types):\n" (u/pp-str (map t/show-ledger-record result))))
             totals-by-account (account->amount result)
-            _ (println (mapv #(take 2 %) totals-by-account))
+            ;_ (println (mapv #(take 2 %) totals-by-account))
             updating-ledger-records (into #{} (mapcat #(u/third %) totals-by-account))
             ;_ (println updating-ledger-records)
             new-gl (reduce (fn [acc-gl [account amount]]

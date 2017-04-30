@@ -6,7 +6,7 @@
   (->> records
        (group-by :type)
        (map (fn [[k v]]
-              [k (reduce + (map :amount v))]))
+              [k (reduce + (map :amount v)) v]))
        ;(into {})
        ))
 
@@ -36,6 +36,7 @@
 ;; Need a short-circuiting reduce i.e. iterate
 ;;
 (defn get-within [debug-ledger-kw date-kw op begin end amount records]
+  (u/assrt (seq records) (str "No records between " (t/show begin) " and end " (t/show end) " for " debug-ledger-kw ", need find ledger worth: " amount))
   (let [after-begin? (t/after-begin-bound? begin)
         before-end? (t/before-end-bound? end)
         start-from-records (->> records
@@ -70,28 +71,46 @@
   (let [ledger-kw (-> dest-account name keyword)
         {:keys [records recalc-date op]} (ledger-kw ledgers)
         _ (assert recalc-date (str "No recalc-date for " dest-account))
-        [begin end] [(t/add-day recalc-date) date]]
+        [begin end] [recalc-date date]]
+    (println (first records))
     (if (t/gte? end begin)
       (let [debug-ledger-kw ledger-kw
-            {:keys [accumulated-amount creeping-recalc-date result]} (get-within debug-ledger-kw :when op begin end amount records)
+            {:keys [accumulated-amount creeping-recalc-date result]} (get-within debug-ledger-kw :when op begin end amount #_records (filter #(not (:already-transferred %)) records))
             ;; The ledger just doesn't have the entries
             ;; This error message can look confusing because the gathered is 'from all types'
             ;; Logic is that if there's a shortfall from all types then there's also a shortfall from the types that come
-            ;; within ledger-kw
+            ;; within ledger-kw.
+            ;; TODO
+            ;; Lets make account->amount return a third thing which is all the records which we can mapcat then put into a set.
+            ;; Only records in this set will have :already-transferred set to true
             _ (u/assrt (= accumulated-amount amount) (str "Total gathered (from all types) is " accumulated-amount
                                                           ", whereas we were expecting " amount ", so short " (- amount accumulated-amount) " for " ledger-kw " from "
                                                           (t/show begin) " to " (t/show end) #_", in:\n" #_(u/pp-str (show-ledger-records records))
                                                           "\ngathered (from all types):\n" (u/pp-str (map t/show-ledger-record result))))
             totals-by-account (account->amount result)
-            ;_ (println totals-by-account)
-            new-gl (reduce (fn [acc [account amount]]
-                             (u/assrt (account acc) (str "Not in general ledger: " account ", gl:\n" (u/pp-str gl)))
-                             (-> acc
-                                 (update src-bank #(+' % amount))
-                                 (update account #(-' % amount))))
+            _ (println (mapv #(take 2 %) totals-by-account))
+            updating-ledger-records (into #{} (mapcat #(u/third %) totals-by-account))
+            ;_ (println updating-ledger-records)
+            new-gl (reduce (fn [acc-gl [account amount]]
+                             (u/assrt (account acc-gl) (str "Not in general ledger: " account ", gl:\n" (u/pp-str gl)))
+                             (-> acc-gl
+                                 (update src-bank #(+ % amount))
+                                 (update account #(- % amount))))
                            gl
                            totals-by-account)
-            new-ledgers (assoc-in ledgers [ledger-kw :recalc-date] creeping-recalc-date)]
+            ;;
+            ;; Here s/not be marking them all as transferred but only the ones that are in the destination accounts
+            ;; that are part of ledger-kw and between the dates.
+            ;;
+            new-ledgers (-> ledgers
+                            (update-in [ledger-kw :records] (fn [records]
+                                                              (->> records
+                                                                   (mapv (fn [record]
+                                                                           (if (updating-ledger-records record)
+                                                                             (assoc record :already-transferred true)
+                                                                             record))))))
+                            (assoc-in [ledger-kw :recalc-date] creeping-recalc-date))
+            ]
         ;(println "old,new:" (-> ledgers ledger-kw :recalc-date t/show) (-> new-ledgers ledger-kw :recalc-date t/show) "for" ledger-kw)
         {:gl new-gl :ledgers new-ledgers})
       (do
@@ -115,8 +134,8 @@
   (u/assrt (src-bank gl) (str "Not in general ledger: " src-bank))
   (u/assrt (dest-account gl) (str "Not in general ledger: " dest-account))
   {:gl      (-> gl
-                (update src-bank #(+' % amount))
-                (update dest-account #(-' % amount)))
+                (update src-bank #(+ % amount))
+                (update dest-account #(- % amount)))
    :ledgers ledgers})
 
 (defn split-modify-data [{:keys [splits] :as context} {:keys [gl ledgers] :as data} {:keys [out/src-bank out/dest-account out/amount]}]
@@ -125,7 +144,7 @@
   (let [split-ups (-> dest-account name keyword splits vec)]
     {:gl      (reduce
                 (fn [gl [dest-account proportion]]
-                  (let [prop-amt' (*' proportion amount)
+                  (let [prop-amt' (* proportion amount)
                         ;; with-precision doesn't do decimal places
                         prop-amt (bigdec (format "%.2f" prop-amt'))]
                     ;(println "got" prop-amt " from " amount " and " proportion)
@@ -136,8 +155,6 @@
                 split-ups
                 )
      :ledgers ledgers}))
-
-(def dont-modify-gl (fn [x _] x))
 
 (def how-apply-namespace
   {"income"   modify-data

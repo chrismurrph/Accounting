@@ -204,11 +204,24 @@
    {:type   :income/game-fees
     :when   (t/short-date-str->date "17/03/2017")
     :amount 24.00M}
+   {:type   :income/membership-fees
+    :when   (t/short-date-str->date "20/03/2017")
+    :amount 235.00M
+    :from   "Margo"}
    ])
 
-(def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash-and-cheques :op <}
-               :cash-deposits            {:recalc-date (t/short-date-str->date "30/01/2017") :records receive-cash :op <}
-               :expenses-owed            {:recalc-date (t/short-date-str->date "20/02/2017") :records expenses-owed :op >}})
+;;
+;; This is like a post-query step because :already-transferred to have only temporary significance. Needed for when
+;; ledger and bank amounts overlap. For instance when cash is collected and banked on the same day, with some of
+;; the collection being after the banking.
+;;
+(defn init [records]
+  (mapv #(-> %
+            (assoc :already-transferred false)) records))
+
+(def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records (init receive-cash-and-cheques) :op <}
+               :cash-deposits            {:recalc-date (t/short-date-str->date "30/01/2017") :records (init receive-cash) :op <}
+               :expenses-owed            {:recalc-date (t/short-date-str->date "20/02/2017") :records (init expenses-owed) :op >}})
 
 (def -feb-rules
   {
@@ -355,7 +368,9 @@
                      :exp/house-keeping            0M
                      :exp/insurance                0M
                      :exp/building-maintenance     0M
+                     :exp/equipment-maintenance    0M
                      :exp/uniform                  0M
                      :exp/po-box                   0M
+                     :exp/alcohol                  0M
                      }
            :ledgers -ledgers})

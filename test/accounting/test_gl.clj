@@ -3,7 +3,8 @@
             [accounting.time :as t]
             [accounting.data.seaweed :as d]
             [accounting.data.croquet :as data]
-            [accounting.util :as u]))
+            [accounting.util :as u]
+            [clojure.test :as test]))
 
 (def example-transaction-income
   #:out{:date         (t/long-date-str->date "31 Mar 2017"),
@@ -26,13 +27,31 @@
         :src-bank     :bank/anz-coy,
         :dest-account :capital/drawings})
 
+(defn- test-transaction [[transaction account]]
+  (let [expected (- (:out/amount transaction))
+        res (-> (->> transaction
+                     (g/apply-trans {} d/data)
+                     :gl)
+                (select-keys [account])
+                first
+                val)]
+    [expected res]))
 
-(comment "Put back when accounting.data.seaweed has data"
-         (defn x-1 []
-           (g/apply-trans {} d/data example-transaction-capital)))
+(test/deftest transactions
+            (let [results (map test-transaction [[example-transaction-capital :capital/drawings]
+                                                 [example-transaction-exp :exp/office-expense]
+                                                 [example-transaction-income :income/poker-parse-sales]])
+                  bad-results (remove (fn [[expected res]]
+                                        (= expected res)) results)]
+              (test/is (empty? bad-results))))
 
-(defn x-2 []
-  (let [begin (t/short-date-str->date "31/01/2017")
-        end (t/short-date-str->date "21/02/2017")
-        within (g/get-within :when < begin end 140.00M data/receive-cash)]
-    (u/pp within)))
+(test/deftest completes-ledger
+            (test/is (let [begin (t/short-date-str->date "31/01/2017")
+                             end (t/short-date-str->date "21/02/2017")
+                             ]
+                       (= (->> data/receive-cash
+                               (g/get-within nil :when < begin end 140.00M)
+                               :result
+                               (map t/show-ledger-record)
+                               (map :amount)
+                               (reduce +)) 140M))))

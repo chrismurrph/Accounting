@@ -4,7 +4,8 @@
             [accounting.seasoft-context :as seasoft-con]
             [accounting.croquet-context :as croquet-con]
             [accounting.time :as t]
-            [accounting.data.meta.croquet :as meta]))
+            [accounting.data.meta.croquet :as meta]
+            [clojure.test :as test]))
 
 (def example-transaction-capital
   #:out{:date         (t/long-date-str->date "21 Mar 2017"),
@@ -38,49 +39,45 @@
    :conditions     [[:out/desc :starts-with "DIRECT CREDIT"]
                     [:out/amount :equals 235.00M]]})
 
-(defn x-1 []
+(defn view-anz-coy-rules []
   (u/pp (m/bank-rules #{:bank/anz-coy} seasoft-con/current-rules)))
 
-(defn x-2 []
+(defn view-first-seaweed-rule []
   (->> seasoft-con/current-rules
        first
        u/pp))
 
-(defn x-3 []
+(defn view-first-croquet-rule []
   (->> croquet-con/current-rules
        (take 1)
        u/pp))
 
 ;; Expected to not match
-(defn x-4 []
-  (->> croquet-con/current-rules
-       first
-       (m/match example-transaction-capital)
-       u/pp))
+(test/deftest bad-match-1
+            (test/is (nil? (->> croquet-con/current-rules
+                                first
+                                (m/match example-transaction-capital)))))
 
 ;; Expect to
-(defn x-5 []
-  (->> example-and-rule
-       (m/match example-payment)
-       u/pp))
+(test/deftest good-match-1
+            (test/is (= (->> example-and-rule
+                             (m/match example-payment)) example-and-rule)))
 
 ;; Expect not
-(defn x-6 []
-  (assert (->> example-and-rule
-               (m/match wrong-amount-payment)
-               nil?)))
+(test/deftest bad-match-2
+            (test/is (nil? (->> example-and-rule
+                                (m/match wrong-amount-payment)))))
 
 ;; Expect to match
-(defn x-7 []
-  (assert (->> example-or-rule
-               (m/match wrong-amount-payment)
-               u/probe-on)))
+(test/deftest good-match-2
+            (test/is (= (->> example-or-rule
+                             (m/match wrong-amount-payment)
+                             u/probe-on) example-or-rule)))
 
 ;; Expect no match
-(defn x-8 []
-  (assert (->> example-or-rule
-               (m/match wrong-both-payment)
-               nil?)))
+(test/deftest bad-match-3
+            (test/is (nil? (->> example-or-rule
+                                (m/match wrong-both-payment)))))
 
 
 

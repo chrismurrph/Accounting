@@ -121,6 +121,20 @@
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
 
+(defn trial-balance [customer-kw bank-accounts periods rules splits data]
+  (assert ((complement set?) bank-accounts))
+  (let [transactions (->> (attach-rules
+                            customer-kw
+                            (set bank-accounts)
+                            periods
+                            rules)
+                          u/probe-off
+                          (map second)
+                          (sort-by :out/date)
+                          compact-transactions
+                          )]
+    (:gl (reduce (partial gl/apply-trans {:splits splits}) data transactions))))
+
 (defn account-grouped-transactions [customer-kw bank-accounts periods rules]
   (->> (attach-rules customer-kw bank-accounts periods (m/bank-rules bank-accounts rules))
        (group-by first)

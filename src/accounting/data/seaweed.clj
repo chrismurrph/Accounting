@@ -185,7 +185,7 @@
                                                         [:starts-with "DPTI - EZYREG"]
                                                         [:equals "SYD CITY M CYC LN CV  LAN E COVE    NSW"]
                                                         [:equals "RMS ETOLL PH 131865       PARRAMATTA"]]}]
-   [visa :exp/interest-expense]      [{:field          :out/desc
+   [visa :exp/bank-interest]         [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:starts-with "INTEREST CHARGED ON PURCHASES"]]}]
    [visa :exp/travel]                [{:field          :out/desc
@@ -274,7 +274,7 @@
                                        :logic-operator :or
                                        :conditions     [[:equals "ACCOUNT SERVICING FEE"]
                                                         [:equals "HONOUR/OVERDRAWN FEE"]]}]
-   [coy :exp/interest-expense]       [{:field          :out/desc
+   [coy :exp/bank-interest]          [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:equals "DEBIT INTEREST CHARGED"]]}]
    [coy :exp/asic-payment]           [{:field          :out/desc
@@ -312,42 +312,39 @@
 ;; :bank/anz-visa    250.74
 ;; :bank/amp         431.76
 ;; They were indeed these amounts!
-(def general-ledger
-  {:bank/anz-coy              96.15M
-   :bank/anz-visa             -1024.48M
-   :bank/amp                  3010.59M
-   :personal/amp              0M
-   :personal/anz-visa         0M
-   :income/mining-sales       0M
-   :income/poker-parse-sales  0M
-   :income/bank-interest      0M
-   :capital/drawings          0M
-   :exp/office-expense        0M
-   :exp/motor-vehicle         0M
-   :exp/cloud-expense         0M
-   :exp/niim-trip             0M
-   :exp/accounting-software   0M
-   :exp/mobile-expense        0M
-   :exp/bank-fee              0M
-   :exp/interest-expense      0M
-   :exp/petrol                0M
-   :exp/computer-expense      0M
-   :exp/office-rent           0M
-   :exp/travel                0M
-   :exp/donations             0M
-   :exp/isp                   0M
-   :exp/storage               0M
-   :exp/light-power-heating   0M
-   :exp/accomodation          0M
-   :exp/food                  0M
-   :exp/advertising           0M
-   :exp/meeting-entertainmant 0M
-   :exp/asic-payment          0M
-   :exp/freight-courier       0M
-   :exp/accounting-expense    0M
-   :non-exp/ato-payment       0M
-   :non-exp/private-health    0M
-   })
-
-(def data nil)
+(def data {:gl {:bank/anz-coy              96.15M
+                :bank/anz-visa             -1024.48M
+                :bank/amp                  3010.59M
+                :personal/amp              0M
+                :personal/anz-visa         0M
+                :income/mining-sales       0M
+                :income/poker-parse-sales  0M
+                :income/bank-interest      0M
+                :capital/drawings          0M
+                :exp/office-expense        0M
+                :exp/motor-vehicle         0M
+                :exp/cloud-expense         0M
+                :exp/niim-trip             0M
+                :exp/accounting-software   0M
+                :exp/mobile-expense        0M
+                :exp/bank-fee              0M
+                :exp/bank-interest         0M
+                :exp/petrol                0M
+                :exp/computer-expense      0M
+                :exp/office-rent           0M
+                :exp/travel                0M
+                :exp/donations             0M
+                :exp/isp                   0M
+                :exp/storage               0M
+                :exp/light-power-heating   0M
+                :exp/accomodation          0M
+                :exp/food                  0M
+                :exp/advertising           0M
+                :exp/meeting-entertainmant 0M
+                :exp/asic-payment          0M
+                :exp/freight-courier       0M
+                :exp/accounting-expense    0M
+                :non-exp/ato-payment       0M
+                :non-exp/private-health    0M
+                }})
 

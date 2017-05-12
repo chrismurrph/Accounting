@@ -5,7 +5,8 @@
             [accounting.gl :as gl]
             [accounting.data.croquet :as d]
             [accounting.match :as m]
-            [accounting.croquet-context :as con]))
+            [accounting.croquet-context :as con]
+            [clojure.test :as test]))
 
 (def current-range con/current-range)
 (def current-rules con/current-rules)
@@ -15,23 +16,24 @@
 ;; Now s/always be kept in data so that recalc-date can be changed
 ;;(def ledgers (-> meta/human-meta :croquet :ledgers))
 
-(defn x-2 []
+(defn unmatched-croquet-records []
   (let [unmatched-records (c/records-without-single-rule-match :croquet (set croquet-bank-accounts) current-range current-rules)]
     (->> unmatched-records
          (take 10)
-         (cons (count unmatched-records))
-         reverse
-         u/pp)))
+         (cons (count unmatched-records)))))
 
-(defn x-5 []
-  (let [transactions (->> (c/attach-rules
-                            :croquet
-                            (set croquet-bank-accounts)
-                            current-range
-                            current-rules)
-                          u/probe-off
-                          (map second)
-                          (sort-by :out/date)
-                          c/compact-transactions
-                          )]
-    (u/pp (:gl (reduce (partial gl/apply-trans {:splits croquet-splits}) d/data transactions)))))
+(defn show-unmatched-croquet-records []
+  (->> (unmatched-croquet-records)
+       reverse
+       u/pp))
+
+(test/deftest croquet-unmatches
+  (test/is (= (unmatched-croquet-records) '(0))))
+
+(test/deftest croquet-trial-balance
+            (let [tb (c/trial-balance :croquet croquet-bank-accounts current-range current-rules croquet-splits d/data)]
+              (test/is (= (count tb) 30))
+              (test/is (= (:exp/insurance tb) 106.71M))))
+
+(defn trial-balance []
+  (u/pp (c/trial-balance :croquet croquet-bank-accounts current-range current-rules croquet-splits d/data)))

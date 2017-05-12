@@ -15,6 +15,11 @@
                                   :port             7001}
 
                    :env          {:dev true}
-                   :dependencies [[org.clojure/test.check "0.9.0"]
+                   :dependencies [
+                                  ;[org.clojure/test.check "0.9.0"]
+                                  [midje "1.8.3"]
                                   [org.clojure/java.classpath "0.2.3"]
-                                  [org.clojure/tools.namespace "0.2.11"]]}})
+                                  [org.clojure/tools.namespace "0.2.11"]]
+                   ;;Doesn't work with Cursive so back to clojure.test
+                   ;;:plugins [[lein-midje "3.2.1"]]
+                   }})

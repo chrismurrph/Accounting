@@ -11,30 +11,25 @@
 (def bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
 (def splits (-> meta/human-meta :seaweed :splits))
 
-(defn unmatached-rules []
-  (-> (c/records-without-single-rule-match :seaweed (set bank-accounts) current-range current-rules)
+(def bank-statements (let [bank-accounts (set bank-accounts)
+                           bank-records (c/import-bank-records! :seaweed current-range bank-accounts)]
+                       {:bank-records bank-records :bank-accounts bank-accounts}))
+
+(defn show-unmatached-rules []
+  (-> (c/records-without-single-rule-match bank-statements current-rules)
       first
       u/pp))
 
-(defn x-3 []
-  (->> (c/account-grouped-transactions :seaweed bank-accounts current-range current-rules)
+(defn show-all-transactions-from-ten-accounts []
+  (->> (c/account-grouped-transactions bank-statements current-rules)
        (take 10)
        u/pp))
 
-(defn x-4 []
-  (->> (c/account-grouped-transactions :seaweed bank-accounts current-range current-rules)
-       (c/accounts-summary)
+(defn ordered-by-highest-transaction-volume []
+  (->> (c/account-grouped-transactions bank-statements current-rules)
+       c/accounts-summary
        (sort-by (comp - u/abs second))
        u/pp))
 
-(defn x-5 []
-  (let [transactions (->> (c/attach-rules
-                            :seaweed
-                            (set bank-accounts)
-                            current-range
-                            current-rules)
-                          u/probe-off
-                          (map second)
-                          (sort-by :out/date)
-                          )]
-    (u/pp (reduce (partial gl/apply-trans {:splits splits}) d/data transactions))))
+(defn show-transactions-applied-to-data []
+  (u/pp (c/trial-balance bank-statements current-rules splits d/data)))

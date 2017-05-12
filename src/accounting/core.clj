@@ -51,32 +51,33 @@
         make-record (record-maker bank-account heading-objs)]
     (map make-record lines)))
 
-(defn -raw-data->csv [customer-kw bank]
+(defn -slurp-raw-data->csv! [customer-kw bank]
   (fn [period]
     (let [file-path ((common-meta/bank-period->file-name (common-meta/human-meta customer-kw)) bank period)]
       (->> (slurp file-path)
            s/split-lines
            (map u/line->csv)))))
 
-(defn raw-data->csv [customer-kw bank periods]
-  (let [converter (-raw-data->csv customer-kw bank)]
+(defn slurp-raw-data->csv! [customer-kw bank periods]
+  (let [converter (-slurp-raw-data->csv! customer-kw bank)]
     (mapcat converter periods)))
 
-(defn -import-records [customer-kw periods bank-account]
-  (->> (raw-data->csv customer-kw bank-account periods)
+(defn -import-bank-records! [customer-kw periods bank-account]
+  (->> (slurp-raw-data->csv! customer-kw bank-account periods)
        (parse-csv bank-account)))
 
-(defn import-records [customer-kw periods bank-accounts]
-  (let [importer (partial -import-records customer-kw periods)]
+(defn import-bank-records! [customer-kw periods bank-accounts]
+  (let [importer (partial -import-bank-records! customer-kw periods)]
     (mapcat importer bank-accounts)))
 
-(defn records-without-single-rule-match [customer-kw bank-accounts periods rules-in]
+(defn records-without-single-rule-match [{:keys [bank-accounts bank-records]} rules-in]
   (let [rules (m/bank-rules bank-accounts rules-in)
         _ (assert (seq rules) (str "No rules found for " bank-accounts " from " (count rules-in)))
         ;_ (u/pp rules)
         matcher (partial m/records-rule-matches rules)
-        records (import-records customer-kw periods bank-accounts)]
-    (for [record records
+        ;records (import-bank-records! customer-kw periods bank-accounts)
+        ]
+    (for [record bank-records
           :let [rule-matches (matcher record)]
           :when (and (not= 1 (count rule-matches))
                      ;(not-clear-override? record rule-matches)
@@ -104,10 +105,11 @@
 ;; a list of transactions for each account, which we do in a later step.
 ;; All we needed from the rule is the target account
 ;;
-(defn attach-rules [customer-kw bank-accounts periods rules]
+(defn attach-rules [bank-records rules]
   (let [matcher (partial m/records-rule-matches rules)
-        records (import-records customer-kw periods bank-accounts)]
-    (for [record records
+        ;records (import-bank-records! customer-kw periods bank-accounts)
+        ]
+    (for [record bank-records
           :let [[rule & tail :as matched-rules] (matcher record)
                 target-account (:rule/target-account rule)]
           ;; :personal is an event that affects the bank balance of non-company accounts
@@ -121,9 +123,9 @@
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
 
-(defn trial-balance [customer-kw bank-accounts periods rules splits data]
-  (assert ((complement set?) bank-accounts))
-  (let [transactions (->> (attach-rules customer-kw (set bank-accounts) periods rules)
+(defn trial-balance [{:keys [bank-records]} rules splits data]
+  ;(assert ((complement set?) bank-accounts))
+  (let [transactions (->> (attach-rules bank-records rules)
                           u/probe-off
                           (map second)
                           (sort-by :out/date)
@@ -131,10 +133,10 @@
     (:gl (reduce (partial gl/apply-trans {:splits splits}) data transactions))))
 
 ;;
-;; TODO - if same result as trial-balance, get rid of this...
+;; Everything did in order, by account, so can be lots...
 ;;
-(defn account-grouped-transactions [customer-kw bank-accounts periods rules]
-  (->> (attach-rules customer-kw bank-accounts periods (m/bank-rules (set bank-accounts) rules))
+(defn account-grouped-transactions [{:keys [bank-accounts bank-records]} rules]
+  (->> (attach-rules bank-accounts (m/bank-rules (set bank-accounts) rules))
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))))
 

@@ -11,18 +11,18 @@
 (def bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
 (def splits (-> meta/human-meta :seaweed :splits))
 
-(defn x-2 []
+(defn unmatached-rules []
   (-> (c/records-without-single-rule-match :seaweed (set bank-accounts) current-range current-rules)
       first
       u/pp))
 
 (defn x-3 []
-  (->> (c/account-grouped-transactions :seaweed (set bank-accounts) current-range current-rules)
+  (->> (c/account-grouped-transactions :seaweed bank-accounts current-range current-rules)
        (take 10)
        u/pp))
 
 (defn x-4 []
-  (->> (c/account-grouped-transactions :seaweed (set bank-accounts) current-range current-rules)
+  (->> (c/account-grouped-transactions :seaweed bank-accounts current-range current-rules)
        (c/accounts-summary)
        (sort-by (comp - u/abs second))
        u/pp))

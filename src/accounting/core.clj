@@ -123,20 +123,18 @@
 
 (defn trial-balance [customer-kw bank-accounts periods rules splits data]
   (assert ((complement set?) bank-accounts))
-  (let [transactions (->> (attach-rules
-                            customer-kw
-                            (set bank-accounts)
-                            periods
-                            rules)
+  (let [transactions (->> (attach-rules customer-kw (set bank-accounts) periods rules)
                           u/probe-off
                           (map second)
                           (sort-by :out/date)
-                          compact-transactions
-                          )]
+                          compact-transactions)]
     (:gl (reduce (partial gl/apply-trans {:splits splits}) data transactions))))
 
+;;
+;; TODO - if same result as trial-balance, get rid of this...
+;;
 (defn account-grouped-transactions [customer-kw bank-accounts periods rules]
-  (->> (attach-rules customer-kw bank-accounts periods (m/bank-rules bank-accounts rules))
+  (->> (attach-rules customer-kw bank-accounts periods (m/bank-rules (set bank-accounts) rules))
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))))
 

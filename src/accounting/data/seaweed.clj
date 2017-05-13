@@ -57,14 +57,14 @@
                                                             [:ends-with "PAYPAL AUSTRALIA"]]}]})
 
 (def -q1-2017-rules {
-                     [amp :exp/travel]           [{:field          :out/desc
+                     [amp :exp/national-travel]  [{:field          :out/desc
                                                    :logic-operator :or
                                                    :conditions     [[:equals "Internet banking external transfer 062202 10481871 - car rental"]
                                                                     [:equals "ROAM TOLLING P/L          MELBOURNE"]]}]
-                     [amp :exp/accomodation]     [{:field          :out/desc
+                     [amp :exp/rent]             [{:field          :out/desc
                                                    :logic-operator :single
                                                    :conditions     [[:equals "Internet banking external transfer 062202 10481871 - renting caravan"]]}]
-                     [visa :exp/travel]          [{:field          :out/desc
+                     [visa :exp/national-travel] [{:field          :out/desc
                                                    :logic-operator :or
                                                    :conditions     [[:equals "MILDURA INLANDER          MILDURA"]
                                                                     [:equals "TRAVELLERS REST MTL   WEE THALLE    NSW"]
@@ -188,7 +188,7 @@
    [visa :exp/bank-interest]         [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:starts-with "INTEREST CHARGED ON PURCHASES"]]}]
-   [visa :exp/travel]                [{:field          :out/desc
+   [visa :exp/national-travel]       [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:equals "TFNSW RAIL                GLENFIELD"]]}]
    [visa :exp/accounting-software]   [{:field          :out/desc
@@ -228,7 +228,7 @@
                                                         [:equals "ANNUAL FEE"]
                                                         [:equals "CASH ADVANCE FEE - INTERNET"]
                                                         [:equals "LATE PAYMENT FEE"]]}]
-   [visa :exp/accomodation]          [{:field          :out/desc
+   [visa :exp/rent]                  [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:equals "AIRBNB                    AUSTRALIA"]]}]
    [visa :exp/donations]             [{:field          :out/desc
@@ -266,7 +266,7 @@
    [coy :income/bank-interest]       [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:starts-with "CREDIT INTEREST PAID"]]}]
-   [coy :exp/office-rent]            [{:field          :out/desc
+   [coy :exp/rent]                   [{:field          :out/desc
                                        :logic-operator :and
                                        :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
                                                         [:ends-with "313 TRU"]]}]
@@ -312,39 +312,157 @@
 ;; :bank/anz-visa    250.74
 ;; :bank/amp         431.76
 ;; They were indeed these amounts!
-(def data {:gl {:bank/anz-coy              96.15M
-                :bank/anz-visa             -1024.48M
-                :bank/amp                  3010.59M
-                :personal/amp              0M
-                :personal/anz-visa         0M
-                :income/mining-sales       0M
-                :income/poker-parse-sales  0M
-                :income/bank-interest      0M
-                :capital/drawings          0M
-                :exp/office-expense        0M
-                :exp/motor-vehicle         0M
-                :exp/cloud-expense         0M
-                :exp/niim-trip             0M
-                :exp/accounting-software   0M
-                :exp/mobile-expense        0M
-                :exp/bank-fee              0M
-                :exp/bank-interest         0M
-                :exp/petrol                0M
-                :exp/computer-expense      0M
-                :exp/office-rent           0M
-                :exp/travel                0M
-                :exp/donations             0M
-                :exp/isp                   0M
-                :exp/storage               0M
-                :exp/light-power-heating   0M
-                :exp/accomodation          0M
-                :exp/food                  0M
-                :exp/advertising           0M
-                :exp/meeting-entertainmant 0M
-                :exp/asic-payment          0M
-                :exp/freight-courier       0M
-                :exp/accounting-expense    0M
-                :non-exp/ato-payment       0M
-                :non-exp/private-health    0M
-                }})
+(def ye-2016 {:gl {:bank/anz-coy              96.15M
+                   :bank/anz-visa             -1024.48M
+                   :bank/amp                  3010.59M
+                   :personal/amp              0M
+                   :personal/anz-visa         0M
+                   :income/mining-sales       0M
+                   :income/poker-parse-sales  0M
+                   :income/bank-interest      0M
+                   :capital/drawings          0M
+                   :exp/office-expense        0M
+                   :exp/motor-vehicle         0M
+                   :exp/cloud-expense         0M
+                   :exp/niim-trip             0M
+                   :exp/accounting-software   0M
+                   :exp/mobile-expense        0M
+                   :exp/bank-fee              0M
+                   :exp/bank-interest         0M
+                   :exp/petrol                0M
+                   :exp/computer-expense      0M
+                   :exp/national-travel       0M
+                   :exp/donations             0M
+                   :exp/isp                   0M
+                   :exp/storage               0M
+                   :exp/light-power-heating   0M
+                   :exp/rent                  0M
+                   :exp/food                  0M
+                   :exp/advertising           0M
+                   :exp/meeting-entertainmant 0M
+                   :exp/asic-payment          0M
+                   :exp/freight-courier       0M
+                   :exp/accounting-expense    0M
+                   :non-exp/ato-payment       0M
+                   :non-exp/private-health    0M
+                   }})
+
+(def xero-account-numbers
+  {:income/bank-interest    270
+   :income/mining-sales     200
+   :exp/bank-fee            404
+   :exp/books-periodicals   1050
+   :exp/computer-expense    1900
+   :exp/accounting-expense  412
+   :exp/formation-costs     304
+   :exp/freight-courier     425
+   :exp/income-tax-expense  505
+   :exp/light-power-heating 445
+   :exp/motor-vehicle       449
+   :exp/rent                469
+   :exp/subscriptions       485
+   ;; Will be superseeded by a few: cloud-expense, accounting-software, mobile-expense
+   :exp/telephone-internet  489
+   :exp/national-travel     493
+   })
+
+;Revenue
+;Interest Income (270)				$0.66
+;Sales (200)				$24,600.00
+;
+;Expenses
+;Bank Fees (404)			$129.14
+;Books and Periodicals (1050)			$200.34
+;Computer Expenses (1900)			$968.53
+;Consulting & Accounting (412)			$1,235.40
+;Formation Costs (304)			$318.00
+;Freight & Courier (425)			$127.50
+;Income Tax Expense (505)			$9,308.00
+;Light, Power, Heating (445)			$433.78
+;Motor Vehicle Expenses (449)			$2,026.43
+;Rent (469)			$1,999.35
+;Subscriptions (485)			$13.64
+;Telephone & Internet (489)			$1,174.81
+;Travel - National (493)			$228.64
+;
+;Assets
+;Accounts Receivable (610)			$4,950.00
+;AMP Current (1400)			$607.97
+;ANZ card, AMP Current, Cash Mgt accounts correction (1301)				$2,625.31
+;ANZ Credit Card (1300)				$11,152.14
+;Cash on Hand (640)			$2.00
+;Company Cash Management (1200)			$7,650.80
+;Computer Equipment (720)			$168.13
+;Director Loans (693)			$120,938.39
+;Low Value and STS Pool Assets (770)			$929.00
+;Office Equipment (710)			$4,101.95
+;Less Accumulated Depreciation on Office Equipment (711)				$2,958.00
+;Petty Cash adjustment (641)			$314.99
+;PettyCash				$374.99
+;;
+;; tb asset and liability amounts s/be always be 'as at'.
+;; Whereas Y and expenses are flows over the whole year here
+;; The asset amounts (like bank balances) are actually wrong in Xero
+;; We will override them with the real amounts where we have better data (like from actual bank statements)
+;; DEBIT  +ive
+;; CREDIT -ive
+;;
+(def -xero-tb-ye-2016
+  {
+   :income/mining-sales       -24600M
+   :income/bank-interest      -0.66M
+
+   :exp/bank-fee              129.14M
+   :exp/books-periodicals     200.34M
+   :exp/computer-expense      968.53M
+   :exp/accounting-expense    1235.40M
+   :exp/formation-costs       318.00M
+   :exp/freight-courier       127.50M
+   :exp/income-tax-expense    9308.00M
+   :exp/light-power-heating   433.78M
+   :exp/motor-vehicle         2026.43M
+   :exp/rent                  1999.35M
+   :exp/subscriptions         13.64M
+   :exp/telephone-internet    1174.81M
+   :exp/national-travel       228.64
+
+   :exp/office-expense        0M
+   :exp/cloud-expense         0M
+   :exp/niim-trip             0M
+   :exp/accounting-software   0M
+   :exp/mobile-expense        0M
+   :exp/bank-interest         0M
+   :exp/petrol                0M
+   :exp/donations             0M
+   :exp/isp                   0M
+   :exp/storage               0M
+   :exp/food                  0M
+   :exp/advertising           0M
+   :exp/meeting-entertainmant 0M
+   :exp/asic-payment          0M
+
+   :bank/anz-coy              96.15M
+   :bank/anz-visa             -1024.48M
+   :bank/amp                  3010.59M
+   :personal/amp              0M
+   :personal/anz-visa         0M
+   :capital/drawings          0M
+
+   :non-exp/ato-payment       0M
+   :non-exp/private-health    0M
+   })
+
+;
+;Liabilities
+;GST (820)				$7,568.08
+;Income Tax Payable (830)				$7,538.00
+;Integrated Client Account (894)				$24,089.51
+;Owner A Drawings (880)			$57,931.00
+;Owner A Funds Introduced (881)				$1,470.00
+;Trade Creditors (883)				$414.00
+;Trash (TSH)				$32,536.14
+;
+;Equity
+;Owner A Share Capital (970)				$2.00
+;Retained Earnings (960)				$100,428.96
 

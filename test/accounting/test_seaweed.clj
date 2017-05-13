@@ -31,5 +31,5 @@
        (sort-by (comp - u/abs second))
        u/pp))
 
-(defn show-transactions-applied-to-data []
-  (u/pp (c/trial-balance bank-statements current-rules splits d/data)))
+(defn show-trial-balance []
+  (u/pp (c/trial-balance bank-statements current-rules splits d/ye-2016)))

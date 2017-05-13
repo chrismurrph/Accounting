@@ -35,9 +35,10 @@
   (test/is (= (unmatched-croquet-records) '(0))))
 
 (test/deftest croquet-trial-balance
-            (let [tb (c/trial-balance bank-statements current-rules croquet-splits d/data)]
+            (let [{:keys [exp/insurance exp/alcohol] :as tb} (c/trial-balance bank-statements current-rules croquet-splits d/data)]
               (test/is (= (count tb) 30))
-              (test/is (= (:exp/insurance tb) 106.71M))))
+              (test/is (= insurance 106.71M))
+              (test/is (= alcohol 355.78M))))
 
 (defn show-trial-balance []
   (u/pp (c/trial-balance bank-statements current-rules croquet-splits d/data)))

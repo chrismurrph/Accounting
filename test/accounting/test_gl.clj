@@ -30,7 +30,7 @@
 (defn- test-transaction [[transaction account]]
   (let [expected (- (:out/amount transaction))
         res (-> (->> transaction
-                     (g/apply-trans {} d/data)
+                     (g/apply-trans {} d/ye-2016)
                      :gl)
                 (select-keys [account])
                 first

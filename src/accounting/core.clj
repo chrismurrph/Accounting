@@ -123,14 +123,14 @@
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))
 
-(defn trial-balance [{:keys [bank-records]} rules splits data]
+(defn trial-balance [{:keys [bank-records]} rules splits starting-balances]
   ;(assert ((complement set?) bank-accounts))
   (let [transactions (->> (attach-rules bank-records rules)
                           u/probe-off
                           (map second)
                           (sort-by :out/date)
                           compact-transactions)]
-    (:gl (reduce (partial gl/apply-trans {:splits splits}) data transactions))))
+    (:gl (reduce (partial gl/apply-trans {:splits splits}) starting-balances transactions))))
 
 ;;
 ;; Everything did in order, by account, so can be lots...
@@ -140,8 +140,8 @@
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))))
 
-(defn accounts-summary [transacts]
-  (->> transacts
+(defn accounts-summary [transactions]
+  (->> transactions
        (map (fn [[account records]]
               [account (reduce + (map :out/amount records))]))))
 

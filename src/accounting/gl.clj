@@ -160,7 +160,7 @@
    "exp"      modify-data
    "non-exp"  modify-data
    "liab"     modify-data
-   "capital"  modify-data
+   "equity"   modify-data
    "personal" modify-data
    "split"    split-modify-data
    "ledger"   ledger-modify-data})

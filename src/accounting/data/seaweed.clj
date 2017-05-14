@@ -288,7 +288,7 @@
                                        :logic-operator :and
                                        :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
                                                         [:ends-with "ALEXANDER FAMILY TRU"]]}]
-   [coy :liab/drawings]           [{:field          :out/desc
+   [coy :liab/drawings]              [{:field          :out/desc
                                        :logic-operator :and
                                        :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
                                                         [:ends-with "4509499246191003"]]}
@@ -382,6 +382,8 @@
    :liab/drawings                       880
    :liab/funds-introduced               881
    :liab/trade-creditors                883
+   :equity/share-capital                970
+   :equity/retained-earnings            960
    })
 
 ;Revenue
@@ -426,6 +428,10 @@
 ;Owner A Funds Introduced (881)				$1,470.00
 ;Trade Creditors (883)				$414.00
 ;Trash (TSH)				$32,536.14
+;
+;Equity
+;Owner A Share Capital (970)				$2.00
+;Retained Earnings (960)				$100,428.96
 
 ;;
 ;; tb asset and liability amounts s/be always be 'as at'.
@@ -437,6 +443,26 @@
 ;;
 (def -xero-tb-ye-2016
   {
+   :income/mining-sales                 -24600M
+   :income/bank-interest                -0.66M
+
+   :exp/bank-fee                        129.14M
+   :exp/books-periodicals               200.34M
+   :exp/computer-expense                968.53M
+   :exp/accounting-expense              1235.40M
+   :exp/formation-costs                 318.00M
+   :exp/freight-courier                 127.50M
+   :exp/income-tax-expense              9308.00M
+   :exp/light-power-heating             433.78M
+   :exp/motor-vehicle                   2026.43M
+   :exp/rent                            1999.35M
+   :exp/subscriptions                   13.64M
+   :exp/telephone-internet              1174.81M
+   :exp/national-travel                 228.64M
+
+   :equity/share-capital                -2.00M
+   :equity/retained-earnings            -100428.96M
+
    :liab/gst                            -7568.08M
    :liab/income-tax-payable             -7538.00M
    :liab/integrated-client-account      -24089.51M
@@ -458,58 +484,43 @@
    :asset/office-equipment-accum-deprec -2958.00M
    :asset/petty-cash-adjustment         314.99M
    :asset/petty-cash                    -374.99M
-
-   :personal/amp                        0M
-   :personal/anz-visa                   0M
-
-   :income/mining-sales                 -24600M
-   :income/bank-interest                -0.66M
-
-   :exp/bank-fee                        129.14M
-   :exp/books-periodicals               200.34M
-   :exp/computer-expense                968.53M
-   :exp/accounting-expense              1235.40M
-   :exp/formation-costs                 318.00M
-   :exp/freight-courier                 127.50M
-   :exp/income-tax-expense              9308.00M
-   :exp/light-power-heating             433.78M
-   :exp/motor-vehicle                   2026.43M
-   :exp/rent                            1999.35M
-   :exp/subscriptions                   13.64M
-   :exp/telephone-internet              1174.81M
-   :exp/national-travel                 228.64
-   :exp/office-expense                  0M
-   :exp/cloud-expense                   0M
-   :exp/niim-trip                       0M
-   :exp/accounting-software             0M
-   :exp/mobile-expense                  0M
-   :exp/bank-interest                   0M
-   :exp/petrol                          0M
-   :exp/donations                       0M
-   :exp/isp                             0M
-   :exp/storage                         0M
-   :exp/food                            0M
-   :exp/advertising                     0M
-   :exp/meeting-entertainmant           0M
-   :exp/asic-payment                    0M
-
-   :non-exp/ato-payment                 0M
-   :non-exp/private-health              0M
    })
 
-#_(let [values (vals (select-keys -xero-tb-ye-2016 [:liab/trash :bank/amp :bank/anz-visa]))
-      trash-offset (reduce + values)]
-  (println "trash amp visa:" values)
-  (println "trash-offset:" trash-offset))
+(def notes-explained-tb-ye-2016
+  {
+   :income/div-7a-interest    -6583.00M
+   :income/ato-interest       -541.00M
+   :exp/plant-equip-deprec    168.00M
+   :exp/low-value-pool-deprec 105.00M
+   :exp/ato-interest          1453.00M
+   })
+
+(def unexplained-tb-ye-2016
+  {
+   :exp/directors-bonus 22000.00M
+   :exp/filing-fees     243.00M
+   :exp/fines-penalties 75.00M
+   })
+
+;;
+;; Got by manually going into Xero.
+;; Is it a problem with James' software that Telephone must be on its own, or
+;; is that a requirement of ATO the Xero doesn't know about?
+;; In future keep :exp/mobile-expense so no need to dig it out
+;;
+(def telstra-2016-recharges (bigdec (+ (* 10 27.27) 18.18 (* 2 36.36))))
+
+(def xero-tb-ye-2016
+  (let [{:keys [exp/computer-expense exp/telephone-internet]} -xero-tb-ye-2016
+        internet (- telephone-internet telstra-2016-recharges)]
+    (-> -xero-tb-ye-2016
+        (assoc :exp/mobile-expense telstra-2016-recharges)
+        (assoc :exp/computer-expenses (+ internet computer-expense))
+        (merge notes-explained-tb-ye-2016)
+        (merge unexplained-tb-ye-2016))))
 
 (def bank-balances-ye-2016
   {:bank/anz-coy  96.15M
    :bank/anz-visa -1024.48M
    :bank/amp      3010.59M
    })
-
-;
-;Equity
-;Owner A Share Capital (970)				$2.00
-;Retained Earnings (960)				$100,428.96
-

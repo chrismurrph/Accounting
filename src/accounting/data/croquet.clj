@@ -266,7 +266,7 @@
 
 (def permanent-rules
   {
-   [bendigo :capital/funds-introduced]         [{:logic-operator :and
+   [bendigo :equity/funds-introduced]         [{:logic-operator :and
                                                  :on-dates       #{(t/long-date-str->date "08 Feb 2017")}
                                                  :conditions     [[:out/desc :equals "DIRECT CREDIT SOUTH TERRACE CR    0723041266 TRANSFER FROM BANK"]
                                                                   [:out/amount :equals 4581.83M]]}
@@ -365,7 +365,7 @@
    })
 
 (def data {:gl      {:bank/bendigo                 0M
-                     :capital/funds-introduced     0M
+                     :equity/funds-introduced     0M
                      :income/membership-fees       0M
                      :income/bank-interest         0M
                      :income/game-fees             0M

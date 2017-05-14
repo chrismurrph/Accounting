@@ -20,12 +20,12 @@
         :src-bank     :bank/anz-visa,
         :dest-account :exp/office-expense})
 
-(def example-transaction-capital
+(def example-transaction-liab
   #:out{:date         (t/long-date-str->date "21 Mar 2017"),
         :amount       -400.00M,
         :desc         "ANZ INTERNET BANKING FUNDS TFER TRANSFER 546251 TO      CHRISTOPHER MURP",
         :src-bank     :bank/anz-coy,
-        :dest-account :capital/drawings})
+        :dest-account :liab/drawings})
 
 (defn- test-transaction [[transaction account]]
   (let [expected (- (:out/amount transaction))
@@ -38,7 +38,7 @@
     [expected res]))
 
 (test/deftest transactions
-            (let [results (map test-transaction [[example-transaction-capital :capital/drawings]
+            (let [results (map test-transaction [[example-transaction-liab :liab/drawings]
                                                  [example-transaction-exp :exp/office-expense]
                                                  [example-transaction-income :income/poker-parse-sales]])
                   bad-results (remove (fn [[expected res]]

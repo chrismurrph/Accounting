@@ -288,7 +288,7 @@
                                        :logic-operator :and
                                        :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
                                                         [:ends-with "ALEXANDER FAMILY TRU"]]}]
-   [coy :capital/drawings]           [{:field          :out/desc
+   [coy :liab/drawings]           [{:field          :out/desc
                                        :logic-operator :and
                                        :conditions     [[:starts-with "ANZ INTERNET BANKING FUNDS TFER TRANSFER"]
                                                         [:ends-with "4509499246191003"]]}
@@ -320,7 +320,7 @@
                    :income/mining-sales       0M
                    :income/poker-parse-sales  0M
                    :income/bank-interest      0M
-                   :capital/drawings          0M
+                   :liab/drawings             0M
                    :exp/office-expense        0M
                    :exp/motor-vehicle         0M
                    :exp/cloud-expense         0M
@@ -348,22 +348,40 @@
                    }})
 
 (def xero-account-numbers
-  {:income/bank-interest    270
-   :income/mining-sales     200
-   :exp/bank-fee            404
-   :exp/books-periodicals   1050
-   :exp/computer-expense    1900
-   :exp/accounting-expense  412
-   :exp/formation-costs     304
-   :exp/freight-courier     425
-   :exp/income-tax-expense  505
-   :exp/light-power-heating 445
-   :exp/motor-vehicle       449
-   :exp/rent                469
-   :exp/subscriptions       485
-   ;; Will be superseeded by a few: cloud-expense, accounting-software, mobile-expense
-   :exp/telephone-internet  489
-   :exp/national-travel     493
+  {:income/bank-interest                270
+   :income/mining-sales                 200
+   :exp/bank-fee                        404
+   :exp/books-periodicals               1050
+   :exp/computer-expense                1900
+   :exp/accounting-expense              412
+   :exp/formation-costs                 304
+   :exp/freight-courier                 425
+   :exp/income-tax-expense              505
+   :exp/light-power-heating             445
+   :exp/motor-vehicle                   449
+   :exp/rent                            469
+   :exp/subscriptions                   485
+   ;; Will be superseeded by a few: cloud-expense, accounting-software, mobile-expense, isp
+   :exp/telephone-internet              489
+   :exp/national-travel                 493
+   :asset/accounts-receivable           610
+   :bank/amp                            1400
+   :asset/banking-correction            1301
+   :bank/anz-visa                       1300
+   :asset/cash-on-hand                  640
+   :bank/anz-coy                        1200
+   :asset/computer-equipment            720
+   :asset/director-loans                693
+   :asset/low-value-pool                770
+   :asset/office-equipment              710
+   :asset/office-equipment-accum-deprec 711
+   :asset/petty-cash-adjustment         641
+   :liab/gst                            820
+   :liab/income-tax-payable             830
+   :liab/integrated-client-account      894
+   :liab/drawings                       880
+   :liab/funds-introduced               881
+   :liab/trade-creditors                883
    })
 
 ;Revenue
@@ -399,6 +417,16 @@
 ;Less Accumulated Depreciation on Office Equipment (711)				$2,958.00
 ;Petty Cash adjustment (641)			$314.99
 ;PettyCash				$374.99
+;
+;Liabilities
+;GST (820)				$7,568.08
+;Income Tax Payable (830)				$7,538.00
+;Integrated Client Account (894)				$24,089.51
+;Owner A Drawings (880)			$57,931.00
+;Owner A Funds Introduced (881)				$1,470.00
+;Trade Creditors (883)				$414.00
+;Trash (TSH)				$32,536.14
+
 ;;
 ;; tb asset and liability amounts s/be always be 'as at'.
 ;; Whereas Y and expenses are flows over the whole year here
@@ -409,58 +437,77 @@
 ;;
 (def -xero-tb-ye-2016
   {
-   :income/mining-sales       -24600M
-   :income/bank-interest      -0.66M
+   :liab/gst                            -7568.08M
+   :liab/income-tax-payable             -7538.00M
+   :liab/integrated-client-account      -24089.51M
+   :liab/drawings                       57931.00M
+   :liab/funds-introduced               -1470.00M
+   :liab/trade-creditors                -414.00M
+   :liab/trash                          -32536.14M
 
-   :exp/bank-fee              129.14M
-   :exp/books-periodicals     200.34M
-   :exp/computer-expense      968.53M
-   :exp/accounting-expense    1235.40M
-   :exp/formation-costs       318.00M
-   :exp/freight-courier       127.50M
-   :exp/income-tax-expense    9308.00M
-   :exp/light-power-heating   433.78M
-   :exp/motor-vehicle         2026.43M
-   :exp/rent                  1999.35M
-   :exp/subscriptions         13.64M
-   :exp/telephone-internet    1174.81M
-   :exp/national-travel       228.64
+   :asset/accounts-receivable           4950.00M
+   :bank/amp                            607.97M
+   :asset/banking-correction            -2625.31M
+   :bank/anz-visa                       -11152.14M
+   :asset/cash-on-hand                  2.00M
+   :bank/anz-coy                        7650.80M
+   :asset/computer-equipment            168.13M
+   :asset/director-loans                120938.39M
+   :asset/low-value-pool                929.00M
+   :asset/office-equipment              4101.95M
+   :asset/office-equipment-accum-deprec -2958.00M
+   :asset/petty-cash-adjustment         314.99M
+   :asset/petty-cash                    -374.99M
 
-   :exp/office-expense        0M
-   :exp/cloud-expense         0M
-   :exp/niim-trip             0M
-   :exp/accounting-software   0M
-   :exp/mobile-expense        0M
-   :exp/bank-interest         0M
-   :exp/petrol                0M
-   :exp/donations             0M
-   :exp/isp                   0M
-   :exp/storage               0M
-   :exp/food                  0M
-   :exp/advertising           0M
-   :exp/meeting-entertainmant 0M
-   :exp/asic-payment          0M
+   :personal/amp                        0M
+   :personal/anz-visa                   0M
 
-   :bank/anz-coy              96.15M
-   :bank/anz-visa             -1024.48M
-   :bank/amp                  3010.59M
-   :personal/amp              0M
-   :personal/anz-visa         0M
-   :capital/drawings          0M
+   :income/mining-sales                 -24600M
+   :income/bank-interest                -0.66M
 
-   :non-exp/ato-payment       0M
-   :non-exp/private-health    0M
+   :exp/bank-fee                        129.14M
+   :exp/books-periodicals               200.34M
+   :exp/computer-expense                968.53M
+   :exp/accounting-expense              1235.40M
+   :exp/formation-costs                 318.00M
+   :exp/freight-courier                 127.50M
+   :exp/income-tax-expense              9308.00M
+   :exp/light-power-heating             433.78M
+   :exp/motor-vehicle                   2026.43M
+   :exp/rent                            1999.35M
+   :exp/subscriptions                   13.64M
+   :exp/telephone-internet              1174.81M
+   :exp/national-travel                 228.64
+   :exp/office-expense                  0M
+   :exp/cloud-expense                   0M
+   :exp/niim-trip                       0M
+   :exp/accounting-software             0M
+   :exp/mobile-expense                  0M
+   :exp/bank-interest                   0M
+   :exp/petrol                          0M
+   :exp/donations                       0M
+   :exp/isp                             0M
+   :exp/storage                         0M
+   :exp/food                            0M
+   :exp/advertising                     0M
+   :exp/meeting-entertainmant           0M
+   :exp/asic-payment                    0M
+
+   :non-exp/ato-payment                 0M
+   :non-exp/private-health              0M
    })
 
-;
-;Liabilities
-;GST (820)				$7,568.08
-;Income Tax Payable (830)				$7,538.00
-;Integrated Client Account (894)				$24,089.51
-;Owner A Drawings (880)			$57,931.00
-;Owner A Funds Introduced (881)				$1,470.00
-;Trade Creditors (883)				$414.00
-;Trash (TSH)				$32,536.14
+#_(let [values (vals (select-keys -xero-tb-ye-2016 [:liab/trash :bank/amp :bank/anz-visa]))
+      trash-offset (reduce + values)]
+  (println "trash amp visa:" values)
+  (println "trash-offset:" trash-offset))
+
+(def bank-balances-ye-2016
+  {:bank/anz-coy  96.15M
+   :bank/anz-visa -1024.48M
+   :bank/amp      3010.59M
+   })
+
 ;
 ;Equity
 ;Owner A Share Capital (970)				$2.00

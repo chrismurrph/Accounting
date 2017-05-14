@@ -7,12 +7,12 @@
             [accounting.data.meta.croquet :as meta]
             [clojure.test :as test]))
 
-(def example-transaction-capital
+(def example-transaction-liab
   #:out{:date         (t/long-date-str->date "21 Mar 2017"),
         :amount       -400.00M,
         :desc         "ANZ INTERNET BANKING FUNDS TFER TRANSFER 546251 TO      CHRISTOPHER MURP",
         :src-bank     :bank/anz-coy,
-        :dest-account :capital/drawings})
+        :dest-account :liab/drawings})
 
 (def example-payment
   {:out/desc   "DIRECT CREDIT blah"
@@ -56,7 +56,7 @@
 (test/deftest bad-match-1
             (test/is (nil? (->> croquet-con/current-rules
                                 first
-                                (m/match example-transaction-capital)))))
+                                (m/match example-transaction-liab)))))
 
 ;; Expect to
 (test/deftest good-match-1

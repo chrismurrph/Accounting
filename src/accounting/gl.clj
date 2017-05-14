@@ -159,6 +159,7 @@
   {"income"   modify-data
    "exp"      modify-data
    "non-exp"  modify-data
+   "liab"     modify-data
    "capital"  modify-data
    "personal" modify-data
    "split"    split-modify-data

@@ -4,22 +4,24 @@
             [clojure.set :as set]
             [accounting.util :as u]))
 
+;;
+;; Intention is to make all-accounts accurate when needed. Not yet used...
+;;
 (def bank-accounts [:bank/amp :bank/anz-coy :bank/anz-visa])
 (def other-asset-accounts #{})
 (def income-accounts #{:income/bank-interest :income/mining-sales})
 (def tax-expense-accounts #{})
 (def non-tax-expense-accounts #{:non-expense/ato-payment})
-(def negative-equity-account #{:capital/drawings})
-
-(def splits data/splits)
+(def liab-accounts #{:liab/drawings})
 
 (def all-accounts (set/union (set bank-accounts)
                              other-asset-accounts
                              income-accounts
                              tax-expense-accounts
                              non-tax-expense-accounts
-                             negative-equity-account))
-;(println all-accounts)
+                             liab-accounts))
+
+(def splits data/splits)
 
 ;; Always start with quarter even thou in that directory
 ;; "Q3_AMP_TransactionHistory.csv"

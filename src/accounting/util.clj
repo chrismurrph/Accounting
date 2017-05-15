@@ -29,9 +29,22 @@
     (* -1 val)
     val))
 
-(defn round [precision d]
+#_(defn round [precision d]
   (let [factor (Math/pow 10 precision)]
     (/ (Math/round (* d factor)) factor)))
+
+(defn round-dec-pl
+  "Round a double to the given number of significant digits"
+  [precision]
+  (fn [d]
+    (let [factor (Math/pow 10 precision)]
+      (/ (Math/round (* d factor)) factor))))
+
+(def round2 (round-dec-pl 2))
+(def round0 (round-dec-pl 0))
+
+(defn no-dec-pl [s]
+  (first (s/split s #"[.]")))
 
 (defn line->csv [line]
   (s/split line #","))
@@ -122,4 +135,7 @@
 
 (defn x-1 []
   ((left-pad-spaces 40) "hard-right"))
+
+(defn x-2 []
+  (no-dec-pl "00.45"))
 

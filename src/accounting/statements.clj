@@ -56,17 +56,41 @@
                            {"Travel Allowance - Overseas" nil}
                            ])
 
+;;
+;; string on a line that has a name and a value
+;;
 (defn ->line
   ([tb sign]
    (fn [[heading f]]
-     (let [txt (if f (str (u/round 0 (sign (f tb)))) "n/a")]
+     (let [txt (if f (u/no-dec-pl (str (u/round0 (sign (f tb))))) "n/a")]
        (str heading ((u/left-pad-spaces (- 40 (count heading))) txt)))))
   ([tb]
-    (->line +)))
+   (->line tb +)))
 
-(defn ->report-section [tb sign]
+;;
+;; A section is a vector of strings where each string is a line
+;;
+(defn ->report-section [tb]
   (assert (map? tb))
-  (fn [report-template]
-    (assert (vector? report-template))
-    (let [rep-line-fn (comp (->line tb sign) first)]
-      (mapv rep-line-fn report-template))))
+  (fn [sign]
+    (fn [report-template]
+      (assert (vector? report-template))
+      (let [rep-line-fn (comp (->line tb sign) first)]
+        (mapv rep-line-fn report-template)))))
+
+;;
+;; Produces a line that can be conj-ed onto the end of the section
+;; it is summing. The sum will be needed for other things so is put
+;; in first place.
+;;
+(defn sum-section [tb]
+  (assert (map? tb))
+  (fn [sign]
+    (fn [report-template]
+      (assert (vector? report-template))
+      (let [val-fn (comp (fn [f] (when f (u/round0 (f tb)))) val first)
+            sum (->> report-template
+                     (map val-fn)
+                     (remove nil?)
+                     (reduce +))]
+        [sum ((u/left-pad-spaces 40) (u/no-dec-pl (str (sign sum))))]))))

@@ -3,12 +3,35 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+(def hard-error? true)
+
+(defn err-warn [predicate-res msg]
+  (if-not predicate-res
+    (if hard-error?
+      (assert false msg)
+      (do
+        (println "WARNING:" msg)
+        predicate-res))
+    predicate-res))
+
+(defn left-pad-spaces [max-sz]
+  (fn [goes-at-right]
+    (assert (string? goes-at-right))
+    (let [diff-count (- max-sz (count goes-at-right))]
+      (if (pos? diff-count)
+        (str (apply str (take diff-count (repeat " "))) goes-at-right)
+        goes-at-right))))
+
 (def third #(nth % 2))
 
 (defn abs [val]
   (if (neg? val)
     (* -1 val)
     val))
+
+(defn round [precision d]
+  (let [factor (Math/pow 10 precision)]
+    (/ (Math/round (* d factor)) factor)))
 
 (defn line->csv [line]
   (s/split line #","))
@@ -23,10 +46,10 @@
   (subs x 1 (-> x count dec)))
 
 #_(defn round2
-  "Round a double to the given precision (number of significant digits)"
-  [d]
-  (let [factor (Math/pow 10M 2M)]
-    (/ (Math/round (* d factor)) factor)))
+    "Round a double to the given precision (number of significant digits)"
+    [d]
+    (let [factor (Math/pow 10M 2M)]
+      (/ (Math/round (* d factor)) factor)))
 
 ;; "206.90" read-string returns a string, go figure - yet works as expected in the REPL
 ;; Answer was that it was coated twice with double quotes, so need to read-string twice
@@ -96,4 +119,7 @@
 
 (defn warning [txt]
   (println "WARN: " txt))
+
+(defn x-1 []
+  ((left-pad-spaces 40) "hard-right"))
 

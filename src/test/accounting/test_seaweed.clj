@@ -6,7 +6,7 @@
             [accounting.data.seaweed :as data]
             [accounting.seasoft-context :as con]))
 
-(def current-range con/current-range)
+(def current-range (-> con/current-range first vector))
 (def current-rules con/current-rules)
 (def bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
 (def splits (-> meta/human-meta :seaweed :splits))

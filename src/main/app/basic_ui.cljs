@@ -7,68 +7,74 @@
             [untangled.client.mutations :as m]
             [untangled.client.network :as net]))
 
-(defui ^:once Person
+(defui ^:once LedgerItem
   static om/Ident
-  (ident [this props] [:person/by-id (:db/id props)])
+  (ident [this props] [:ledger-item/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :person/name :person/age])
+  (query [this] [:db/id :ledger-item/name :ledger-item/age])
   static uc/InitialAppState
-  (initial-state [comp-class {:keys [id name age] :as params}] {:db/id id :person/name name :person/age age})
+  (initial-state [comp-class {:keys [id name age] :as params}] {:db/id id :ledger-item/name name :ledger-item/age age})
   Object
   (render [this]
-    (let [{:keys [db/id person/name person/age]} (om/props this)
+    (let [{:keys [db/id ledger-item/name ledger-item/age]} (om/props this)
           onDelete (om/get-computed this :onDelete)]
       (dom/li nil
-        (dom/h5 nil name (str "(age: " age ")")
-          (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
-          (dom/button #js {:onClick #(onDelete id)} "X"))))))
+              (dom/h5 nil name (str "(age: " age ")")
+                      (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
+                      (dom/button #js {:onClick #(onDelete id)} "X"))))))
 
-(def ui-person (om/factory Person {:keyfn :person/name}))
+(def ui-ledger-item (om/factory LedgerItem {:keyfn :ledger-item/name}))
 
-(defui ^:once PersonList
+(defui ^:once LedgerItemList
   static om/Ident
-  (ident [this props] [:person-list/by-id (:db/id props)])
+  (ident [this props] [:ledger-item-list/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :person-list/label {:person-list/people (om/get-query Person)}])
+  (query [this] [:db/id :ledger-item-list/label {:ledger-item-list/people (om/get-query LedgerItem)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
-    {:db/id              id
-     :person-list/label  label
-     :person-list/people []})
+    {:db/id                   id
+     :ledger-item-list/label  label
+     :ledger-item-list/people []})
   Object
   (render [this]
-    (let [{:keys [db/id person-list/label person-list/people]} (om/props this)
-          delete-person (fn [person-id]
+    (let [{:keys [db/id ledger-item-list/label ledger-item-list/people]} (om/props this)
+          delete-ledger-item (fn [ledger-item-id]
                           (js/console.log label "asked to delete" name)
-                          (om/transact! this `[(ops/delete-person {:list-id ~id :person-id ~person-id})]))]
+                          (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
-        (dom/h4 nil label)
-        (dom/ul nil
-          (map (fn [person] (ui-person (om/computed person {:onDelete delete-person}))) people))))))
+               (dom/h4 nil label)
+               (dom/ul nil
+                       (map (fn [ledger-item] (ui-ledger-item (om/computed ledger-item {:onDelete delete-ledger-item}))) people))))))
 
-(def ui-person-list (om/factory PersonList))
+(def ui-ledger-item-list (om/factory LedgerItemList))
 
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 :ui/person-id
-                 {:current-user (om/get-query Person)}
-                 {:friends (om/get-query PersonList)}])
+                 :ui/ledger-item-id
+                 {:current-user (om/get-query LedgerItem)}
+                 {:selected-items (om/get-query LedgerItemList)}])
   static
   uc/InitialAppState
-  (initial-state [c params] {:friends    (uc/get-initial-state PersonList {:id :friends :label "Friends"})})
+  (initial-state [c params] {:selected-items (uc/get-initial-state LedgerItemList {:id :selected-items :label "Friends"})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key current-user friends]} (om/props this)]
+    (let [{:keys [ui/react-key current-user selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
-        (dom/h4 nil (str "Current User: " (:person/name current-user)))
-        (dom/button #js {:onClick (fn [] (df/load this [:person/by-id 3] Person))} "Refresh User with ID 3")
-        (ui-person-list friends)))))
+               (dom/h4 nil (str "Current Selected Item: " (:ledger-item/name current-user)))
+               (dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
+                           "Refresh Selected Item with ID 3")
+               (ui-ledger-item-list selected-items)))))
 
 (defonce app-1 (atom (uc/new-untangled-client
-                       :networking {:remote (net/make-untangled-network "/api" :global-error-callback (constantly nil))}
+                       :networking {:remote (net/make-untangled-network
+                                              "/api"
+                                              :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
-                                           (df/load app :current-user Person)
-                                           (df/load app :my-friends Person {:target        [:person-list/by-id :friends :person-list/people]
-                                                                            ;:post-mutation `ops/sort-friends
-                                                                            })))))
+                                           (df/load app :current-user LedgerItem)
+                                           (df/load app :my-selected-items LedgerItem
+                                                    {:target [:ledger-item-list/by-id
+                                                              :selected-items
+                                                              :ledger-item-list/people]
+                                                     ;:post-mutation `ops/sort-selected-items
+                                                     })))))

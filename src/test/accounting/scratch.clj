@@ -80,3 +80,16 @@
         income recorded-income
         profit (- income expenses)]
     (u/round2 (* 100 (/ (float tax-expense) profit)))))
+
+(def curr-val { :type :bar })
+
+#_(-> val
+    (case ???
+          "bar" "bar type"
+          "baz" "baz type"
+          "other type"))
+
+(defn x-7 []
+  (-> (:type curr-val)
+      {:bar "bar type"
+       :baz "baz type"}))

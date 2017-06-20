@@ -3,7 +3,6 @@
     [figwheel-sidecar.system :as fig]
     app.server
     app.operations
-    accounting.test-seaweed
     [clojure.tools.namespace.repl :as tools-ns :refer [set-refresh-dirs]]
     [com.stuartsierra.component :as component]))
 
@@ -31,7 +30,7 @@
 
 ; resources is on classpath, and the cljs compiler copies stuff there, so we have to be careful that these extras
 ; don't get re-scanned when refreshing the server.
-(set-refresh-dirs "src/dev" "src/main")
+(set-refresh-dirs "src/dev" "src/main" "src/test")
 
 (def system (atom nil))
 (declare reset)

@@ -3,7 +3,7 @@
             [accounting.data.meta.common :as meta]
             [accounting.util :as u]
             [accounting.gl :as gl]
-            [accounting.data.seaweed :as d]
+            [accounting.data.seaweed :as data]
             [accounting.seasoft-context :as con]))
 
 (def current-range con/current-range)
@@ -32,4 +32,4 @@
        u/pp))
 
 (defn show-trial-balance []
-  (u/pp (c/trial-balance bank-statements current-rules splits d/ye-2016)))
+  (u/pp (c/trial-balance bank-statements current-rules splits data/ye-2016)))

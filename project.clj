@@ -25,7 +25,7 @@
                                :optimizations :none}}]}
 
   ;; Allows printing of stack trace from REPL, plus other things...
-  :profiles {:dev {:source-paths ["src/dev" "src/main"]
+  :profiles {:dev {:source-paths ["src/dev" "src/main" "src/test"]
                    :dependencies [[binaryage/devtools "0.9.2"]
                                   [org.clojure/java.classpath "0.2.3"]
                                   [org.clojure/tools.namespace "0.3.0-alpha4"]

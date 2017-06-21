@@ -158,7 +158,7 @@
 ;; The recalc date can be thought of as a previous period. So we add one day to it for the start
 ;; moment.
 ;;
-(defn within-range? [start-moment end-moment]
+(defn within-range-hof? [start-moment end-moment]
   (let [begin? (after-begin-bound? start-moment)
         end? (before-end-bound? end-moment)]
     (fn [date]
@@ -175,12 +175,12 @@
   (assert date)
   (let [start-moment (start-period-moment period)
         end-moment (end-period-moment period)
-        res ((within-range? start-moment end-moment) date)]
+        res ((within-range-hof? start-moment end-moment) date)]
     res))
 
 (defn get-within [date-kw]
   (fn [begin end xs]
-    (let [within? (within-range? begin end)]
+    (let [within? (within-range-hof? begin end)]
       (->> xs
            (sort-by date-kw)
            ;; later use a combination of drop-while and take-while and don't use within but less and greater than fns

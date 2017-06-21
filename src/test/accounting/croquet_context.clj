@@ -9,11 +9,11 @@
    :mar croquet-d/mar-rules
    })
 
-(def current-range [{:period/year  2017
-                     :period/month :feb}
-                    {:period/year  2017
-                     :period/month :mar}
-                    ])
+(def total-range [{:period/year  2017
+                   :period/month :feb}
+                  {:period/year  2017
+                   :period/month :mar}
+                  ])
 
 (def current-rules
   (let [initial-rules (merge-with (comp vec concat) croquet-d/permanent-rules (apply concat (map month->rules [:feb :mar])))]

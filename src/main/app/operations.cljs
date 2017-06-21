@@ -25,3 +25,7 @@
 (defmutation sort-selected-items [no-params]
   (action [{:keys [state]}]
     (swap! state sort-selected-items-by* :ledger-item/name)))
+
+(defmutation uncover-first [no-params]
+             (action [{:keys [state]}]
+                     (swap! state update :server/potential-data first)))

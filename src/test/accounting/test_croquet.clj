@@ -8,7 +8,7 @@
             [accounting.croquet-context :as con]
             [clojure.test :as test]))
 
-(def current-range con/current-range)
+(def current-range con/total-range)
 (def current-rules con/current-rules)
 (def croquet-bank-accounts (-> meta/human-meta :croquet :bank-accounts))
 (def croquet-splits (-> meta/human-meta :croquet :splits))

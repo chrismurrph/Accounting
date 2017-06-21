@@ -365,7 +365,7 @@
    })
 
 (def data {:gl      {:bank/bendigo                 0M
-                     :equity/funds-introduced     0M
+                     :equity/funds-introduced      0M
                      :income/membership-fees       0M
                      :income/bank-interest         0M
                      :income/game-fees             0M

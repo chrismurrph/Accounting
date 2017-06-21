@@ -11,15 +11,15 @@
   static om/Ident
   (ident [this props] [:ledger-item/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :ledger-item/name :ledger-item/age])
+  (query [this] [:db/id :ledger-item/name :ledger-item/amount])
   static uc/InitialAppState
-  (initial-state [comp-class {:keys [id name age] :as params}] {:db/id id :ledger-item/name name :ledger-item/age age})
+  (initial-state [comp-class {:keys [id name amount] :as params}] {:db/id id :ledger-item/name name :ledger-item/amount amount})
   Object
   (render [this]
-    (let [{:keys [db/id ledger-item/name ledger-item/age]} (om/props this)
+    (let [{:keys [db/id ledger-item/name ledger-item/amount]} (om/props this)
           onDelete (om/get-computed this :onDelete)]
       (dom/li nil
-              (dom/h5 nil name (str "(age: " age ")")
+              (dom/h5 nil name (str "(amount: " amount ")")
                       (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
                       (dom/button #js {:onClick #(onDelete id)} "X"))))))
 
@@ -39,8 +39,8 @@
   (render [this]
     (let [{:keys [db/id ledger-item-list/label ledger-item-list/people]} (om/props this)
           delete-ledger-item (fn [ledger-item-id]
-                          (js/console.log label "asked to delete" name)
-                          (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
+                               (js/console.log label "asked to delete" name)
+                               (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
                (dom/h4 nil label)
                (dom/ul nil
@@ -48,22 +48,52 @@
 
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
+(defui ^:once PotentialData
+  static om/Ident
+  (ident [this props] [:potential-data/by-id :the-one])
+  static om/IQuery
+  (query [this] [:potential-data/period-type :potential-data/commencing-period :potential-data/latest-period])
+  static uc/InitialAppState
+  (initial-state [comp-class {:keys [period-type commencing-period latest-period] :as params}]
+    {:potential-data/period-type       period-type
+     :potential-data/commencing-period commencing-period
+     :potential-data/latest-period     latest-period})
+  Object
+  (render [this]
+    (let [{:keys [potential-data/period-type potential-data/commencing-period potential-data/latest-period]} (om/props this)
+          onDelete (om/get-computed this :onDelete)]
+      (dom/li nil
+              (dom/h5 nil name (str "(period-type: " period-type ")")
+                      (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
+                      (dom/button #js {:onClick #(onDelete "Yo!")} "X"))))))
+
+(def ui-potential-data (om/factory PotentialData))
+
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 :ui/ledger-item-id
-                 {:current-user (om/get-query LedgerItem)}
+                 ;Don't see point of this
+                 ;:ui/ledger-item-id
+                 ;{:current-ledger-item (om/get-query LedgerItem)}
+                 ;[:potential-data/by-id :the-one]
+                 {:potential-data (om/get-query PotentialData)}
                  {:selected-items (om/get-query LedgerItemList)}])
   static
   uc/InitialAppState
-  (initial-state [c params] {:selected-items (uc/get-initial-state LedgerItemList {:id :selected-items :label "Friends"})})
+  (initial-state [c params]
+    #_{:potential-data
+     (uc/get-initial-state PotentialData
+                           {})}
+    {:selected-items
+     (uc/get-initial-state LedgerItemList
+                           {:id :selected-items :label "Account Balances"})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key current-user selected-items]} (om/props this)]
+    (let [{:keys [ui/react-key potential-data selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
-               (dom/h4 nil (str "Current Selected Item: " (:ledger-item/name current-user)))
-               (dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
-                           "Refresh Selected Item with ID 3")
+               (dom/h4 nil (str "Period Type: " (keys potential-data)))
+               ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
+               ;            "Refresh Selected Item with ID 3")
                (ui-ledger-item-list selected-items)))))
 
 (defonce app-1 (atom (uc/new-untangled-client
@@ -71,7 +101,12 @@
                                               "/api"
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
-                                           (df/load app :current-user LedgerItem)
+                                           (df/load app :server/potential-data PotentialData
+                                                    {:post-mutation `ops/uncover-first}
+                                                    ;{:target [:potential-data/by-id
+                                                    ;          :the-one
+                                                    ;          :potential-data]}
+                                                     )
                                            (df/load app :my-selected-items LedgerItem
                                                     {:target [:ledger-item-list/by-id
                                                               :selected-items

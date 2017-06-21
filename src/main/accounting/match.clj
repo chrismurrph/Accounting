@@ -127,7 +127,7 @@
        (or (nil? on-dates) (t/in-set? on-dates (:out/date record)))
        (or (nil? between-dates-inclusive)
            (let [[start end] between-dates-inclusive]
-             ((t/within-range? start end) (:out/date record))))
+             ((t/within-range-hof? start end) (:out/date record))))
        (or (nil? amount) (= amount (:out/amount record)))))
 
 ;;
@@ -138,7 +138,7 @@
 ;; The field is in each condition and no longer exists in the rule
 ;;
 (defn match-old [record {:keys [field logic-operator conditions] :as rule}]
-  (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
+  (assert (map? rule) (str "rule is supposed to be a map, got: " rule))
   (assert field (str "No field in rule: " rule))
   (assert (map? record))
   (when (matches-chosen-specifics? record rule)

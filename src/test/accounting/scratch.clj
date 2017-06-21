@@ -81,15 +81,13 @@
         profit (- income expenses)]
     (u/round2 (* 100 (/ (float tax-expense) profit)))))
 
-(def curr-val { :type :bar })
-
-#_(-> val
-    (case ???
-          "bar" "bar type"
-          "baz" "baz type"
-          "other type"))
-
 (defn x-7 []
-  (-> (:type curr-val)
-      {:bar "bar type"
-       :baz "baz type"}))
+  (.indexOf [[[1 2 3] [4 5 6] [7 8 9]] [[10 11] [12 13]] [[14] [15]]] [[14] [15]]))
+
+{:the-one {:db/id :the-one,
+           :person-list/people
+                  [[:person/by-id 1]
+                   [:person/by-id 2]
+                   [:person/by-id 3]
+                   [:person/by-id 4]]},
+ :friends {:person-list/people []}}

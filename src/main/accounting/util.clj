@@ -100,7 +100,8 @@
 (defn probe-off
   ([x]
    x)
-  ([msg x]
+  ([x msg]
+   (assert (string? msg))
    x))
 
 (defn probe-on
@@ -108,7 +109,8 @@
    (-> x
        pp)
    x)
-  ([msg x]
+  ([x msg]
+   (assert (string? msg))
    (println msg x)
    x))
 

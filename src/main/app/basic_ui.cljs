@@ -2,6 +2,7 @@
   (:require [untangled.client.core :as uc]
             [om.dom :as dom]
             [app.operations :as ops]
+            [app.cljs-operations :as cljs-ops]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.mutations :as m]
@@ -76,7 +77,7 @@
                  ;:ui/ledger-item-id
                  ;{:current-ledger-item (om/get-query LedgerItem)}
                  ;[:potential-data/by-id :the-one]
-                 {:potential-data (om/get-query PotentialData)}
+                 {:server/potential-data (om/get-query PotentialData)}
                  {:selected-items (om/get-query LedgerItemList)}])
   static
   uc/InitialAppState
@@ -89,9 +90,9 @@
                            {:id :selected-items :label "Account Balances"})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key potential-data selected-items]} (om/props this)]
+    (let [{:keys [ui/react-key server/potential-data selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
-               (dom/h4 nil (str "Period Type: " (keys potential-data)))
+               (dom/h4 nil (str "Period Type: " (:potential-data/period-type potential-data)))
                ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
                ;            "Refresh Selected Item with ID 3")
                (ui-ledger-item-list selected-items)))))
@@ -102,7 +103,9 @@
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
                                            (df/load app :server/potential-data PotentialData
-                                                    {:post-mutation `ops/uncover-first}
+                                                    {
+                                                     ;:post-mutation `cljs-ops/uncover-first
+                                                     }
                                                     ;{:target [:potential-data/by-id
                                                     ;          :the-one
                                                     ;          :potential-data]}
@@ -111,5 +114,5 @@
                                                     {:target [:ledger-item-list/by-id
                                                               :selected-items
                                                               :ledger-item-list/people]
-                                                     ;:post-mutation `ops/sort-selected-items
+                                                     :post-mutation `cljs-ops/sort-selected-items
                                                      })))))

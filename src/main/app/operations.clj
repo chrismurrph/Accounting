@@ -25,11 +25,6 @@
                      (timbre/info "Server deleting ledger-item" ledger-item-id)
                      (swap! people-db dissoc ledger-item-id)))
 
-(defmutation uncover-first
-             [no-params]
-             (action [{:keys [state]}]
-                     people-db))
-
 (defn get-people [keys]
   (->> @people-db
        vals

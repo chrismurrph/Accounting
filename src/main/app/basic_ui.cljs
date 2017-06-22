@@ -3,6 +3,7 @@
             [om.dom :as dom]
             [app.operations :as ops]
             [app.cljs-operations :as cljs-ops]
+            [app.panels :as p]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.mutations :as m]
@@ -52,7 +53,7 @@
 
 (defui ^:once PotentialData
   static om/Ident
-  (ident [this props] [:potential-data/by-id :the-one])
+  (ident [this props] [:potential-data/by-id p/POTENTIAL_DATA])
   static om/IQuery
   (query [this] [:potential-data/period-type :potential-data/commencing-period :potential-data/latest-period])
   static uc/InitialAppState
@@ -71,19 +72,23 @@
 (def ui-potential-data (om/factory PotentialData))
 
 (defui ^:once UserRequestForm
-  static f/IForm
-  (form-spec [this] [(f/id-field :db/id)
-                     (f/text-input :person/name)])
+  ;static f/IForm
+  ;(form-spec [this] [(f/id-field :db/id)
+  ;                   (f/text-input :person/name)])
   static om/Ident
-  (ident [this props] [:user-request/by-id :the-three])
+  (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [#_:db/id {:potential-data (om/get-query PotentialData)}])
+  (query [_] [:db/id {:potential-data (om/get-query PotentialData)}])
+  static uc/InitialAppState
+  (initial-state [comp-class {:keys [id potential-data]}]
+    {:db/id                   id
+     :potential-data          potential-data})
   Object
   (render [this]
     (let [{:keys [potential-data]} (om/props this)]
       (dom/div nil (ui-potential-data potential-data)))))
 
-(def ui-user-request (om/factory UserRequestForm))
+(def ui-user-request-form (om/factory UserRequestForm))
 
 (defui ^:once Root
   static om/IQuery
@@ -95,12 +100,15 @@
   (initial-state [c params]
     {:server/selected-items
      (uc/get-initial-state LedgerItemList
-                           {:id :the-two :label "Account Balances"})})
+                           {:id p/LEDGER_ITEMS_LIST :label "Account Balances"})
+     :user-request
+     (uc/get-initial-state UserRequestForm
+                           {:id p/USER_REQUEST_FORM :potential-data {}})})
   Object
   (render [this]
     (let [{:keys [ui/react-key user-request server/selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
-               (ui-user-request user-request)
+               (ui-user-request-form user-request)
                ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
                ;            "Refresh Selected Item with ID 3")
                (ui-ledger-item-list selected-items)))))
@@ -112,8 +120,8 @@
                        :started-callback (fn [app]
                                            (df/load app :server/potential-data PotentialData {})
                                            (df/load app :my-selected-items LedgerItem
-                                                    {:target        [:ledger-item-list/by-id
-                                                                     :the-two
-                                                                     :ledger-item-list/people]
-                                                     :post-mutation `cljs-ops/sort-selected-items
+                                                    {:target [:ledger-item-list/by-id
+                                                              p/LEDGER_ITEMS_LIST
+                                                              :ledger-item-list/people]
+                                                     ;:post-mutation `cljs-ops/sort-selected-items
                                                      })))))

@@ -6,7 +6,8 @@
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.mutations :as m]
-            [untangled.client.network :as net]))
+            [untangled.client.network :as net]
+            [untangled.ui.forms :as f]))
 
 (defui ^:once LedgerItem
   static om/Ident
@@ -62,37 +63,44 @@
   Object
   (render [this]
     (let [{:keys [potential-data/period-type potential-data/commencing-period potential-data/latest-period]} (om/props this)
-          onDelete (om/get-computed this :onDelete)]
-      (dom/li nil
-              (dom/h5 nil name (str "(period-type: " period-type ")")
-                      (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
-                      (dom/button #js {:onClick #(onDelete "Yo!")} "X"))))))
+          period-label (if (= :period-type/quarterly period-type) "Quarter" "Month")]
+      (dom/div nil
+               (dom/h4 nil "Year")
+               (dom/h4 nil period-label)))))
 
 (def ui-potential-data (om/factory PotentialData))
+
+(defui ^:once UserRequestForm
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/text-input :person/name)])
+  static om/Ident
+  (ident [this props] [:user-request/by-id :the-three])
+  static om/IQuery
+  (query [this] [#_:db/id {:potential-data (om/get-query PotentialData)}])
+  Object
+  (render [this]
+    (let [{:keys [potential-data]} (om/props this)]
+      (dom/div nil (ui-potential-data potential-data)))))
+
+(def ui-user-request (om/factory UserRequestForm))
 
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 ;Don't see point of this
-                 ;:ui/ledger-item-id
-                 ;{:current-ledger-item (om/get-query LedgerItem)}
-                 ;[:potential-data/by-id :the-one]
-                 {:server/potential-data (om/get-query PotentialData)}
-                 {:selected-items (om/get-query LedgerItemList)}])
+                 {:user-request (om/get-query UserRequestForm)}
+                 {:server/selected-items (om/get-query LedgerItemList)}])
   static
   uc/InitialAppState
   (initial-state [c params]
-    #_{:potential-data
-     (uc/get-initial-state PotentialData
-                           {})}
-    {:selected-items
+    {:server/selected-items
      (uc/get-initial-state LedgerItemList
-                           {:id :selected-items :label "Account Balances"})})
+                           {:id :the-two :label "Account Balances"})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key server/potential-data selected-items]} (om/props this)]
+    (let [{:keys [ui/react-key user-request server/selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
-               (dom/h4 nil (str "Period Type: " (:potential-data/period-type potential-data)))
+               (ui-user-request user-request)
                ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
                ;            "Refresh Selected Item with ID 3")
                (ui-ledger-item-list selected-items)))))
@@ -102,17 +110,10 @@
                                               "/api"
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
-                                           (df/load app :server/potential-data PotentialData
-                                                    {
-                                                     ;:post-mutation `cljs-ops/uncover-first
-                                                     }
-                                                    ;{:target [:potential-data/by-id
-                                                    ;          :the-one
-                                                    ;          :potential-data]}
-                                                     )
+                                           (df/load app :server/potential-data PotentialData {})
                                            (df/load app :my-selected-items LedgerItem
-                                                    {:target [:ledger-item-list/by-id
-                                                              :selected-items
-                                                              :ledger-item-list/people]
+                                                    {:target        [:ledger-item-list/by-id
+                                                                     :the-two
+                                                                     :ledger-item-list/people]
                                                      :post-mutation `cljs-ops/sort-selected-items
                                                      })))))

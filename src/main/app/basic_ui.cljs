@@ -7,7 +7,7 @@
             [app.ui-helpers :as ui-help]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
-            [untangled.client.mutations :as m]
+    ;[untangled.client.mutations :as m]
             [untangled.client.network :as net]
             [untangled.ui.forms :as f]
             [app.util :as u]))
@@ -122,21 +122,20 @@
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 {:potential-data (om/get-query PotentialData)}
-                 {:user-request (om/get-query UserRequestForm)}
-                 {:server/selected-items (om/get-query LedgerItemList)}])
+                 {:root/user-request (om/get-query UserRequestForm)}
+                 {:root/selected-items (om/get-query LedgerItemList)}])
   static
   uc/InitialAppState
   (initial-state [c params]
-    {:server/selected-items
+    {:root/selected-items
      (uc/get-initial-state LedgerItemList
                            {:id p/LEDGER_ITEMS_LIST :label "Account Balances"})
-     :user-request
+     :root/user-request
      (uc/get-initial-state UserRequestForm
                            {:id p/USER_REQUEST_FORM :potential-data {}})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key potential-data user-request server/selected-items]} (om/props this)
+    (let [{:keys [ui/react-key root/user-request root/selected-items]} (om/props this)
           ;_ (when potential-data (u/log (str potential-data)))
           ]
       (dom/div #js {:key react-key}
@@ -151,11 +150,12 @@
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
                                            (df/load app :my-potential-data PotentialData
-                                                    {:refresh [[:user-request/by-id p/USER_REQUEST_FORM]]
+                                                    {:refresh [:potential-data/period-type]
+                                                     :post-mutation `cljs-ops/rm-my-potential-data
                                                      })
                                            (df/load app :my-selected-items LedgerItem
                                                     {:target [:ledger-item-list/by-id
                                                               p/LEDGER_ITEMS_LIST
                                                               :ledger-item-list/items]
-                                                     ;:post-mutation `cljs-ops/sort-selected-items
+                                                     :post-mutation `cljs-ops/sort-items-by-name
                                                      })))))

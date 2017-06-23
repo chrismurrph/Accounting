@@ -4,11 +4,13 @@
             [app.operations :as ops]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
+            [app.ui-helpers :as ui-help]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.mutations :as m]
             [untangled.client.network :as net]
-            [untangled.ui.forms :as f]))
+            [untangled.ui.forms :as f]
+            [app.util :as u]))
 
 (defui ^:once LedgerItem
   static om/Ident
@@ -32,22 +34,22 @@
   static om/Ident
   (ident [this props] [:ledger-item-list/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :ledger-item-list/label {:ledger-item-list/people (om/get-query LedgerItem)}])
+  (query [this] [:db/id :ledger-item-list/label {:ledger-item-list/items (om/get-query LedgerItem)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id                   id
      :ledger-item-list/label  label
-     :ledger-item-list/people []})
+     :ledger-item-list/items []})
   Object
   (render [this]
-    (let [{:keys [db/id ledger-item-list/label ledger-item-list/people]} (om/props this)
+    (let [{:keys [db/id ledger-item-list/label ledger-item-list/items]} (om/props this)
           delete-ledger-item (fn [ledger-item-id]
                                (js/console.log label "asked to delete" name)
                                (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
                (dom/h4 nil label)
                (dom/ul nil
-                       (map (fn [ledger-item] (ui-ledger-item (om/computed ledger-item {:onDelete delete-ledger-item}))) people))))))
+                       (map (fn [ledger-item] (ui-ledger-item (om/computed ledger-item {:onDelete delete-ledger-item}))) items))))))
 
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
@@ -71,28 +73,52 @@
 
 (def ui-potential-data (om/factory PotentialData))
 
+(defn period->year [{:keys [period/tax-year period/year]}]
+  (or tax-year year))
+
+(defn period->period [{:keys [period/quarter period/month]}]
+  (or quarter month))
+
+;;
+;; The default year and period s/be worked out as the last ones in potential data
+;;
 (defui ^:once UserRequestForm
-  ;static f/IForm
-  ;(form-spec [this] [(f/id-field :db/id)
-  ;                   (f/text-input :person/name)])
+  static uc/InitialAppState
+  (initial-state [this {:keys [id]}]
+    (f/build-form this {:db/id          id
+                        :potential-data {:potential-data/period-type :period-type/unknown}}))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/dropdown-input :request/year [(f/option ::f/none "Not yet loaded")])
+                     (f/dropdown-input :request/period [(f/option ::f/none "Not yet loaded")])])
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id {:potential-data (om/get-query PotentialData)}])
-  static uc/InitialAppState
-  (initial-state [comp-class {:keys [id potential-data]}]
-    {:db/id                   id
-     :potential-data          potential-data})
+  (query [_] [:db/id :request/year :request/period {:potential-data (om/get-query PotentialData)} f/form-key f/form-root-key])
   Object
   (render [this]
-    (let [{:keys [potential-data]} (om/props this)]
-      (dom/div nil (ui-potential-data potential-data)))))
+    (let [{:keys [potential-data request/year request/period] :as form} (om/props this)
+          {:keys [potential-data/period-type]} potential-data
+          _ (u/warn (not= :period-type/unknown period-type) (str "No period type from: " potential-data))
+          period-label (condp = period-type
+                         :period-type/quarterly "Quarter"
+                         :period-type/monthly "Month"
+                         :period-type/unknown "Unknown")
+          year (or year (-> potential-data :potential-data/latest-period period->year u/probe-on))
+          period (or period (-> potential-data :potential-data/latest-period period->period))]
+      (dom/div #js {:className "form-horizontal"}
+               (ui-help/field-with-label this form :request/year "Year")
+               (ui-help/field-with-label this form :request/period period-label))))
+  #_(render [this]
+            (let [{:keys [potential-data]} (om/props this)]
+              (dom/div nil (ui-potential-data potential-data)))))
 
 (def ui-user-request-form (om/factory UserRequestForm))
 
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
+                 ;{:potential-data (om/get-query PotentialData)}
                  {:user-request (om/get-query UserRequestForm)}
                  {:server/selected-items (om/get-query LedgerItemList)}])
   static
@@ -106,7 +132,9 @@
                            {:id p/USER_REQUEST_FORM :potential-data {}})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key user-request server/selected-items]} (om/props this)]
+    (let [{:keys [ui/react-key potential-data user-request server/selected-items]} (om/props this)
+          ;_ (when potential-data (u/log (str potential-data)))
+          ]
       (dom/div #js {:key react-key}
                (ui-user-request-form user-request)
                ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
@@ -118,10 +146,14 @@
                                               "/api"
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
-                                           (df/load app :server/potential-data PotentialData {})
+                                           (df/load app :my-potential-data PotentialData
+                                                    {:target [:user-request/by-id
+                                                              p/USER_REQUEST_FORM
+                                                              :potential-data]
+                                                     })
                                            (df/load app :my-selected-items LedgerItem
                                                     {:target [:ledger-item-list/by-id
                                                               p/LEDGER_ITEMS_LIST
-                                                              :ledger-item-list/people]
+                                                              :ledger-item-list/items]
                                                      ;:post-mutation `cljs-ops/sort-selected-items
                                                      })))))

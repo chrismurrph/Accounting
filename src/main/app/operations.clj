@@ -43,7 +43,7 @@
                       ;(timbre/info "Query :my-selected-items:" query)
                       (u/probe-on (get-people query) "my-selected-items")))
 
-(defquery-root :server/potential-data
+(defquery-root :my-potential-data
                "Queries for potential-data and returns it to the client"
                (value [{:keys [query]} params]
                       ;(timbre/info "Query :my-potential-data:" query)

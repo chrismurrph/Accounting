@@ -75,7 +75,12 @@
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id          id
-                        :potential-data {:potential-data/period-type :period-type/unknown}
+                        :potential-data {:potential-data/period-type :period-type/unknown
+                                         :potential-data/latest-period {:period/quarter :q4
+                                                                        :period/tax-year 2017}
+                                         :potential-data/commencing-period {:period/quarter :q1
+                                                                            :period/tax-year 2017}
+                                         :potential-data/latest-year 2017}
                         ;:request/year   1984
                         ;:request/period :q1
                         }))
@@ -99,8 +104,9 @@
                          :period-type/monthly "Month"
                          :period-type/unknown "Unknown"
                          nil "Unknown")
-          _ (u/log (str "def YR " (help/latest-year potential-data) ", def PERIOD " (help/latest-period potential-data)))
-          _ (u/log (str "YR " year ", PERIOD " period))
+          _ (u/log-off (str "pot data: " potential-data))
+          _ (u/log-off (str "def YR " (help/latest-year potential-data) ", def PERIOD " (help/latest-period potential-data)))
+          _ (u/log-off (str "YR " year ", PERIOD " period))
           ]
       (dom/div #js {:className "form-horizontal"}
                (help/field-with-label this form :request/year "Year")

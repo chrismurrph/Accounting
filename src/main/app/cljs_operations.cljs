@@ -29,15 +29,20 @@
              (action [{:keys [state]}]
                      (let [st @state
                            ident (:my-potential-data st)
+                           potential-data (get-in st ident)
                            field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/year]
-                           years (help/range-of-years (get-in st ident))
+                           years (help/range-of-years potential-data)
                            default-year (-> years first str keyword)
-                           options (mapv (fn [yr] (f/option (keyword (str yr)) (str yr))) years)]
+                           year-options (mapv #(f/option (keyword (str %)) (str %)) years)
+                           periods (help/range-of-periods default-year potential-data)
+                           period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)]
                        (u/log (str "year: " default-year))
-                       (u/log (str "options: " options))
+                       (u/log (str "year options: " year-options))
+                       (u/log (str "period options: " period-options))
                        (swap! state #(-> %
                                          (assoc-in field-whereabouts default-year)
-                                         (assoc-in help/year-options-whereabouts options)
+                                         (assoc-in help/year-options-whereabouts year-options)
+                                         (assoc-in help/period-options-whereabouts period-options)
                                          (dissoc :my-potential-data))))))
 
 #_(defmethod m/mutate 'rm-my-potential-data [{:keys [state]} k {:keys [id]}]

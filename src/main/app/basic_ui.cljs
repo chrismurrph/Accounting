@@ -91,13 +91,19 @@
 ;;
 ;; The default year and period s/be worked out as the last ones in potential data
 ;;
+(defn default-year [potential-data]
+  (-> potential-data :potential-data/latest-period period->year))
+
+(defn default-period [potential-data]
+  (-> potential-data :potential-data/latest-period period->period))
+
 (defui ^:once UserRequestForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id          id
                         :potential-data {:potential-data/period-type :period-type/unknown}
-                        :request/year   1984
-                        :request/period :q1
+                        ;:request/year   1984
+                        ;:request/period :q1
                         }))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
@@ -111,14 +117,14 @@
   (render [this]
     (let [{:keys [potential-data request/year request/period] :as form} (om/props this)
           {:keys [potential-data/period-type]} potential-data
-          _ (u/warn (not= :period-type/unknown period-type) (str "No period type from: " potential-data))
+          ;_ (u/warn (not= :period-type/unknown period-type) (str "No period type from: " potential-data))
           period-label (condp = period-type
                          :period-type/quarterly "Quarter"
                          :period-type/monthly "Month"
                          :period-type/unknown "Unknown"
                          nil "Unknown")
-          year (or year (-> potential-data :potential-data/latest-period period->year u/probe-on))
-          period (or period (-> potential-data :potential-data/latest-period period->period))]
+          _ (u/log (str "YR:" (default-year potential-data) ", PERIOD:" (default-period potential-data)))
+          ]
       (dom/div #js {:className "form-horizontal"}
                (ui-help/field-with-label this form :request/year "Year")
                (ui-help/field-with-label this form :request/period period-label)

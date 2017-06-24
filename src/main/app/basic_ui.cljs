@@ -36,8 +36,8 @@
   (query [this] [:db/id :ledger-item-list/label {:ledger-item-list/items (om/get-query LedgerItem)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
-    {:db/id                   id
-     :ledger-item-list/label  label
+    {:db/id                  id
+     :ledger-item-list/label label
      :ledger-item-list/items []})
   Object
   (render [this]
@@ -77,6 +77,17 @@
 (defn period->period [{:keys [period/quarter period/month]}]
   (or quarter month))
 
+(defn field-with-label
+  "A non-library helper function, written by you to help lay out your form."
+  ([comp form name label] (field-with-label comp form name label nil))
+  ([comp form name label validation-message]
+   (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
+            (dom/label #js {:className "col-sm-2" :htmlFor name} label)
+            ;; THE LIBRARY SUPPLIES f/form-field. Use it to render the actual field
+            (dom/div #js {:className "col-sm-10"} (f/form-field comp form name))
+            (when (and validation-message (f/invalid? form name))
+              (dom/span #js {:className (str "col-sm-offset-2 col-sm-10" name)} validation-message)))))
+
 ;;
 ;; The default year and period s/be worked out as the last ones in potential data
 ;;
@@ -84,7 +95,10 @@
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id          id
-                        :potential-data {:potential-data/period-type :period-type/unknown}}))
+                        :potential-data {:potential-data/period-type :period-type/unknown}
+                        :request/year   1984
+                        :request/period :q1
+                        }))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :request/year [(f/option ::f/none "Not yet loaded")])
@@ -92,9 +106,9 @@
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :request/year :request/period {:potential-data (om/get-query PotentialData)} f/form-root-key])
+  (query [_] [:db/id :request/year :request/period {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
   Object
-  #_(render [this]
+  (render [this]
     (let [{:keys [potential-data request/year request/period] :as form} (om/props this)
           {:keys [potential-data/period-type]} potential-data
           _ (u/warn (not= :period-type/unknown period-type) (str "No period type from: " potential-data))
@@ -107,8 +121,10 @@
           period (or period (-> potential-data :potential-data/latest-period period->period))]
       (dom/div #js {:className "form-horizontal"}
                (ui-help/field-with-label this form :request/year "Year")
-               (ui-help/field-with-label this form :request/period period-label))))
-  (render [this]
+               (ui-help/field-with-label this form :request/period period-label)
+               ;(dom/div nil (ui-potential-data potential-data))
+               )))
+  #_(render [this]
             (let [{:keys [potential-data]} (om/props this)]
               (dom/div nil (ui-potential-data potential-data)))))
 
@@ -145,12 +161,13 @@
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
                                            (df/load app :my-potential-data PotentialData
-                                                    {:refresh [:potential-data/period-type]
+                                                    {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
+                                                     #_[:potential-data/period-type]
                                                      :post-mutation `cljs-ops/rm-my-potential-data
                                                      })
                                            (df/load app :my-selected-items LedgerItem
-                                                    {:target [:ledger-item-list/by-id
-                                                              p/LEDGER_ITEMS_LIST
-                                                              :ledger-item-list/items]
+                                                    {:target        [:ledger-item-list/by-id
+                                                                     p/LEDGER_ITEMS_LIST
+                                                                     :ledger-item-list/items]
                                                      :post-mutation `cljs-ops/sort-items-by-name
                                                      })))))

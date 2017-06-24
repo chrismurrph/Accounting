@@ -4,7 +4,7 @@
             [app.operations :as ops]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
-            [app.ui-helpers :as ui-help]
+            [app.ui-helpers :as help]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.network :as net]
@@ -43,7 +43,7 @@
   (render [this]
     (let [{:keys [db/id ledger-item-list/label ledger-item-list/items]} (om/props this)
           delete-ledger-item (fn [ledger-item-id]
-                               (js/console.log label "asked to delete" name)
+                               (u/log (str label "asked to delete" name))
                                (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
                (dom/h4 nil label)
@@ -71,32 +71,6 @@
 
 (def ui-potential-data (om/factory PotentialData))
 
-(defn period->year [{:keys [period/tax-year period/year]}]
-  (or tax-year year))
-
-(defn period->period [{:keys [period/quarter period/month]}]
-  (or quarter month))
-
-(defn field-with-label
-  "A non-library helper function, written by you to help lay out your form."
-  ([comp form name label] (field-with-label comp form name label nil))
-  ([comp form name label validation-message]
-   (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
-            (dom/label #js {:className "col-sm-2" :htmlFor name} label)
-            ;; THE LIBRARY SUPPLIES f/form-field. Use it to render the actual field
-            (dom/div #js {:className "col-sm-10"} (f/form-field comp form name))
-            (when (and validation-message (f/invalid? form name))
-              (dom/span #js {:className (str "col-sm-offset-2 col-sm-10" name)} validation-message)))))
-
-;;
-;; The default year and period s/be worked out as the last ones in potential data
-;;
-(defn default-year [potential-data]
-  (-> potential-data :potential-data/latest-period period->year))
-
-(defn default-period [potential-data]
-  (-> potential-data :potential-data/latest-period period->period))
-
 (defui ^:once UserRequestForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
@@ -107,8 +81,10 @@
                         }))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/dropdown-input :request/year [(f/option ::f/none "Not yet loaded")])
-                     (f/dropdown-input :request/period [(f/option ::f/none "Not yet loaded")])])
+                     ;; These options are put to something else on reload. I'd rather have them empty,
+                     ;; but it seems Untangled doesn't allow that
+                     (f/dropdown-input :request/year [(f/option :not-yet-1 "Not yet loaded 1")])
+                     (f/dropdown-input :request/period [(f/option :not-yet-1 "Not yet loaded 1")])])
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
@@ -123,11 +99,12 @@
                          :period-type/monthly "Month"
                          :period-type/unknown "Unknown"
                          nil "Unknown")
-          _ (u/log (str "YR:" (default-year potential-data) ", PERIOD:" (default-period potential-data)))
+          _ (u/log (str "def YR " (help/latest-year potential-data) ", def PERIOD " (help/latest-period potential-data)))
+          _ (u/log (str "YR " year ", PERIOD " period))
           ]
       (dom/div #js {:className "form-horizontal"}
-               (ui-help/field-with-label this form :request/year "Year")
-               (ui-help/field-with-label this form :request/period period-label)
+               (help/field-with-label this form :request/year "Year")
+               (help/field-with-label this form :request/period period-label)
                ;(dom/div nil (ui-potential-data potential-data))
                )))
   #_(render [this]
@@ -153,8 +130,7 @@
                            {:id p/USER_REQUEST_FORM :potential-data {}})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key root/potential-data root/user-request root/selected-items]} (om/props this)
-          ]
+    (let [{:keys [ui/react-key root/potential-data root/user-request root/selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
                (ui-user-request-form user-request)
                ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}

@@ -3,6 +3,14 @@
 
 (enable-console-print!)
 
+;;
+;; Up to and including, inclusive of both from and to
+;;
+(defn numerical-range [from to]
+  (->> from
+       (iterate inc)
+       (take-while #(<= % to))))
+
 (defn probe-off
   ([x]
    x)
@@ -35,3 +43,7 @@
 
 (defn log [txt]
   (println (str "LOG: " txt)))
+
+(def log-on log)
+
+(defn log-off [txt])

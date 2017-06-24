@@ -41,10 +41,10 @@
                "Queries for selected-items and returns them to the client"
                (value [{:keys [query]} params]
                       ;(timbre/info "Query :my-selected-items:" query)
-                      (u/probe-on (get-people query) "my-selected-items")))
+                      (u/probe-off (get-people query) "my-selected-items")))
 
 (defquery-root :my-potential-data
                "Queries for potential-data and returns it to the client"
                (value [{:keys [query]} params]
                       ;(timbre/info "Query :my-potential-data:" query)
-                      (u/probe-on (context/potential-data query) "my-potential-data")))
+                      (u/probe-off (context/potential-data query) "my-potential-data")))

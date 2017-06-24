@@ -7,7 +7,6 @@
             [app.ui-helpers :as ui-help]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
-    ;[untangled.client.mutations :as m]
             [untangled.client.network :as net]
             [untangled.ui.forms :as f]
             [app.util :as u]))
@@ -58,15 +57,14 @@
   (ident [this props] [:potential-data/by-id p/POTENTIAL_DATA])
   static om/IQuery
   (query [this] [:potential-data/period-type :potential-data/commencing-period :potential-data/latest-period])
-  ;static uc/InitialAppState
-  ;(initial-state [comp-class {:keys [period-type commencing-period latest-period] :as params}]
-  ;  {:potential-data/period-type       period-type
-  ;   :potential-data/commencing-period commencing-period
-  ;   :potential-data/latest-period     latest-period})
   Object
   (render [this]
     (let [{:keys [potential-data/period-type potential-data/commencing-period potential-data/latest-period]} (om/props this)
-          period-label (if (= :period-type/quarterly period-type) "Quarter" "Month")]
+          period-label (condp = period-type
+                         :period-type/quarterly "Quarter"
+                         :period-type/monthly "Month"
+                         :period-type/unknown ""
+                         nil "")]
       (dom/div nil
                (dom/h4 nil "Year")
                (dom/h4 nil period-label)))))
@@ -85,18 +83,16 @@
 (defui ^:once UserRequestForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
-    {:db/id id
-     :potential-data {:potential-data/period-type :period-type/unknown}
-     })
-  ;static f/IForm
-  ;(form-spec [this] [(f/id-field :db/id)
-  ;                   (f/dropdown-input :request/year [(f/option ::f/none "Not yet loaded")])
-  ;                   (f/dropdown-input :request/period [(f/option ::f/none "Not yet loaded")])])
+    (f/build-form this {:db/id          id
+                        :potential-data {:potential-data/period-type :period-type/unknown}}))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/dropdown-input :request/year [(f/option ::f/none "Not yet loaded")])
+                     (f/dropdown-input :request/period [(f/option ::f/none "Not yet loaded")])])
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :request/year :request/period {:potential-data (om/get-query PotentialData)}
-              #_f/form-key #_f/form-root-key])
+  (query [_] [:db/id :request/year :request/period {:potential-data (om/get-query PotentialData)} f/form-root-key])
   Object
   #_(render [this]
     (let [{:keys [potential-data request/year request/period] :as form} (om/props this)
@@ -110,9 +106,8 @@
           year (or year (-> potential-data :potential-data/latest-period period->year u/probe-on))
           period (or period (-> potential-data :potential-data/latest-period period->period))]
       (dom/div #js {:className "form-horizontal"}
-
-               #_(ui-help/field-with-label this form :request/year "Year")
-               #_(ui-help/field-with-label this form :request/period period-label))))
+               (ui-help/field-with-label this form :request/year "Year")
+               (ui-help/field-with-label this form :request/period period-label))))
   (render [this]
             (let [{:keys [potential-data]} (om/props this)]
               (dom/div nil (ui-potential-data potential-data)))))
@@ -122,6 +117,7 @@
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
+                 {:root/potential-data (om/get-query PotentialData)}
                  {:root/user-request (om/get-query UserRequestForm)}
                  {:root/selected-items (om/get-query LedgerItemList)}])
   static
@@ -135,8 +131,7 @@
                            {:id p/USER_REQUEST_FORM :potential-data {}})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key root/user-request root/selected-items]} (om/props this)
-          ;_ (when potential-data (u/log (str potential-data)))
+    (let [{:keys [ui/react-key root/potential-data root/user-request root/selected-items]} (om/props this)
           ]
       (dom/div #js {:key react-key}
                (ui-user-request-form user-request)

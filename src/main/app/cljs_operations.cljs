@@ -11,7 +11,7 @@
         selected-items (map (fn [item-ident] (get-in state-map item-ident)) items)
         sorted-selected-items (sort-by field selected-items)
         new-idents (mapv (fn [item] [:ledger-item/by-id (:db/id item)]) sorted-selected-items)]
-    (println (str "SORTED by " field " -> " new-idents))
+    ;(println (str "SORTED by " field " -> " new-idents))
     (assoc-in state-map [:ledger-item-list/by-id p/LEDGER_ITEMS_LIST :ledger-item-list/items] new-idents)))
 
 (defmutation sort-items-by-amount [no-params]

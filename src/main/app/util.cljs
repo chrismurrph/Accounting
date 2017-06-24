@@ -4,6 +4,13 @@
 (enable-console-print!)
 
 ;;
+;; Only having to do this b/c I suspect that Untangled always wants to see
+;; keywords in :option/key. I'm probably wrong and will test properly later
+;;
+(defn kw->number [kw]
+  (-> kw name js/parseInt))
+
+;;
 ;; Up to and including, inclusive of both from and to
 ;;
 (defn numerical-range [from to]
@@ -19,6 +26,13 @@
    x))
 
 (def width 120)
+
+(defn pp-str
+  ([n x]
+   (binding [cljs-pp/*print-right-margin* n]
+     (-> x cljs-pp/pprint with-out-str)))
+  ([x]
+   (pp-str width x)))
 
 (defn pp
   ([n x]

@@ -21,21 +21,24 @@
        first))
 
 (defn *periods-range [periods begin end]
+  (u/log-off (str "begin, end: " begin end))
   (->> periods
        (drop-while #(not= begin %))
        (take-while #(not= (following-period periods end) %))
        vec))
 
-(defn periods-range [begin end]
+;;
+;; e.g. begin :q2 end :q3
+;; begin and end are both from within the same year
+;;
+#_(defn periods-range [period-type begin end]
   (assert (and begin end))
-  (let [quarters? (some #(when (= % begin) %) quarters)
-        months? (some #(when (= % begin) %) months)
-        ;; Instead of the above we should just have passed the :potential-data/period-type
-        ;; , getting either :period-type/quarterly or :period-type/monthly
-        periods (cond
-                  quarters? quarters
-                  months? months)]
+  (let [periods (case period-type
+                  :period-type/quarterly quarters
+                  :period-type/monthly months)]
     (*periods-range periods begin end)))
+
+
 
 (defn all-periods [{:keys [potential-data/period-type]}]
   (case period-type
@@ -76,13 +79,31 @@
 ;; If the year we are wanting isn't the first or last year of our org's existence,
 ;; then all the periods will be available.
 ;;
-(defn range-of-periods [year potential-data]
+(defn range-of-periods [yr potential-data]
   (assert (map? potential-data))
-  (let [starting (commencing-period potential-data)
-        finishing (latest-period potential-data)
-        abutting #{starting finishing}]
-    (if (abutting year)
-      (periods-range starting finishing)
+  (let [period-type (:potential-data/period-type potential-data)
+        periods (condp = period-type
+                  :period-type/quarterly quarters
+                  :period-type/monthly months)
+        starting (commencing-year potential-data)
+        finishing (latest-year potential-data)
+        year (u/kw->number yr)
+        ]
+    (u/log-off potential-data)
+    (u/log-off (str starting ", " finishing ", " year))
+    (cond
+      (= starting finishing year)
+      (*periods-range periods
+                      (commencing-period potential-data)
+                      (latest-period potential-data))
+
+      (= finishing year)
+      (*periods-range periods (first periods) (latest-period potential-data))
+
+      (= starting year)
+      (*periods-range periods (commencing-period potential-data) (last periods))
+
+      :else
       (all-periods potential-data))))
 
 ;;

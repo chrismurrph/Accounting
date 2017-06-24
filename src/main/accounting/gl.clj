@@ -113,9 +113,9 @@
         ;(println "old,new:" (-> ledgers ledger-kw :recalc-date t/show) (-> new-ledgers ledger-kw :recalc-date t/show) "for" ledger-kw)
         {:gl new-gl :ledgers new-ledgers})
       (do
-        (u/warning (str "There is a " dest-account " on " (t/show end)
-                        ", which we won't have ledger for, as this ledger starts at " (t/show begin)
-                        ", ledger record/s:\n" (show-ledger-records records)))
+        (u/warn (str "There is a " dest-account " on " (t/show end)
+                     ", which we won't have ledger for, as this ledger starts at " (t/show begin)
+                     ", ledger record/s:\n" (show-ledger-records records)))
         {:gl gl :ledgers ledgers}))
     ))
 

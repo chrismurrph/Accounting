@@ -76,13 +76,10 @@
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id          id
                         :potential-data {:potential-data/period-type :period-type/unknown
-                                         :potential-data/latest-period {:period/quarter :q4
-                                                                        :period/tax-year 2017}
+                                         :potential-data/latest-period {:period/quarter :q1
+                                                                        :period/tax-year 2000}
                                          :potential-data/commencing-period {:period/quarter :q1
-                                                                            :period/tax-year 2017}
-                                         :potential-data/latest-year 2017}
-                        ;:request/year   1984
-                        ;:request/period :q1
+                                                                            :period/tax-year 2000}}
                         }))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
@@ -111,11 +108,7 @@
       (dom/div #js {:className "form-horizontal"}
                (help/field-with-label this form :request/year "Year")
                (help/field-with-label this form :request/period period-label)
-               ;(dom/div nil (ui-potential-data potential-data))
-               )))
-  #_(render [this]
-            (let [{:keys [potential-data]} (om/props this)]
-              (dom/div nil (ui-potential-data potential-data)))))
+               ))))
 
 (def ui-user-request-form (om/factory UserRequestForm))
 

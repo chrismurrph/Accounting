@@ -132,7 +132,7 @@
         (sleep 400)
         (throw (new AssertionError (str "Assert failed: " ~message "\n" (pr-str '~x))))))))
 
-(defn warning [txt]
+(defn warn [txt]
   (println "WARN: " txt))
 
 (defn x-1 []
@@ -140,4 +140,11 @@
 
 (defn x-2 []
   (no-dec-pl "00.45"))
+
+;; if((J%2) == 0) {det += src[0][J]*calcDet( min, ord-1)};}
+(defn x-3 [calcDet src ord min J det]
+  (if (zero? (mod J 2))
+    (+ det (* (nth (nth src 0) J)
+              (calcDet min (dec ord))))
+    det))
 

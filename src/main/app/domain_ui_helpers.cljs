@@ -1,4 +1,4 @@
-(ns app.ui-helpers
+(ns app.domain-ui-helpers
   (:require [om.dom :as dom]
             [untangled.ui.forms :as f]
             [app.util :as u]
@@ -98,7 +98,7 @@
 ;;
 ;; Create the full range given the ends, then returning the most recent years first
 ;;
-(defn range-of-years [potential-data]
+(defn range-of-years [_ potential-data]
   (u/log-off (str "POT: " potential-data))
   (assert potential-data (str "No potential data"))
   (let [starting (commencing-year potential-data)
@@ -107,15 +107,41 @@
          reverse
          vec)))
 
+(def report-kw->report-name
+  {:report/profit-and-loss "Profit & Loss"
+   :report/balance-sheet   "Balance Sheet"
+   :report/trial-balance   "Trial Balance"
+   :report/big-items-first "Biggest first"})
+
+(def years-options-generator (fh/options-generator
+                               range-of-years
+                               #(f/option (keyword (str %)) (str %))
+                               #(-> % first str keyword)))
+
+(def periods-options-generator (fh/options-generator
+                                 range-of-periods
+                                 #(f/option % (period-kw->period-name %))
+                                 last))
+
+(def reports-options-generator (fh/options-generator
+                                 #(:potential-data/possible-reports %2)
+                                 #(f/option % (report-kw->report-name %))
+                                 first))
+
 ;;
 ;; Useful for things like changing options in fields in panels
 ;;
-(def year-field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/year])
-(def period-field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/period])
+(def request-form-ident [:user-request/by-id p/USER_REQUEST_FORM])
+(def year-field-whereabouts (conj request-form-ident :request/year))
+(def period-field-whereabouts (conj request-form-ident :request/period))
+(def report-field-whereabouts (conj request-form-ident :request/report))
 
-(def year-options-whereabouts (fh/input-options [:user-request/by-id p/USER_REQUEST_FORM] :request/year))
-(def period-options-whereabouts (fh/input-options [:user-request/by-id p/USER_REQUEST_FORM] :request/period))
+(def request-form-input-options (partial fh/input-options request-form-ident))
+(def year-options-whereabouts (request-form-input-options :request/year))
+(def period-options-whereabouts (request-form-input-options :request/period))
+(def report-options-whereabouts (request-form-input-options :request/report))
 
-(def year-default-value-whereabouts (fh/input-default-value [:user-request/by-id p/USER_REQUEST_FORM] :request/year))
-(def period-default-value-whereabouts (fh/input-default-value [:user-request/by-id p/USER_REQUEST_FORM] :request/period))
+(def request-form-input-default-value (partial fh/input-default-value request-form-ident))
+(def year-default-value-whereabouts (request-form-input-default-value :request/year))
+(def period-default-value-whereabouts (request-form-input-default-value :request/period))
 

@@ -4,7 +4,7 @@
             [app.operations :as ops]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
-            [app.ui-helpers :as h]
+            [app.domain-ui-helpers :as domain]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.network :as net]
@@ -108,7 +108,7 @@
                          :period-type/unknown "Unknown"
                          nil "Unknown")
           _ (u/log-off (str "pot data: " potential-data))
-          _ (u/log-off (str "def YR " (h/latest-year potential-data) ", def PERIOD " (h/latest-period potential-data)))
+          _ (u/log-off (str "def YR " (domain/latest-year potential-data) ", def PERIOD " (domain/latest-period potential-data)))
           _ (u/log-off (str "YR " year ", PERIOD " period))
           ]
       (dom/div #js {:className "form-horizontal"}

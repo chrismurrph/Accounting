@@ -10,6 +10,13 @@
 (defn input-default-value [[table-name id :as ident] field]
   [table-name id ::f/form :elements/by-name field :input/default-value])
 
+(defn options-generator [data->list-fn item->option-fn list->selected-fn]
+  (fn [data parent-selection]
+    (let [list (data->list-fn parent-selection data)
+          options (mapv item->option-fn list)
+          selected (list->selected-fn list)]
+      [selected options])))
+
 (defn field-with-label
   "A non-library helper function, written by you to help lay out your form."
   ([comp form name label] (field-with-label comp form name label nil))

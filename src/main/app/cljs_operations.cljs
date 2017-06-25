@@ -3,7 +3,7 @@
     [untangled.client.mutations :as m :refer [defmutation]]
     [om.next :as om]
     [app.panels :as p]
-    [app.ui-helpers :as help]
+    [app.domain-ui-helpers :as help]
     [app.util :as u]
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]))
@@ -28,6 +28,9 @@
 (def period-dropdown-changer
   (fh/dropdown-changer
     help/period-field-whereabouts help/period-options-whereabouts))
+(def report-dropdown-changer
+  (fh/dropdown-changer
+    help/report-field-whereabouts help/report-options-whereabouts))
 
 (defmutation sort-items-by-name [no-params]
              (action [{:keys [state]}]
@@ -55,17 +58,15 @@
                      (let [st @state
                            ident (:my-potential-data st)
                            potential-data (get-in st ident)
-                           years (help/range-of-years potential-data)
-                           default-year (-> years first str keyword)
-                           year-options (mapv #(f/option (keyword (str %)) (str %)) years)
-                           periods (help/range-of-periods default-year potential-data)
-                           default-period (last periods)
-                           period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)
+                           [selected-year year-options] (help/years-options-generator potential-data nil)
+                           [selected-period period-options] (help/periods-options-generator potential-data selected-year)
+                           [selected-report report-options] (help/reports-options-generator potential-data nil)
                            ]
-                       (u/log-off (str "year: " default-year))
+                       (u/log-off (str "year: " selected-year))
                        (u/log-off (str "year options: " year-options))
                        (u/log-off (str "period options: " period-options))
                        (swap! state #(-> %
-                                         (year-dropdown-changer default-year year-options)
-                                         (period-dropdown-changer default-period period-options)
+                                         (year-dropdown-changer selected-year year-options)
+                                         (period-dropdown-changer selected-period period-options)
+                                         (report-dropdown-changer selected-report report-options)
                                          (dissoc :my-potential-data))))))

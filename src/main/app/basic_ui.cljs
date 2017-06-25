@@ -24,11 +24,11 @@
     (let [{:keys [db/id ledger-item/name ledger-item/amount]} (om/props this)
           onDelete (om/get-computed this :onDelete)]
       (dom/li nil
-              (dom/h5 nil name (str "(amount: " amount ")")
+              (dom/h5 nil (str id " $ " name " $ " amount)
                       (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
-                      (dom/button #js {:onClick #(onDelete id)} "X"))))))
+                      (dom/button #js {:onClick #(onDelete id)} "?"))))))
 
-(def ui-ledger-item (om/factory LedgerItem {:keyfn :ledger-item/name}))
+(def ui-ledger-item (om/factory LedgerItem {:keyfn :db/id}))
 
 (defui ^:once LedgerItemList
   static om/Ident
@@ -49,7 +49,7 @@
       (dom/div nil
                (dom/h4 nil label)
                (dom/ul nil
-                       (map (fn [ledger-item] (ui-ledger-item (om/computed ledger-item {:onDelete delete-ledger-item}))) items))))))
+                       (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items))))))
 
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
@@ -61,32 +61,17 @@
   (ident [this props] [:potential-data/by-id p/POTENTIAL_DATA])
   static om/IQuery
   (query [this] [:potential-data/period-type :potential-data/commencing-period
-                 :potential-data/latest-period :potential-data/possible-reports])
-  Object
-  #_(render [this]
-    (let [{:keys [potential-data/period-type potential-data/commencing-period
-                  potential-data/latest-period potential-data/possible-reports]} (om/props this)
-          period-label (condp = period-type
-                         :period-type/quarterly "Quarter"
-                         :period-type/monthly "Month"
-                         :period-type/unknown ""
-                         nil "")]
-      (dom/div nil
-               (dom/h4 nil "Year")
-               (dom/h4 nil period-label)))))
-
-(def ui-potential-data (om/factory PotentialData))
+                 :potential-data/latest-period :potential-data/possible-reports]))
 
 (defui ^:once UserRequestForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id          id
-                        :potential-data {:potential-data/period-type :period-type/unknown
-                                         :potential-data/latest-period {:period/quarter :q1
-                                                                        :period/tax-year 2000}
-                                         :potential-data/commencing-period {:period/quarter :q1
-                                                                            :period/tax-year 2000}}
-                        }))
+                        :potential-data {:potential-data/period-type       :period-type/unknown
+                                         :potential-data/latest-period     {:period/quarter  :q1
+                                                                            :period/tax-year 2000}
+                                         :potential-data/commencing-period {:period/quarter  :q1
+                                                                            :period/tax-year 2000}}}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      ;; These options are put to something else on reload. I'd rather have them empty,
@@ -97,7 +82,8 @@
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :request/year :request/period :request/report {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
+  (query [_] [:db/id :request/year :request/period :request/report
+              {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
   Object
   (render [this]
     (let [{:keys [potential-data request/year request/period request/report] :as form} (om/props this)
@@ -106,21 +92,21 @@
                          :period-type/quarterly "Quarter"
                          :period-type/monthly "Month"
                          :period-type/unknown "Unknown"
-                         nil "Unknown")
-          _ (u/log-off (str "pot data: " potential-data))
-          _ (u/log-off (str "def YR " (domain/latest-year potential-data) ", def PERIOD " (domain/latest-period potential-data)))
-          _ (u/log-off (str "YR " year ", PERIOD " period))
-          ]
+                         nil "Unknown")]
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :request/year "Year" {:onChange (fn [evt] (om/transact! this `[(cljs-ops/year-changed)]))})
                (fh/field-with-label this form :request/period period-label {:onChange (fn [evt] (println "Dummy onChange event"))})
                (fh/field-with-label this form :request/report "Report" {:onChange (fn [evt] (println "Dummy onChange event"))})
-               (dom/button #js {:onClick (fn [] (df/load this :my-selected-items LedgerItem
-                                                         {:target        [:ledger-item-list/by-id
-                                                                          p/LEDGER_ITEMS_LIST
-                                                                          :ledger-item-list/items]
-                                                          :post-mutation `cljs-ops/sort-items-by-name
-                                                          }))}
+               (dom/button #js {:onClick #(df/load this
+                                                   :my-selected-items LedgerItem
+                                                   {:target        [:ledger-item-list/by-id
+                                                                    p/LEDGER_ITEMS_LIST
+                                                                    :ledger-item-list/items]
+                                                    :params        {:request/year   year
+                                                                    :request/period period
+                                                                    :request/report report}
+                                                    :post-mutation `cljs-ops/sort-items-by-name
+                                                    })}
                            "Execute Report")))))
 
 (def ui-user-request-form (om/factory UserRequestForm))
@@ -128,7 +114,6 @@
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 {:root/potential-data (om/get-query PotentialData)}
                  {:root/user-request (om/get-query UserRequestForm)}
                  {:root/selected-items (om/get-query LedgerItemList)}])
   static
@@ -136,7 +121,7 @@
   (initial-state [c params]
     {:root/selected-items
      (uc/get-initial-state LedgerItemList
-                           {:id p/LEDGER_ITEMS_LIST :label "Account Balances"})
+                           {:id p/LEDGER_ITEMS_LIST :label "Current Report title"})
      :root/user-request
      (uc/get-initial-state UserRequestForm
                            {:id p/USER_REQUEST_FORM :potential-data {}})})
@@ -154,7 +139,6 @@
                        :started-callback (fn [app]
                                            (df/load app :my-potential-data PotentialData
                                                     {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
-                                                     #_[:potential-data/period-type]
                                                      :post-mutation `cljs-ops/potential-data
                                                      })
                                            ))))

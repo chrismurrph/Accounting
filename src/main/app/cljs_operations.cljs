@@ -24,13 +24,13 @@
 
 (def year-dropdown-changer
   (fh/dropdown-changer
-    help/year-field-whereabouts help/year-options-whereabouts))
+    help/year-field-whereabouts help/year-options-whereabouts help/year-default-value-whereabouts))
 (def period-dropdown-changer
   (fh/dropdown-changer
-    help/period-field-whereabouts help/period-options-whereabouts))
+    help/period-field-whereabouts help/period-options-whereabouts help/period-default-value-whereabouts))
 (def report-dropdown-changer
   (fh/dropdown-changer
-    help/report-field-whereabouts help/report-options-whereabouts))
+    help/report-field-whereabouts help/report-options-whereabouts help/report-default-value-whereabouts))
 
 (defmutation sort-items-by-name [no-params]
              (action [{:keys [state]}]

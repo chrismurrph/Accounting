@@ -144,4 +144,5 @@
 (def request-form-input-default-value (partial fh/input-default-value request-form-ident))
 (def year-default-value-whereabouts (request-form-input-default-value :request/year))
 (def period-default-value-whereabouts (request-form-input-default-value :request/period))
+(def report-default-value-whereabouts (request-form-input-default-value :request/report))
 

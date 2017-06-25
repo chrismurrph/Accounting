@@ -14,3 +14,9 @@ pom.xml.asc
 *.iml
 .idea
 /Terms*.txt
+*.log
+/src/css
+/src/css-guide
+README-css.md
+/resources/config
+/resources/public

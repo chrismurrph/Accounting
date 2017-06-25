@@ -4,12 +4,13 @@
             [app.operations :as ops]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
-            [app.ui-helpers :as help]
+            [app.ui-helpers :as h]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [untangled.client.network :as net]
             [untangled.ui.forms :as f]
-            [app.util :as u]))
+            [app.util :as u]
+            [app.forms-helpers :as fh]))
 
 (defui ^:once LedgerItem
   static om/Ident
@@ -52,14 +53,19 @@
 
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
+;;
+;; Important for data fetching the meta-data for a user/org from the server.
+;;
 (defui ^:once PotentialData
   static om/Ident
   (ident [this props] [:potential-data/by-id p/POTENTIAL_DATA])
   static om/IQuery
-  (query [this] [:potential-data/period-type :potential-data/commencing-period :potential-data/latest-period])
+  (query [this] [:potential-data/period-type :potential-data/commencing-period
+                 :potential-data/latest-period :potential-data/possible-reports])
   Object
-  (render [this]
-    (let [{:keys [potential-data/period-type potential-data/commencing-period potential-data/latest-period]} (om/props this)
+  #_(render [this]
+    (let [{:keys [potential-data/period-type potential-data/commencing-period
+                  potential-data/latest-period potential-data/possible-reports]} (om/props this)
           period-label (condp = period-type
                          :period-type/quarterly "Quarter"
                          :period-type/monthly "Month"
@@ -86,29 +92,36 @@
                      ;; These options are put to something else on reload. I'd rather have them empty,
                      ;; but it seems Untangled doesn't allow that
                      (f/dropdown-input :request/year [(f/option :not-yet-1 "Not yet loaded 1")])
-                     (f/dropdown-input :request/period [(f/option :not-yet-1 "Not yet loaded 1")])])
+                     (f/dropdown-input :request/period [(f/option :not-yet-2 "Not yet loaded 2")])
+                     (f/dropdown-input :request/report [(f/option :not-yet-3 "Not yet loaded 3")])])
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :request/year :request/period {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
+  (query [_] [:db/id :request/year :request/period :request/report {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
   Object
   (render [this]
-    (let [{:keys [potential-data request/year request/period] :as form} (om/props this)
+    (let [{:keys [potential-data request/year request/period request/report] :as form} (om/props this)
           {:keys [potential-data/period-type]} potential-data
-          ;_ (u/warn (not= :period-type/unknown period-type) (str "No period type from: " potential-data))
           period-label (condp = period-type
                          :period-type/quarterly "Quarter"
                          :period-type/monthly "Month"
                          :period-type/unknown "Unknown"
                          nil "Unknown")
           _ (u/log-off (str "pot data: " potential-data))
-          _ (u/log-off (str "def YR " (help/latest-year potential-data) ", def PERIOD " (help/latest-period potential-data)))
+          _ (u/log-off (str "def YR " (h/latest-year potential-data) ", def PERIOD " (h/latest-period potential-data)))
           _ (u/log-off (str "YR " year ", PERIOD " period))
           ]
       (dom/div #js {:className "form-horizontal"}
-               (help/field-with-label this form :request/year "Year")
-               (help/field-with-label this form :request/period period-label)
-               ))))
+               (fh/field-with-label this form :request/year "Year" {:onChange (fn [evt] (om/transact! this `[(cljs-ops/year-changed)]))})
+               (fh/field-with-label this form :request/period period-label {:onChange (fn [evt] (println "Dummy onChange event"))})
+               (fh/field-with-label this form :request/report "Report" {:onChange (fn [evt] (println "Dummy onChange event"))})
+               (dom/button #js {:onClick (fn [] (df/load this :my-selected-items LedgerItem
+                                                         {:target        [:ledger-item-list/by-id
+                                                                          p/LEDGER_ITEMS_LIST
+                                                                          :ledger-item-list/items]
+                                                          :post-mutation `cljs-ops/sort-items-by-name
+                                                          }))}
+                           "Execute Report")))))
 
 (def ui-user-request-form (om/factory UserRequestForm))
 
@@ -132,8 +145,6 @@
     (let [{:keys [ui/react-key root/potential-data root/user-request root/selected-items]} (om/props this)]
       (dom/div #js {:key react-key}
                (ui-user-request-form user-request)
-               ;(dom/button #js {:onClick (fn [] (df/load this [:ledger-item/by-id 3] LedgerItem))}
-               ;            "Refresh Selected Item with ID 3")
                (ui-ledger-item-list selected-items)))))
 
 (defonce app-1 (atom (uc/new-untangled-client
@@ -144,11 +155,6 @@
                                            (df/load app :my-potential-data PotentialData
                                                     {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
                                                      #_[:potential-data/period-type]
-                                                     :post-mutation `cljs-ops/rm-my-potential-data
+                                                     :post-mutation `cljs-ops/potential-data
                                                      })
-                                           (df/load app :my-selected-items LedgerItem
-                                                    {:target        [:ledger-item-list/by-id
-                                                                     p/LEDGER_ITEMS_LIST
-                                                                     :ledger-item-list/items]
-                                                     :post-mutation `cljs-ops/sort-items-by-name
-                                                     })))))
+                                           ))))

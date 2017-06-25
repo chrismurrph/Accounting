@@ -5,7 +5,8 @@
     [app.panels :as p]
     [app.ui-helpers :as help]
     [app.util :as u]
-    [untangled.ui.forms :as f]))
+    [untangled.ui.forms :as f]
+    [app.forms-helpers :as fh]))
 
 (defn sort-selected-items-by*
   "Sort the idents in the selected-items ledger-item list. Returns the new app-state."
@@ -21,37 +22,50 @@
              (action [{:keys [state]}]
                      (swap! state sort-selected-items-by* :ledger-item/amount)))
 
+(def year-dropdown-changer
+  (fh/dropdown-changer
+    help/year-field-whereabouts help/year-options-whereabouts))
+(def period-dropdown-changer
+  (fh/dropdown-changer
+    help/period-field-whereabouts help/period-options-whereabouts))
+
 (defmutation sort-items-by-name [no-params]
              (action [{:keys [state]}]
                      (swap! state sort-selected-items-by* :ledger-item/name)))
 
-(defmutation rm-my-potential-data [no-params]
+;;
+;; Assumes that state has already been changed, so that year-field-whereabouts has what the user has just chosen
+;; Changes the period options to those that are possible, to those that reflect the data available
+;;
+(defmutation year-changed [no-params]
+             (action [{:keys [state]}]
+                     (let [st @state
+                           ident [:potential-data/by-id p/POTENTIAL_DATA]
+                           potential-data (get-in st ident)
+                           changed-to-year (get-in st help/year-field-whereabouts)
+                           periods (help/range-of-periods changed-to-year potential-data)
+                           default-period (last periods)
+                           period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)
+                           ]
+                       (swap! state #(-> %
+                                         (period-dropdown-changer default-period period-options))))))
+
+(defmutation potential-data [no-params]
              (action [{:keys [state]}]
                      (let [st @state
                            ident (:my-potential-data st)
                            potential-data (get-in st ident)
-                           year-field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/year]
-                           period-field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/period]
                            years (help/range-of-years potential-data)
                            default-year (-> years first str keyword)
                            year-options (mapv #(f/option (keyword (str %)) (str %)) years)
                            periods (help/range-of-periods default-year potential-data)
                            default-period (last periods)
-                           period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)]
+                           period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)
+                           ]
                        (u/log-off (str "year: " default-year))
                        (u/log-off (str "year options: " year-options))
                        (u/log-off (str "period options: " period-options))
                        (swap! state #(-> %
-                                         (assoc-in year-field-whereabouts default-year)
-                                         (assoc-in period-field-whereabouts default-period)
-                                         (assoc-in help/year-options-whereabouts year-options)
-                                         (assoc-in help/period-options-whereabouts period-options)
+                                         (year-dropdown-changer default-year year-options)
+                                         (period-dropdown-changer default-period period-options)
                                          (dissoc :my-potential-data))))))
-
-#_(defmethod m/mutate 'rm-my-potential-data [{:keys [state]} k {:keys [id]}]
-    {:action (fn []
-               (swap! state dissoc :my-potential-data))})
-
-(defmutation uncover-first [no-params]
-             (action [{:keys [state]}]
-                     (swap! state update :server/potential-data first)))

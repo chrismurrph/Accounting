@@ -1,16 +1,18 @@
 (ns app.ui-helpers
   (:require [om.dom :as dom]
             [untangled.ui.forms :as f]
-            [app.util :as u]))
+            [app.util :as u]
+            [app.panels :as p]
+            [app.forms-helpers :as fh]))
 
 (def quarters [:q1 :q2 :q3 :q4])
 (def months [:jan :feb :mar :apr :may :jun :jul :aug :sep :oct :nov :dec])
 
 (def period-kw->period-name
-  {:q1 "Q1"
-   :q2 "Q2"
-   :q3 "Q3"
-   :q4 "Q4"
+  {:q1  "Q1"
+   :q2  "Q2"
+   :q3  "Q3"
+   :q4  "Q4"
    :jan "Jan" :feb "Feb" :mar "Mar" :apr "Apr" :may "May" :jun "Jun" :jul "Jul"
    :aug "Aug" :sep "Sep" :oct "Oct" :nov "Nov" :dec "Dec"})
 
@@ -26,19 +28,6 @@
        (drop-while #(not= begin %))
        (take-while #(not= (following-period periods end) %))
        vec))
-
-;;
-;; e.g. begin :q2 end :q3
-;; begin and end are both from within the same year
-;;
-#_(defn periods-range [period-type begin end]
-  (assert (and begin end))
-  (let [periods (case period-type
-                  :period-type/quarterly quarters
-                  :period-type/monthly months)]
-    (*periods-range periods begin end)))
-
-
 
 (defn all-periods [{:keys [potential-data/period-type]}]
   (case period-type
@@ -118,26 +107,15 @@
          reverse
          vec)))
 
-(defn field-with-label
-  "A non-library helper function, written by you to help lay out your form."
-  ([comp form name label] (field-with-label comp form name label nil))
-  ([comp form name label validation-message]
-   (assert label)
-   (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
-            (dom/label #js {:className "col-sm-2" :htmlFor name} label)
-            (dom/div #js {:className "col-sm-10"} (f/form-field comp form name))
-            (when (and validation-message (f/invalid? form name))
-              (dom/span #js {:className (str "col-sm-offset-2 col-sm-10" name)} validation-message)))))
-
-;;
-;; Can be used in a mutation to assoc-in new options
-;;
-(defn input-options [[table-name id] field]
-  [table-name id ::f/form :elements/by-name field :input/options])
-
 ;;
 ;; Useful for things like changing options in fields in panels
 ;;
-(def year-options-whereabouts (input-options [:user-request/by-id 'USER-REQUEST-FORM] :request/year))
-(def period-options-whereabouts (input-options [:user-request/by-id 'USER-REQUEST-FORM] :request/period))
+(def year-field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/year])
+(def period-field-whereabouts [:user-request/by-id p/USER_REQUEST_FORM :request/period])
+
+(def year-options-whereabouts (fh/input-options [:user-request/by-id p/USER_REQUEST_FORM] :request/year))
+(def period-options-whereabouts (fh/input-options [:user-request/by-id p/USER_REQUEST_FORM] :request/period))
+
+(def year-default-value-whereabouts (fh/input-default-value [:user-request/by-id p/USER_REQUEST_FORM] :request/year))
+(def period-default-value-whereabouts (fh/input-default-value [:user-request/by-id p/USER_REQUEST_FORM] :request/period))
 

@@ -30,7 +30,9 @@
     :db/id :potential-data
     :potential-data/period-type (-> common-meta/human-meta :seaweed :period-type)
     :potential-data/commencing-period (first total-range)
-    :potential-data/latest-period (last total-range)))
+    :potential-data/latest-period (last total-range)
+    :potential-data/possible-reports [:report/profit-and-loss :report/balance-sheet :report/trial-balance :report/big-items-first]
+    ))
 
 (defn potential-data [kws]
   (->> kws

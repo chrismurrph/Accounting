@@ -41,6 +41,9 @@
   ([x]
    (pp width x)))
 
+(defn symbol->str [x]
+  (.toString x))
+
 (defn probe-on
   ([x]
    (-> x
@@ -48,7 +51,7 @@
    x)
   ([x msg]
    (assert (string? msg))
-   (println msg x)
+   (js/console msg x)
    x))
 
 (defn warn [want? txt]

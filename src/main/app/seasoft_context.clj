@@ -24,20 +24,3 @@
   (let [initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (apply concat (map quarter->rules [:q1 :q2 :q3])))]
     (->> initial-rules
          m/canonicalise-rules)))
-
-(defn get-by-limit-kw [kw]
-  (case kw
-    :db/id :potential-data
-    :potential-data/period-type (-> common-meta/human-meta :seaweed :period-type)
-    :potential-data/commencing-period (first total-range)
-    :potential-data/latest-period (last total-range)
-    :potential-data/possible-reports [:report/trial-balance :report/big-items-first :report/profit-and-loss :report/balance-sheet]
-    ))
-
-(defn potential-data [kws organisation]
-  (println organisation)
-  (->> kws
-       (mapv get-by-limit-kw)
-       (zipmap kws)
-       ;vector
-       ))

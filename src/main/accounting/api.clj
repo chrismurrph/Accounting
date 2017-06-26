@@ -6,7 +6,8 @@
             [accounting.data.croquet :as croquet-data]
             [accounting.croquet-context :as croquet-con]
             [accounting.util :as u]
-            [accounting.data.meta.periods :as periods]))
+            [accounting.data.meta.periods :as periods]
+            [accounting.data.meta.common :as common-meta]))
 
 (defn make-ledger-item [idx [kw amount]]
   (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
@@ -48,3 +49,31 @@
 (defn fetch-report [query organisation year period report]
   (assert (= 4 (count query)))
   ((report rep->fn) organisation year period))
+
+(defn string->kw [s]
+  (-> s
+      (subs 1)
+      keyword))
+
+(defn get-by-limit-kw [org]
+  (let [organisation (cond-> org (and (string? org) (= \: (first org))) string->kw)
+        total-range (case organisation
+                      :seaweed seasoft-con/total-range
+                      :croquet croquet-con/total-range)]
+    (fn [kw]
+      (case kw
+        :db/id :potential-data
+        :potential-data/period-type (-> common-meta/human-meta organisation :period-type)
+        :potential-data/commencing-period (first total-range)
+        :potential-data/latest-period (last total-range)
+        :potential-data/possible-reports [:report/trial-balance :report/big-items-first :report/profit-and-loss :report/balance-sheet]
+        ))))
+
+(defn potential-data [kws organisation]
+  (let [f (get-by-limit-kw organisation)]
+    (->> kws
+         (mapv f)
+         (zipmap kws)
+         ;vector
+         )))
+

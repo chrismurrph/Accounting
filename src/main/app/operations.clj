@@ -24,26 +24,17 @@
                      (timbre/info "Server deleting ledger-item" ledger-item-id)
                      (swap! people-db dissoc ledger-item-id)))
 
-#_(defn get-people [keys]
-  (->> @people-db
-       vals
-       #_(filter #(= kind (:ledger-item/relation %)))
-       vec))
-
 (defquery-entity :ledger-item/by-id
                  "Server query for allowing the client to pull an individual ledger-item from the database"
                  (value [env id params]
-                        (timbre/info "Query for ledger-item" id)
                         (update (get @people-db id) :ledger-item/name str " (refreshed)")))
 
 (defquery-root :my-selected-items
                "Queries for selected-items and returns them to the client"
                (value [{:keys [query]} {:keys [request/organisation request/year request/period request/report]}]
-                      (timbre/info "Query :my-selected-items:" query organisation year period report)
                       (api/fetch-report query organisation year period report)))
 
 (defquery-root :my-potential-data
                "Queries for potential-data and returns it to the client"
                (value [{:keys [query]} {:keys [request/organisation]}]
-                      ;(timbre/info "Query :my-potential-data:" query)
-                      (u/probe-off (context/potential-data query organisation) "my-potential-data")))
+                      (api/potential-data query organisation)))

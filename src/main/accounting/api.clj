@@ -36,7 +36,9 @@
       ->ledger-items))
 
 (def rep->fn
-  {:report/profit-and-loss (fn [_ _] [(make-ledger-item 0 ["Chris" 1000])])
+  {:report/profit-and-loss (fn [_ _] [(make-ledger-item 0 [:dummy-entry 1000])])
+   :report/balance-sheet (fn [_ _] [(make-ledger-item 1 [:dummy-entry 1001])])
+   :report/big-items-first (fn [_ _] [(make-ledger-item 2 [:dummy-entry 1002])])
    :report/trial-balance   trial-balance-report})
 
 (defn fetch-report [query year period report]

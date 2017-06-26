@@ -23,3 +23,6 @@
   (let [initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (apply concat (map quarter->rules [:q1 :q2 :q3])))]
     (->> initial-rules
          m/canonicalise-rules)))
+
+(defn rules-at [year quarter]
+  )

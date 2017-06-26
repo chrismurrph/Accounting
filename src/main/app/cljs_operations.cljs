@@ -8,33 +8,15 @@
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]))
 
-(defn sort-selected-items-by*
-  "Sort the idents in the selected-items ledger-item list. Returns the new app-state."
-  [state-map field]
-  (let [items (get-in state-map [:ledger-item-list/by-id p/LEDGER_ITEMS_LIST :ledger-item-list/items] [])
-        selected-items (map (fn [item-ident] (get-in state-map item-ident)) items)
-        sorted-selected-items (sort-by field selected-items)
-        new-idents (mapv (fn [item] [:ledger-item/by-id (:db/id item)]) sorted-selected-items)]
-    ;(println (str "SORTED by " field " -> " new-idents))
-    (assoc-in state-map [:ledger-item-list/by-id p/LEDGER_ITEMS_LIST :ledger-item-list/items] new-idents)))
-
-(defmutation sort-items-by-amount [no-params]
+(defmutation post-report [no-params]
              (action [{:keys [state]}]
-                     (swap! state sort-selected-items-by* :ledger-item/amount)))
+                     (swap! state #(-> %
+                                       help/set-report-title
+                                       (help/sort-selected-items-by* :ledger-item/name)))))
 
-(def year-dropdown-changer
-  (fh/dropdown-changer
-    help/year-field-whereabouts help/year-options-whereabouts help/year-default-value-whereabouts))
-(def period-dropdown-changer
-  (fh/dropdown-changer
-    help/period-field-whereabouts help/period-options-whereabouts help/period-default-value-whereabouts))
-(def report-dropdown-changer
-  (fh/dropdown-changer
-    help/report-field-whereabouts help/report-options-whereabouts help/report-default-value-whereabouts))
-
-(defmutation sort-items-by-name [no-params]
+(defmutation touch-report [no-params]
              (action [{:keys [state]}]
-                     (swap! state sort-selected-items-by* :ledger-item/name)))
+                     (swap! state help/blank-out-report)))
 
 ;;
 ;; Assumes that state has already been changed, so that year-field-whereabouts has what the user has just chosen
@@ -51,7 +33,7 @@
                            period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)
                            ]
                        (swap! state #(-> %
-                                         (period-dropdown-changer default-period period-options))))))
+                                         (help/period-dropdown-rebuilder default-period period-options))))))
 
 (defmutation potential-data [no-params]
              (action [{:keys [state]}]
@@ -66,7 +48,7 @@
                        (u/log-off (str "year options: " year-options))
                        (u/log-off (str "period options: " period-options))
                        (swap! state #(-> %
-                                         (year-dropdown-changer selected-year year-options)
-                                         (period-dropdown-changer selected-period period-options)
-                                         (report-dropdown-changer selected-report report-options)
+                                         (help/year-dropdown-rebuilder selected-year year-options)
+                                         (help/period-dropdown-rebuilder selected-period period-options)
+                                         (help/report-dropdown-rebuilder selected-report report-options)
                                          (dissoc :my-potential-data))))))

@@ -10,7 +10,8 @@
             [untangled.client.network :as net]
             [untangled.ui.forms :as f]
             [app.util :as u]
-            [app.forms-helpers :as fh]))
+            [app.forms-helpers :as fh]
+            [app.domain-ui-helpers :as help]))
 
 (defui ^:once LedgerItem
   static om/Ident
@@ -24,9 +25,9 @@
     (let [{:keys [db/id ledger-item/name ledger-item/amount]} (om/props this)
           onDelete (om/get-computed this :onDelete)]
       (dom/li nil
-              (dom/h5 nil (str id " $ " name " $ " amount)
+              (dom/h5 nil (str id ", " name ", " amount)
                       (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
-                      (dom/button #js {:onClick #(onDelete id)} "?"))))))
+                      (dom/button #js {:onClick #(onDelete id)} "x"))))))
 
 (def ui-ledger-item (om/factory LedgerItem {:keyfn :db/id}))
 
@@ -94,19 +95,22 @@
                          :period-type/unknown "Unknown"
                          nil "Unknown")]
       (dom/div #js {:className "form-horizontal"}
-               (fh/field-with-label this form :request/year "Year" {:onChange (fn [evt] (om/transact! this `[(cljs-ops/year-changed)]))})
-               (fh/field-with-label this form :request/period period-label {:onChange (fn [evt] (println "Dummy onChange event"))})
-               (fh/field-with-label this form :request/report "Report" {:onChange (fn [evt] (println "Dummy onChange event"))})
-               (dom/button #js {:onClick #(df/load this
-                                                   :my-selected-items LedgerItem
-                                                   {:target        [:ledger-item-list/by-id
-                                                                    p/LEDGER_ITEMS_LIST
-                                                                    :ledger-item-list/items]
-                                                    :params        {:request/year   year
-                                                                    :request/period period
-                                                                    :request/report report}
-                                                    :post-mutation `cljs-ops/sort-items-by-name
-                                                    })}
+               (fh/field-with-label this form :request/year "Year"
+                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)(cljs-ops/year-changed)]))})
+               (fh/field-with-label this form :request/period period-label
+                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)]))})
+               (fh/field-with-label this form :request/report "Report"
+                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)]))})
+               (dom/button #js {:onClick (fn [_]
+                                           (om/transact! this `[(cljs-ops/touch-report)])
+                                           (df/load this
+                                                    :my-selected-items LedgerItem
+                                                    {:target        help/report-items-whereabouts
+                                                     :params        {:request/year   year
+                                                                     :request/period period
+                                                                     :request/report report}
+                                                     :post-mutation `cljs-ops/post-report
+                                                     }))}
                            "Execute Report")))))
 
 (def ui-user-request-form (om/factory UserRequestForm))
@@ -121,7 +125,7 @@
   (initial-state [c params]
     {:root/selected-items
      (uc/get-initial-state LedgerItemList
-                           {:id p/LEDGER_ITEMS_LIST :label "Current Report title"})
+                           {:id p/LEDGER_ITEMS_LIST :label help/report-placeholder})
      :root/user-request
      (uc/get-initial-state UserRequestForm
                            {:id p/USER_REQUEST_FORM :potential-data {}})})

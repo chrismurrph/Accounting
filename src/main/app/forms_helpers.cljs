@@ -34,9 +34,10 @@
 ;; Current field value and current options get changed together.
 ;; have one of these for every dropdown.
 ;;
-(defn dropdown-changer [field-whereabouts options-whereabouts default-value-whereabouts]
+(defn dropdown-rebuilder [#_domain-fn field-whereabouts options-whereabouts default-value-whereabouts]
   (fn [st field-value options-value]
     (-> st
+        #_domain-fn
         (assoc-in field-whereabouts field-value)
         (assoc-in default-value-whereabouts field-value)
         (assoc-in options-whereabouts options-value))))

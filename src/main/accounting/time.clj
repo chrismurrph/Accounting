@@ -1,7 +1,8 @@
 (ns accounting.time
   (:require [accounting.util :as u]
             [clj-time.core :as t]
-            [clj-time.format :as f]))
+            [clj-time.format :as f]
+            [accounting.data.meta.periods :as periods]))
 
 (def str->month
   {"Jan" 1
@@ -17,7 +18,7 @@
    "Nov" 11
    "Dec" 12})
 
-(def kw->month
+(def month-kw->month
   {:jan 1
    :feb 2
    :mar 3
@@ -42,6 +43,24 @@
    :q2 12
    :q3 3
    :q4 6})
+
+(defn prior-quarter [{:keys [period/tax-year period/quarter]}]
+  (assert tax-year)
+  (assert (number? tax-year))
+  (assert quarter)
+  (let [at-yr-start? (= quarter :q1)
+        new-year (cond-> tax-year at-yr-start? dec)
+        new-quarter (if at-yr-start? :q4 (nth periods/quarters (dec (u/index-of quarter periods/quarters))))]
+    {:period/tax-year new-year :period/quarter new-quarter}))
+
+(defn prior-month [{:keys [period/year period/month]}]
+  (assert year)
+  (assert (number? year))
+  (assert month)
+  (let [at-yr-start? (= month :jan)
+        new-year (cond-> year at-yr-start? dec)
+        new-month (if at-yr-start? :dec (nth periods/months (dec (u/index-of month periods/months))))]
+    {:period/year new-year :period/month new-month}))
 
 (defn long-date-str->date [x]
   (let [[_ day m year] (re-matches #"(\d+) (\w+) (\d+)" x)
@@ -105,12 +124,12 @@
 
 (defn -start-month-moment [month-kw year]
   (->> month-kw
-       kw->month
+       month-kw->month
        (t/first-day-of-the-month year)))
 
 (defn -end-month-moment [month-kw year]
   (->> month-kw
-       kw->month
+       month-kw->month
        (t/last-day-of-the-month year)))
 
 (defn start-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]

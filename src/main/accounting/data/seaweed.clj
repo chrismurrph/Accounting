@@ -23,7 +23,7 @@
 ;; Will test the PayPal by having on wrong date - works!
 ;; TODO
 ;; S/also have whether multiple matches are allowed. For permanent ones default will be true.
-;; For temporary ones like here the user migth have to specify
+;; For temporary ones like here the user might have to specify
 ;;
 (def -q3-2017-rules {
                      ;; Upon closer investigation, this one was personal spending
@@ -115,7 +115,7 @@
 ;; In the future we could order trash by amount, including description, so we can see
 ;; what is causing the drain on finances.
 ;; Any -ive on :personal is good, means drew out into the account and did not spend it that quarter
-;; So good defintion is decrease in personal wealth over that quarter, in the bank account
+;; So good definition is decrease in personal wealth over that quarter, in the bank account
 ;;
 ;; TODO
 ;; When coding the UI <or>s can be different {} rules, and <and> assumed. Thus the user doesn't need to
@@ -197,7 +197,7 @@
    [visa :exp/advertising]           [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:equals "OOH EDGE PTY LIMITED  NOR TH SYDNEY NSW"]]}]
-   [visa :exp/meeting-entertainmant] [{:field          :out/desc
+   [visa :exp/meeting-entertainment] [{:field          :out/desc
                                        :logic-operator :single
                                        :conditions     [[:equals "BREWRISTAS PTY. LTD.      GLEBE"]]}]
    [visa :exp/cloud-expense]         [{:field          :out/desc
@@ -306,6 +306,25 @@
                                        :conditions     [[:equals "ANZ ATM CASULA BP EXPRESS        CASULA       NS"]]}
                                       ]})
 
+;;
+;; Bank balances at beginning of periods are factual, can never be different once the time has passed.
+;; Hence we will keeping them in the database. Here we manually calculated them from ye-2016 by generating
+;; trial balances. But they will be the same as the real thing if you look.
+;; Theoretically assets, liabs and equity are just as solid. Later we will include them.
+;; One difference is that bank balances cannot be affected by rules.
+;; Here 2017 :q1 has the balances at the start of :q1
+;; , equivalent to balances at the end of 2016 :q4
+;;
+(def start-of-period-bank-balances
+  {{:period/tax-year 2017
+    :period/quarter  :q1} {:bank/amp 3010.59M :bank/anz-coy 96.15M :bank/anz-visa -1024.48M}
+   {:period/tax-year 2017
+    :period/quarter  :q2} {:bank/amp 51.60M :bank/anz-coy -600.49M :bank/anz-visa -1556.15M}
+   {:period/tax-year 2017
+    :period/quarter  :q3} {:bank/amp 103.21M :bank/anz-coy 345.26M :bank/anz-visa -1144.08M}
+   {:period/tax-year 2017
+    :period/quarter  :q4} {:bank/amp 431.76M :bank/anz-coy 2138.16M :bank/anz-visa 250.74M}})
+
 ;; Bank amounts are as at 30/06/2016, so s/be able to run quarters 1, 2 and 3 and get
 ;; balances as at 31/03/2017, which are:
 ;; :bank/anz-coy    2138.16
@@ -339,13 +358,22 @@
                    :exp/rent                  0M
                    :exp/food                  0M
                    :exp/advertising           0M
-                   :exp/meeting-entertainmant 0M
+                   :exp/meeting-entertainment 0M
                    :exp/asic-payment          0M
                    :exp/freight-courier       0M
                    :exp/accounting-expense    0M
                    :non-exp/ato-payment       0M
                    :non-exp/private-health    0M
                    }})
+
+;;
+;; Only goes back one period
+;;
+(defn starting-gl [make-period-fn year quarter]
+  (let [req-period (make-period-fn year quarter)
+        bank-balances (get start-of-period-bank-balances req-period)]
+    (assert bank-balances (str "No bank balances at " req-period ", prior for " year ", " quarter))
+    (u/deep-merge ye-2016 {:gl bank-balances})))
 
 (def xero-account-numbers
   {:income/bank-interest                270
@@ -361,7 +389,7 @@
    :exp/motor-vehicle                   449
    :exp/rent                            469
    :exp/subscriptions                   485
-   ;; Will be superseeded by a few: cloud-expense, accounting-software, mobile-expense, isp
+   ;; Will be superseded by a few: cloud-expense, accounting-software, mobile-expense, isp
    :exp/telephone-internet              489
    :exp/national-travel                 493
    :asset/accounts-receivable           610

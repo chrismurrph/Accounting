@@ -38,12 +38,12 @@
 
 (defquery-root :my-selected-items
                "Queries for selected-items and returns them to the client"
-               (value [{:keys [query]} {:keys [request/year request/period request/report]}]
-                      (timbre/info "Query :my-selected-items:" query year period report)
-                      (api/fetch-report query year period report)))
+               (value [{:keys [query]} {:keys [request/organisation request/year request/period request/report]}]
+                      (timbre/info "Query :my-selected-items:" query organisation year period report)
+                      (api/fetch-report query organisation year period report)))
 
 (defquery-root :my-potential-data
                "Queries for potential-data and returns it to the client"
-               (value [{:keys [query]} params]
+               (value [{:keys [query]} {:keys [request/organisation]}]
                       ;(timbre/info "Query :my-potential-data:" query)
-                      (u/probe-off (context/potential-data query) "my-potential-data")))
+                      (u/probe-off (context/potential-data query organisation) "my-potential-data")))

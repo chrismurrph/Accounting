@@ -31,10 +31,11 @@
     :potential-data/period-type (-> common-meta/human-meta :seaweed :period-type)
     :potential-data/commencing-period (first total-range)
     :potential-data/latest-period (last total-range)
-    :potential-data/possible-reports [:report/profit-and-loss :report/balance-sheet :report/trial-balance :report/big-items-first]
+    :potential-data/possible-reports [:report/trial-balance :report/big-items-first :report/profit-and-loss :report/balance-sheet]
     ))
 
-(defn potential-data [kws]
+(defn potential-data [kws organisation]
+  (println organisation)
   (->> kws
        (mapv get-by-limit-kw)
        (zipmap kws)

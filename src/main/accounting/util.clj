@@ -3,6 +3,25 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+(defn deep-merge [a b]
+  (merge-with (fn [x y]
+                (cond (map? y) (deep-merge x y)
+                      (vector? y) (concat x y)
+                      :else y))
+              a b))
+
+;;
+;; Only having to do this b/c I suspect that Untangled always wants to see
+;; keywords in :option/key. I'm probably wrong and will test properly later
+;;
+(defn kw->number [kw]
+  (-> kw name Integer/parseInt))
+
+(defn index-of [needle haystack]
+  (->> haystack
+       (keep-indexed #(when (= %2 needle) %1))
+       first))
+
 (def hard-error? true)
 
 (defn err-warn [predicate-res msg]

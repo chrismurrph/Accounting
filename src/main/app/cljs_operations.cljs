@@ -27,13 +27,11 @@
                      (let [st @state
                            ident [:potential-data/by-id p/POTENTIAL_DATA]
                            potential-data (get-in st ident)
-                           changed-to-year (get-in st help/year-field-whereabouts)
-                           periods (help/range-of-periods changed-to-year potential-data)
-                           default-period (last periods)
-                           period-options (mapv #(f/option % (help/period-kw->period-name %)) periods)
+                           selected-year (get-in st help/year-field-whereabouts)
+                           [selected-period period-options] (help/periods-options-generator potential-data selected-year)
                            ]
                        (swap! state #(-> %
-                                         (help/period-dropdown-rebuilder default-period period-options))))))
+                                         (help/period-dropdown-rebuilder selected-period period-options))))))
 
 (defmutation potential-data [no-params]
              (action [{:keys [state]}]
@@ -48,6 +46,7 @@
                        (u/log-off (str "year options: " year-options))
                        (u/log-off (str "period options: " period-options))
                        (swap! state #(-> %
+                                         help/blank-out-report
                                          (help/year-dropdown-rebuilder selected-year year-options)
                                          (help/period-dropdown-rebuilder selected-period period-options)
                                          (help/report-dropdown-rebuilder selected-report report-options)

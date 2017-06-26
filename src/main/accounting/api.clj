@@ -1,16 +1,12 @@
 (ns accounting.api
   (:require [accounting.core :as c]
             [accounting.data.meta.common :as meta]
-            [accounting.seasoft-context :as con]
-            [accounting.data.seaweed :as data]))
-
-(def example
-  {:exp/motor-vehicle 602.63M,
-   :exp/bank-fee 82.90M,
-   :exp/advertising 20.00M,
-   :exp/petrol 287.48M,
-   :personal/anz-visa -3456.61M,
-   :bank/amp 51.60M})
+            [accounting.seasoft-context :as seasoft-con]
+            [accounting.data.seaweed :as seaweed-data]
+            [accounting.data.croquet :as croquet-data]
+            [accounting.croquet-context :as croquet-con]
+            [accounting.util :as u]
+            [accounting.data.meta.periods :as periods]))
 
 (defn make-ledger-item [idx [kw amount]]
   (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
@@ -23,24 +19,32 @@
        (map-indexed make-ledger-item)
        vec))
 
-(def current-range (-> con/total-range first vector))
-(def bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
-(def bank-statements (let [bank-accounts (set bank-accounts)
-                           bank-records (c/import-bank-records! :seaweed current-range bank-accounts)]
-                       {:bank-records bank-records :bank-accounts bank-accounts}))
-(def current-rules con/current-rules)
-(def splits (-> meta/human-meta :seaweed :splits))
+(def seasoft-splits (-> meta/human-meta :seaweed :splits))
+(def croquet-splits (-> meta/human-meta :croquet :splits))
+(def by-org {:seaweed {:splits               seasoft-splits
+                       :rules-fn             seasoft-con/rules-of-period
+                       :bank-statements-fn   seasoft-con/bank-statements-of-period
+                       :starting-balances-fn (partial seaweed-data/starting-gl periods/make-quarter)}
+             :croquet {:splits               croquet-splits
+                       :rules-fn             croquet-con/rules-of-period
+                       :bank-statements-fn   croquet-con/bank-statements-of-period
+                       :starting-balances-fn (partial croquet-data/starting-gl periods/make-month)}})
 
-(defn trial-balance-report [year period]
-  (-> (c/trial-balance bank-statements current-rules splits data/ye-2016)
-      ->ledger-items))
+(defn trial-balance-report [organisation year period]
+  (let [{:keys [splits rules-fn bank-statements-fn starting-balances-fn] :as for-org} (organisation by-org)
+        year (u/kw->number year)
+        bank-statements (bank-statements-fn year period)
+        current-rules (rules-fn year period)
+        starting-balances (starting-balances-fn year period)]
+    (-> (c/trial-balance bank-statements current-rules splits starting-balances)
+        ->ledger-items)))
 
 (def rep->fn
-  {:report/profit-and-loss (fn [_ _] [(make-ledger-item 0 [:dummy-entry 1000])])
-   :report/balance-sheet (fn [_ _] [(make-ledger-item 1 [:dummy-entry 1001])])
-   :report/big-items-first (fn [_ _] [(make-ledger-item 2 [:dummy-entry 1002])])
+  {:report/profit-and-loss (fn [_ _ _] [(make-ledger-item 0 [:dummy-entry 1000])])
+   :report/balance-sheet   (fn [_ _ _] [(make-ledger-item 1 [:dummy-entry 1001])])
+   :report/big-items-first (fn [_ _ _] [(make-ledger-item 2 [:dummy-entry 1002])])
    :report/trial-balance   trial-balance-report})
 
-(defn fetch-report [query year period report]
-  (assert (= 3 (count query)))
-  ((report rep->fn) year period))
+(defn fetch-report [query organisation year period report]
+  (assert (= 4 (count query)))
+  ((report rep->fn) organisation year period))

@@ -171,7 +171,7 @@
 ;;
 (defn apply-trans [context data {:keys [out/src-bank out/dest-account out/amount] :as trans}]
   (assert (:gl data))
-  (assert (-> data :gl :exp/bank-interest))
+  (assert (-> data :gl :exp/bank-interest) (:gl data))
   (assert src-bank)
   (assert dest-account)
   (assert amount)

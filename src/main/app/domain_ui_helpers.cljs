@@ -188,7 +188,7 @@
 ;; for a report that is not correct.
 ;;
 (defn blank-out-report [st]
-  (println "Blanked out")
+  ;(println "Blanked out")
   (-> st
       (assoc-in report-title-whereabouts report-placeholder)
       (assoc-in report-items-whereabouts [])))
@@ -200,7 +200,7 @@
         selected-items (map (fn [item-ident] (get-in st item-ident)) items)
         sorted-selected-items (sort-by field selected-items)
         new-idents (mapv (fn [item] [:ledger-item/by-id (:db/id item)]) sorted-selected-items)]
-    (println (str "SORTED by " field " -> " new-idents))
+    ;(println (str "SORTED by " field " -> " new-idents))
     (assoc-in st report-items-whereabouts new-idents)))
 
 

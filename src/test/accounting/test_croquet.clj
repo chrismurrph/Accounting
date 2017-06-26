@@ -5,23 +5,17 @@
             [accounting.gl :as gl]
             [accounting.data.croquet :as d]
             [accounting.match :as m]
-            [accounting.croquet-context :as con]
-            [clojure.test :as test]))
-
-(def current-range con/total-range)
-(def current-rules con/current-rules)
-(def croquet-bank-accounts (-> meta/human-meta :croquet :bank-accounts))
-(def croquet-splits (-> meta/human-meta :croquet :splits))
-
-(def bank-statements (let [bank-accounts (set croquet-bank-accounts)
-                           bank-records (c/import-bank-records! :croquet current-range bank-accounts)]
-                       {:bank-records bank-records :bank-accounts bank-accounts}))
+            [accounting.croquet-context :as croquet-con]
+            [clojure.test :as test]
+            [accounting.api :as api]))
 
 ;; Now s/always be kept in data so that recalc-date can be changed
 ;;(def ledgers (-> meta/human-meta :croquet :ledgers))
 
+(def croquet-current-rules croquet-con/current-rules)
+
 (defn unmatched-croquet-records []
-  (let [unmatched-records (c/records-without-single-rule-match bank-statements current-rules)]
+  (let [unmatched-records (c/records-without-single-rule-match croquet-con/croquet-bank-statements croquet-current-rules)]
     (->> unmatched-records
          (take 10)
          (cons (count unmatched-records)))))
@@ -35,10 +29,10 @@
   (test/is (= (unmatched-croquet-records) '(0))))
 
 (test/deftest croquet-trial-balance
-            (let [{:keys [exp/insurance exp/alcohol] :as tb} (c/trial-balance bank-statements current-rules croquet-splits d/data)]
-              (test/is (= (count tb) 30))
-              (test/is (= insurance 106.71M))
-              (test/is (= alcohol 355.78M))))
+  (let [{:keys [exp/insurance exp/alcohol] :as tb} (c/trial-balance croquet-con/croquet-bank-statements croquet-current-rules api/croquet-splits d/data)]
+    (test/is (= (count tb) 30))
+    (test/is (= insurance 106.71M))
+    (test/is (= alcohol 355.78M))))
 
 (defn show-trial-balance []
-  (u/pp (c/trial-balance bank-statements current-rules croquet-splits d/data)))
+  (u/pp (c/trial-balance croquet-con/croquet-bank-statements croquet-current-rules api/croquet-splits d/data)))

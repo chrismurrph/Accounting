@@ -1,33 +1,25 @@
 (ns accounting.data.meta.common
   (:require [clojure.string :as s]
             [accounting.data.meta.seaweed :as seasoft]
-            [accounting.data.meta.croquet :as croquet]))
-
-(def quarters #{:q1 :q2 :q3 :q4})
-(def months #{:jan :feb :mar :apr :may :jun :jul :aug :sep :oct :nov :dec})
-
-(defn quarter->str [quarter]
-  (-> quarter name s/capitalize))
-
-(defn month->str [month]
-  (-> month name s/capitalize))
+            [accounting.data.meta.croquet :as croquet]
+            [accounting.data.meta.periods :as periods]))
 
 (defn -financial-dir-for [{:keys [tax-years data-root]} {:keys [period/tax-year period/quarter] :as period}]
   (assert tax-years)
   (assert data-root)
-  (assert (quarters quarter))
+  (assert (periods/quarters-set quarter) (str quarter " is not considered a quarter"))
   (assert (tax-years tax-year))
   (let [tax-year (str "Tax Year " tax-year)
-        qtr (quarter->str quarter)]
+        qtr (periods/quarter->str quarter)]
     (str data-root tax-year "/" qtr)))
 
 (defn -charity-dir-for [{:keys [years data-root]} {:keys [period/year period/month] :as period}]
   (assert years)
   (assert data-root)
-  (assert (months month))
+  (assert (periods/months-set month) (str month " is not considered a month"))
   (assert (years year))
   (let [year (str "Year " year)
-        mnth (month->str month)]
+        mnth (periods/month->str month)]
     (str data-root year "/" mnth)))
 
 ;;
@@ -37,12 +29,12 @@
   (fn [bank period]
     (cond
       years (let [{:keys [period/year period/month]} period
-                  mnth (month->str month)
+                  mnth (periods/month->str month)
                   file-name (file-names bank)
                   file-path (str (-charity-dir-for meta period) "/" file-name)]
               file-path)
       tax-years (let [{:keys [period/tax-year period/quarter]} period
-                      qtr (quarter->str quarter)
+                      qtr (periods/quarter->str quarter)
                       file-name (str qtr (file-names bank))
                       file-path (str (-financial-dir-for meta period) "/" file-name)]
                   file-path))))

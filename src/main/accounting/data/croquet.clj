@@ -1,7 +1,8 @@
 (ns accounting.data.croquet
   (:require
     [accounting.time :as t]
-    [accounting.common :as c]))
+    [accounting.common :as c]
+    [accounting.util :as u]))
 
 (def bendigo :bank/bendigo)
 
@@ -239,7 +240,7 @@
 ;;
 (defn init [records]
   (mapv #(-> %
-            (assoc :already-transferred false)) records))
+             (assoc :already-transferred false)) records))
 
 (def -ledgers {:cash-and-cheque-deposits {:recalc-date (t/short-date-str->date "30/01/2017") :records (init receive-cash-and-cheques) :op <}
                :cash-deposits            {:recalc-date (t/short-date-str->date "30/01/2017") :records (init receive-cash) :op <}
@@ -266,7 +267,7 @@
 
 (def permanent-rules
   {
-   [bendigo :equity/funds-introduced]         [{:logic-operator :and
+   [bendigo :equity/funds-introduced]          [{:logic-operator :and
                                                  :on-dates       #{(t/long-date-str->date "08 Feb 2017")}
                                                  :conditions     [[:out/desc :equals "DIRECT CREDIT SOUTH TERRACE CR    0723041266 TRANSFER FROM BANK"]
                                                                   [:out/amount :equals 4581.83M]]}
@@ -364,6 +365,22 @@
                                                                   [:out/amount :equals -150.00M]]}]
    })
 
+;;
+;; Bank balances at beginning of periods are factual, can never be different once the time has passed.
+;; Hence we will keeping them in the database. Here we manually calculated them from ye-2016 by generating
+;; trial balances. But they will be the same as the real thing if you look.
+;; Theoretically assets, liabs and equity are just as solid. Later we will include them.
+;; One difference is that bank balances cannot be affected by rules.
+;; Here 2017 :feb has the balances at the start of :feb
+;; , equivalent to balances at the end of 2017 :jan
+;; Obviously this data is wrong as all zeros - it is correct for seaweed.
+;;
+(def start-of-period-bank-balances
+  {{:period/year  2017
+    :period/month :feb} #:bank{:bendigo 0M}
+   {:period/year  2017
+    :period/month :mar} #:bank{:bendigo 0M}})
+
 (def data {:gl      {:bank/bendigo                 0M
                      :equity/funds-introduced      0M
                      :income/membership-fees       0M
@@ -396,3 +413,13 @@
                      :exp/alcohol                  0M
                      }
            :ledgers -ledgers})
+
+;;
+;; Only goes back one period
+;;
+(defn starting-gl [make-period-fn year quarter]
+  (let [period (make-period-fn year quarter)
+        bank-balances (period start-of-period-bank-balances)]
+    (assert bank-balances (str "No bank balances at " period))
+    (u/deep-merge data {:gl bank-balances})))
+

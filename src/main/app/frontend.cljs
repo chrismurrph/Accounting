@@ -1,4 +1,4 @@
-(ns app.basic-ui
+(ns app.frontend
   (:require [untangled.client.core :as uc]
             [om.dom :as dom]
             [app.operations :as ops]
@@ -17,15 +17,13 @@
   static om/Ident
   (ident [this props] [:ledger-item/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :ledger-item/name :ledger-item/amount])
-  static uc/InitialAppState
-  (initial-state [comp-class {:keys [id name amount] :as params}] {:db/id id :ledger-item/name name :ledger-item/amount amount})
+  (query [this] [:db/id :ledger-item/type :ledger-item/name :ledger-item/amount])
   Object
   (render [this]
-    (let [{:keys [db/id ledger-item/name ledger-item/amount]} (om/props this)
+    (let [{:keys [db/id ledger-item/type ledger-item/name ledger-item/amount]} (om/props this)
           onDelete (om/get-computed this :onDelete)]
       (dom/li nil
-              (dom/h5 nil (str id ", " name ", " amount)
+              (dom/h5 nil (str type ", " name ", " amount)
                       (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
                       (dom/button #js {:onClick #(onDelete id)} "x"))))))
 
@@ -55,7 +53,9 @@
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
 ;;
-;; Important for data fetching the meta-data for a user/org from the server.
+;; Important for data fetching the meta-data for a user/orgs from the server.
+;; Note that on login the full list of organisations for that individual will come
+;; through. When getting potential data the app already has an organisation.
 ;;
 (defui ^:once PotentialData
   static om/Ident
@@ -75,6 +75,11 @@
                                                                             :period/tax-year 2000}}}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
+                     ;; Here hard-coding what will come in at login time
+                     (f/dropdown-input :request/organisation
+                                       [(f/option :seaweed "Seaweed Software Pty Ltd")
+                                        (f/option :croquet "Croquet Club")]
+                                       :default-value :seaweed)
                      ;; These options are put to something else on reload. I'd rather have them empty,
                      ;; but it seems Untangled doesn't allow that
                      (f/dropdown-input :request/year [(f/option :not-yet-1 "Not yet loaded 1")])
@@ -83,11 +88,11 @@
   static om/Ident
   (ident [_ props] [:user-request/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :request/year :request/period :request/report
+  (query [_] [:db/id :request/organisation :request/year :request/period :request/report
               {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
   Object
   (render [this]
-    (let [{:keys [potential-data request/year request/period request/report] :as form} (om/props this)
+    (let [{:keys [potential-data request/organisation request/year request/period request/report] :as form} (om/props this)
           {:keys [potential-data/period-type]} potential-data
           period-label (condp = period-type
                          :period-type/quarterly "Quarter"
@@ -95,8 +100,17 @@
                          :period-type/unknown "Unknown"
                          nil "Unknown")]
       (dom/div #js {:className "form-horizontal"}
+               (fh/field-with-label this form :request/organisation "Organisation"
+                                    {:onChange (fn [evt]
+                                                 (om/transact! this `[(cljs-ops/touch-report)])
+                                                 (let [new-value (.. evt -target -value)]
+                                                   (df/load this :my-potential-data PotentialData
+                                                            {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
+                                                             :post-mutation `cljs-ops/potential-data
+                                                             :params        {:request/organisation new-value}
+                                                             })))})
                (fh/field-with-label this form :request/year "Year"
-                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)(cljs-ops/year-changed)]))})
+                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report) (cljs-ops/year-changed)]))})
                (fh/field-with-label this form :request/period period-label
                                     {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)]))})
                (fh/field-with-label this form :request/report "Report"
@@ -106,9 +120,10 @@
                                            (df/load this
                                                     :my-selected-items LedgerItem
                                                     {:target        help/report-items-whereabouts
-                                                     :params        {:request/year   year
-                                                                     :request/period period
-                                                                     :request/report report}
+                                                     :params        {:request/organisation organisation
+                                                                     :request/year         year
+                                                                     :request/period       period
+                                                                     :request/report       report}
                                                      :post-mutation `cljs-ops/post-report
                                                      }))}
                            "Execute Report")))))
@@ -144,5 +159,5 @@
                                            (df/load app :my-potential-data PotentialData
                                                     {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
                                                      :post-mutation `cljs-ops/potential-data
-                                                     })
-                                           ))))
+                                                     :params        {:request/organisation :seaweed}
+                                                     })))))

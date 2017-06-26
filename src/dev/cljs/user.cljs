@@ -1,6 +1,6 @@
 (ns cljs.user
   (:require
-    [app.basic-ui :refer [app-1 Root]]
+    [app.frontend :refer [app-1 Root]]
     ;[app.ui-helpers :as help]
     [untangled.client.core :as uc]
     [untangled.ui.forms :as f]))

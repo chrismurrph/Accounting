@@ -3,6 +3,17 @@
 
 (enable-console-print!)
 
+(defn string->kw [s]
+  (-> s
+      (subs 1)
+      keyword))
+
+(defn kw-like-str? [x]
+  (and (string? x) (= \: (first x)) (not= \: (second x))))
+
+(defn keywordize [x]
+  (cond-> x (kw-like-str? x) string->kw))
+
 (defn abs [n]
   (if (neg? n) (- n) n))
 

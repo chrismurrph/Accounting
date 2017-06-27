@@ -106,7 +106,8 @@
   ((report rep->fn) organisation year period))
 
 (defn get-by-limit-kw [org]
-  (let [organisation (u/keywordize org)
+  (assert (keyword? org))
+  (let [organisation org
         total-range ({:seaweed seasoft-con/total-range
                       :croquet croquet-con/total-range}
                       organisation)]

@@ -3,17 +3,6 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
-(defn string->kw [s]
-  (-> s
-      (subs 1)
-      keyword))
-
-(defn kw-like-str? [x]
-  (and (string? x) (= \: (first x)) (not= \: (second x))))
-
-(defn keywordize [x]
-  (cond-> x (kw-like-str? x) string->kw))
-
 (defn deep-merge [a b]
   (merge-with (fn [x y]
                 (cond (map? y) (deep-merge x y)

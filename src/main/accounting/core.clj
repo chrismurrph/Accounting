@@ -137,7 +137,7 @@
 ;; Everything did in order, by account, so can be lots...
 ;;
 (defn account-grouped-transactions [{:keys [bank-accounts bank-records]} rules]
-  (->> (attach-rules bank-accounts (m/bank-rules (set bank-accounts) rules))
+  (->> (attach-rules bank-records (m/bank-rules (set bank-accounts) rules))
        (group-by first)
        (map (fn [[k v]] [k (sort-by :out/date (map second v))]))))
 

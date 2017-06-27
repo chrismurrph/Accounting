@@ -419,7 +419,7 @@
 ;;
 (defn starting-gl [make-period-fn year quarter]
   (let [period (make-period-fn year quarter)
-        bank-balances (period start-of-period-bank-balances)]
+        bank-balances (get start-of-period-bank-balances period)]
     (assert bank-balances (str "No bank balances at " period))
     (u/deep-merge data {:gl bank-balances})))
 

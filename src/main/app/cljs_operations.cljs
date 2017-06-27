@@ -12,7 +12,7 @@
              (action [{:keys [state]}]
                      (swap! state #(-> %
                                        help/set-report-title
-                                       (help/sort-selected-items-by* :ledger-item/name)))))
+                                       #_(help/sort-selected-items-by* :ledger-item/name)))))
 
 (defmutation touch-report [no-params]
              (action [{:keys [state]}]

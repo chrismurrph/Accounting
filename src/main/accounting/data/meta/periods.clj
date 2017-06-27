@@ -13,11 +13,15 @@
   (-> month name s/capitalize))
 
 (defn make-quarter [year quarter]
+  (assert (integer? year))
+  (assert (keyword? quarter))
   (assert (quarter quarters-set))
   {:period/tax-year year
    :period/quarter  quarter})
 
 (defn make-month [year month]
+  (assert (integer? year))
+  (assert (keyword? month))
   (assert (month months-set))
   {:period/year  year
    :period/month month})

@@ -174,8 +174,8 @@
 ;; A condition looks like:
 ;; [:out/desc :starts-with "DIRECT CREDIT"]
 (defn match [record {:keys [logic-operator conditions] :as rule}]
-  (assert (map? rule) (str "rule is suppoed to be a map, got: " rule))
-  (assert (map? record))
+  (assert (map? rule) (str "rule is supposed to be a map, got: " rule))
+  (assert (map? record) (str "record is supposed to be a map, got: " record ", of type: " (type record)))
   (when (matches-chosen-specifics? record rule)
     (let [field-calculator (field-calculator-hof record)
           res (condp = logic-operator

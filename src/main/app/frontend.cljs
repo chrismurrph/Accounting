@@ -128,16 +128,14 @@
 (def ui-user-request-form (om/factory UserRequestForm))
 
 (defui ^:once Bookkeeping
-  static om/Ident
-  (ident [_ props] [:bookkeeping/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id
+  (query [this] [:page
                  {:bookkeeping/user-request (om/get-query UserRequestForm)}
                  {:bookkeeping/selected-items (om/get-query LedgerItemList)}])
   static
   uc/InitialAppState
-  (initial-state [c {:keys [id]}]
-    {:db/id id
+  (initial-state [c params]
+    {:page :bookkeeping
      :bookkeeping/selected-items
             (uc/get-initial-state LedgerItemList
                                   {:id p/LEDGER_ITEMS_LIST :label help/report-placeholder})
@@ -153,47 +151,68 @@
 (def ui-books (om/factory Bookkeeping))
 
 (defui ^:once Banking
-  static om/Ident
-  (ident [_ props] [:banking/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id])
+  (query [this] [:page])
   static
   uc/InitialAppState
-  (initial-state [c {:keys [id]}]
-    {:db/id id})
+  (initial-state [c params] {:page :banking})
   Object
   (render [this]
-    (let [{:keys [db/id]} (om/props this)]
-      (dom/div nil "I'm Banking"))))
+    (let [{:keys [page]} (om/props this)]
+      (dom/div nil (str "I'm Banking: " page)))))
 (def ui-banking (om/factory Banking))
+
+(defui ^:once Config
+  static om/IQuery
+  (query [this] [:page])
+  static
+  uc/InitialAppState
+  (initial-state [c params] {:page :config})
+  Object
+  (render [this]
+    (let [{:keys [page]} (om/props this)]
+      (dom/div nil (str "I'm Config: " page)))))
+(def ui-config (om/factory Config))
 
 (defrouter TopRouter :top-router
            (ident [this props] [(:page props) :top])
            :bookkeeping Bookkeeping
-           :banking Banking)
+           :banking Banking
+           :config Config)
+(def ui-top (om/factory TopRouter))
+
+(def routing-tree
+  {:banking [(r/router-instruction :top-router [:banking :top])]
+   :bookkeeping [(r/router-instruction :top-router [:bookkeeping :top])]
+   :config [(r/router-instruction :top-router [:config :top])]})
+
+(defn nav-to [comp kw]
+  #(om/transact! comp `[(r/route-to {:handler ~kw})]))
 
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 {:bookkeeping (om/get-query Bookkeeping)}
-                 {:banking (om/get-query Banking)}])
+                 {:top-router (om/get-query TopRouter)}])
   static
   uc/InitialAppState
   (initial-state [c params]
-    {
-     :bookkeeping
-     (uc/get-initial-state Bookkeeping
-                           {:id p/BOOKKEEPING})
-     :banking
-     (uc/get-initial-state Banking
-                           {:id p/BANKING})
+    {r/routing-tree-key routing-tree
+     :top-router        (uc/get-initial-state TopRouter {})
      })
   Object
   (render [this]
-    (let [{:keys [ui/react-key bookkeeping banking]} (om/props this)]
+    (let [{:keys [ui/react-key top-router]} (om/props this)
+          selected-kw (-> top-router :current-route first second)
+          show-selected (fn [kw] (if (= kw selected-kw) "red" ""))]
       (dom/div #js {:key react-key}
-               (ui-books bookkeeping)
-               (ui-banking banking)))))
+               (dom/br nil)
+               (dom/a #js {:style #js {:color (show-selected :bookkeeping)} :onClick (nav-to this :bookkeeping)} "Bookkeeping") " | "
+               (dom/a #js {:style #js {:color (show-selected :banking)} :onClick (nav-to this :banking)} "Banking") " | "
+               (dom/a #js {:style #js {:color (show-selected :config)} :onClick (nav-to this :config)} "Config")
+               (dom/br nil)(dom/label nil "")
+               #_(dom/label nil (str "Selected: " (-> top-router :current-route first second)))
+               (dom/br nil)
+               (ui-top top-router)))))
 
 (defonce app-1 (atom (uc/new-untangled-client
                        :networking {:remote (net/make-untangled-network

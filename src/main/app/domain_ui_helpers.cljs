@@ -135,6 +135,7 @@
 (def year-field-whereabouts (conj request-form-ident :request/year))
 (def period-field-whereabouts (conj request-form-ident :request/period))
 (def report-field-whereabouts (conj request-form-ident :request/report))
+(def executable-field-whereabouts (conj request-form-ident :request/manually-executable?))
 
 (def request-form-input-options (partial fh/input-options request-form-ident))
 (def year-options-whereabouts (request-form-input-options :request/year))

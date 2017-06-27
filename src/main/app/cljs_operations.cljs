@@ -14,7 +14,16 @@
 (defmutation post-report [no-params]
              (action [{:keys [state]}]
                      (swap! state #(-> %
-                                       help/set-report-title))))
+                                       help/set-report-title
+                                       (assoc-in help/executable-field-whereabouts false)))))
+
+#_(defmutation disable-report-execution [no-params]
+             (action [{:keys [state]}]
+                     (swap! state assoc-in help/executable-field-whereabouts false)))
+
+(defmutation enable-report-execution [no-params]
+             (action [{:keys [state]}]
+                     (swap! state assoc-in help/executable-field-whereabouts true)))
 
 ;;
 ;; Touch any of the inputs and the report is no longer valid, so remove it from the screen

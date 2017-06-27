@@ -19,8 +19,7 @@
                           {:period/tax-year 2017
                            :period/quarter  :q2}
                           {:period/tax-year 2017
-                           :period/quarter  :q3}
-                          ])
+                           :period/quarter  :q3}])
 
 (def total-range (take 3 -all-three-quarters))
 

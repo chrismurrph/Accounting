@@ -85,15 +85,15 @@
                               :request/year         year
                               :request/period       period
                               :request/report       report}
-              :post-mutation `cljs-ops/post-report})))
+              :post-mutation `cljs-ops/post-report
+              :refresh [:request/manually-executable?]})))
 
 (defn load-potential-data [comp new-value]
   (assert (keyword? new-value))
   (df/load comp :my-potential-data PotentialData
            {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
             :post-mutation `cljs-ops/potential-data
-            :params        {:request/organisation new-value}
-            }))
+            :params        {:request/organisation new-value}}))
 
 (defui ^:once UserRequestForm
   static uc/InitialAppState
@@ -139,14 +139,20 @@
                (fh/field-with-label this form :request/organisation "Organisation"
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report)])
-                                                 (let [new-value (u/keywordize (.. evt -target -value))]
-                                                   (load-potential-data this new-value)))})
+                                                 (let [new-org-value (u/keywordize (.. evt -target -value))]
+                                                   (load-potential-data this new-org-value))
+                                                 (om/transact! this `[(cljs-ops/enable-report-execution)]))})
                (fh/field-with-label this form :request/year "Year"
-                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report) (cljs-ops/year-changed)]))})
+                                    {:onChange (fn [evt]
+                                                 (om/transact! this `[(cljs-ops/touch-report) (cljs-ops/year-changed) (cljs-ops/enable-report-execution)]))})
                (fh/field-with-label this form :request/period period-label
-                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)]))})
+                                    {:onChange (fn [evt]
+                                                 (om/transact! this `[(cljs-ops/touch-report)])
+                                                 ((execute-report this organisation year (u/keywordize (.. evt -target -value)) report)))})
                (fh/field-with-label this form :request/report "Report"
-                                    {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report)]))})
+                                    {:onChange (fn [evt]
+                                                 (om/transact! this `[(cljs-ops/touch-report)])
+                                                 ((execute-report this organisation year period (u/keywordize (.. evt -target -value)))))})
                (dom/button #js {:className on-className
                                 :disabled  on-disabled
                                 :onClick   (execute-report this organisation year period report)}

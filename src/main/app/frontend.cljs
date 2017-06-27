@@ -103,12 +103,11 @@
                (fh/field-with-label this form :request/organisation "Organisation"
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report)])
-                                                 (let [new-value (js->clj (.. evt -target -value))]
+                                                 (let [new-value (.. evt -target -value)]
                                                    (df/load this :my-potential-data PotentialData
                                                             {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
                                                              :post-mutation `cljs-ops/potential-data
-                                                             :params        {:request/organisation new-value}
-                                                             })))})
+                                                             :params        {:request/organisation new-value}})))})
                (fh/field-with-label this form :request/year "Year"
                                     {:onChange (fn [evt] (om/transact! this `[(cljs-ops/touch-report) (cljs-ops/year-changed)]))})
                (fh/field-with-label this form :request/period period-label

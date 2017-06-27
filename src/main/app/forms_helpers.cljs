@@ -25,10 +25,10 @@
    (assert (or (nil? onChange) (fn? onChange)))
     ;(println params)
    (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
-            (dom/label #js {:className "col-sm-2" :htmlFor name} label)
-            (dom/div #js {:className "col-sm-10"} (f/form-field comp form name :onChange onChange))
+            (dom/label #js {:className "col-sm-1" :htmlFor name} label)
+            (dom/div #js {:className "col-sm-2"} (f/form-field comp form name :onChange onChange))
             (when (and validation-message (f/invalid? form name))
-              (dom/span #js {:className (str "col-sm-offset-2 col-sm-10" name)} validation-message)))))
+              (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message)))))
 
 ;;
 ;; Current field value and current options get changed together.

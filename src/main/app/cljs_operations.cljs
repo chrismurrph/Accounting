@@ -8,12 +8,17 @@
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]))
 
+;;
+;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
+;;
 (defmutation post-report [no-params]
              (action [{:keys [state]}]
                      (swap! state #(-> %
-                                       help/set-report-title
-                                       #_(help/sort-selected-items-by* :ledger-item/name)))))
+                                       help/set-report-title))))
 
+;;
+;; Touch any of the inputs and the report is no longer valid, so remove it from the screen
+;;
 (defmutation touch-report [no-params]
              (action [{:keys [state]}]
                      (swap! state help/blank-out-report)))

@@ -3,6 +3,9 @@
 
 (enable-console-print!)
 
+(defn abs [n]
+  (if (neg? n) (- n) n))
+
 ;;
 ;; Only having to do this b/c I suspect that Untangled always wants to see
 ;; keywords in :option/key. I'm probably wrong and will test properly later

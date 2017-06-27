@@ -12,7 +12,13 @@
             [app.util :as u]
             [app.forms-helpers :as fh]
             [app.domain-ui-helpers :as help]
-            [untangled.client.routing :as r :refer-macros [defrouter]]))
+            [untangled.client.routing :as r :refer-macros [defrouter]]
+            [goog.string :as gstring]
+            [goog.string.format]))
+
+(defn show-selected-hof [selected-kw]
+  (fn [kw]
+    (if (= kw selected-kw) "red" "")))
 
 (defui ^:once LedgerItem
   static om/Ident
@@ -22,11 +28,14 @@
   Object
   (render [this]
     (let [{:keys [db/id ledger-item/type ledger-item/name ledger-item/amount]} (om/props this)
-          onDelete (om/get-computed this :onDelete)]
-      (dom/li nil
-              (dom/h5 nil (str type ", " name ", " amount)
-                      (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
-                      (dom/button #js {:onClick #(onDelete id)} "x"))))))
+          type-display (and type (subs (str type) 1))
+          negative? (= \- (first (str amount)))
+          amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))
+          ]
+      (dom/tr nil
+              (dom/td nil name)
+              (dom/td #js {:style #js {:color (if negative? "red" "")} :className "text-right"} amount-display)
+              (dom/td nil type-display)))))
 (def ui-ledger-item (om/factory LedgerItem {:keyfn :db/id}))
 
 (defui ^:once LedgerItemList
@@ -47,8 +56,8 @@
                                (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
                (dom/h4 nil label)
-               (dom/ul nil
-                       (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items))))))
+               (dom/table #js {:className "table table-striped table-inverse table-bordered table-sm"}
+                          (dom/tbody nil (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items)))))))
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
 ;;
@@ -189,6 +198,10 @@
 (defn nav-to [comp kw]
   #(om/transact! comp `[(r/route-to {:handler ~kw})]))
 
+(defn show-selected-kw-hof [selected-kw]
+  (fn [kw]
+    (if (= kw selected-kw) "red" "")))
+
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
@@ -203,7 +216,7 @@
   (render [this]
     (let [{:keys [ui/react-key top-router]} (om/props this)
           selected-kw (-> top-router :current-route first second)
-          show-selected (fn [kw] (if (= kw selected-kw) "red" ""))]
+          show-selected (show-selected-kw-hof selected-kw)]
       (dom/div #js {:key react-key}
                (dom/br nil)
                (dom/a #js {:style #js {:color (show-selected :bookkeeping)} :onClick (nav-to this :bookkeeping)} "Bookkeeping") " | "

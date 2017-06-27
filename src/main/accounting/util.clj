@@ -3,6 +3,15 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+(defn write-edn [filename x]
+  (assert (clojure.string/ends-with? filename ".edn"))
+  (assert (or (map? x) (vector? x)))
+  (spit filename (with-out-str (pr x))))
+
+(defn read-edn [filename]
+  (assert (clojure.string/ends-with? filename ".edn"))
+  (read-string (slurp filename)))
+
 (defn deep-merge [a b]
   (merge-with (fn [x y]
                 (cond (map? y) (deep-merge x y)

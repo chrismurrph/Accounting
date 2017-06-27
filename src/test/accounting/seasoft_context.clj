@@ -24,7 +24,7 @@
 (def total-range (take 3 -all-three-quarters))
 
 (def current-rules
-  (let [initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (apply concat (map quarter->rules total-range)))]
+  (let [initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (mapcat quarter->rules total-range))]
     (->> initial-rules
          m/canonicalise-rules)))
 

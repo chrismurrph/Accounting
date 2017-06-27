@@ -101,7 +101,7 @@
   (->> rules-in
        (mapcat (fn [[[source-bank target-account] v]]
                  (map #(assoc % :rule/source-bank source-bank :rule/target-account target-account) v)))
-       (map field-into-conditions)))
+       (mapv field-into-conditions)))
 
 ;;
 ;; preds-fn is either every-pred or some-fn, both hofs,

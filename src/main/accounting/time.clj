@@ -2,7 +2,37 @@
   (:require [accounting.util :as u]
             [clj-time.core :as t]
             [clj-time.format :as f]
+            [clj-time.coerce :as c]
             [accounting.data.meta.periods :as periods]))
+
+(defn joda-set->java [s]
+  (assert (or (nil? s) (set? s)) (str "Not set but: " (type s)))
+  (when s (into #{} (map c/to-date s))))
+
+(defn java-set->joda [s]
+  (assert (or (nil? s) (set? s)) (str "Not set but: " (type s)))
+  (when s (into #{} (map c/from-date s))))
+
+(defn joda-vector->java [v]
+  (assert (or (nil? v) (vector? v)) (str "Not vector but: " (type v)))
+  (when v (mapv c/to-date v)))
+
+(defn java-vector->joda [v]
+  (assert (or (nil? v) (vector? v)) (str "Not vector but: " (type v)))
+  (when v (mapv c/from-date v)))
+
+(defn civilize-joda [m]
+  (assert (map? m))
+  (-> m
+      (update :between-dates-inclusive joda-vector->java)
+      (update :on-dates joda-set->java)))
+
+(defn wildify-java [m]
+  (assert (map? m))
+  (-> m
+      (update :between-dates-inclusive java-vector->joda)
+      (update :on-dates java-set->joda)))
+
 
 (def str->month
   {"Jan" 1

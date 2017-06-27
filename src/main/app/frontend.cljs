@@ -11,7 +11,8 @@
             [untangled.ui.forms :as f]
             [app.util :as u]
             [app.forms-helpers :as fh]
-            [app.domain-ui-helpers :as help]))
+            [app.domain-ui-helpers :as help]
+            [untangled.client.routing :as r :refer-macros [defrouter]]))
 
 (defui ^:once LedgerItem
   static om/Ident
@@ -26,7 +27,6 @@
               (dom/h5 nil (str type ", " name ", " amount)
                       (dom/button #js {:onClick #(df/refresh! this)} "Refresh")
                       (dom/button #js {:onClick #(onDelete id)} "x"))))))
-
 (def ui-ledger-item (om/factory LedgerItem {:keyfn :db/id}))
 
 (defui ^:once LedgerItemList
@@ -49,7 +49,6 @@
                (dom/h4 nil label)
                (dom/ul nil
                        (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items))))))
-
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
 ;;
@@ -126,29 +125,75 @@
                                                      :post-mutation `cljs-ops/post-report
                                                      }))}
                            "Execute Report")))))
-
 (def ui-user-request-form (om/factory UserRequestForm))
+
+(defui ^:once Bookkeeping
+  static om/Ident
+  (ident [_ props] [:bookkeeping/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id
+                 {:bookkeeping/user-request (om/get-query UserRequestForm)}
+                 {:bookkeeping/selected-items (om/get-query LedgerItemList)}])
+  static
+  uc/InitialAppState
+  (initial-state [c {:keys [id]}]
+    {:db/id id
+     :bookkeeping/selected-items
+            (uc/get-initial-state LedgerItemList
+                                  {:id p/LEDGER_ITEMS_LIST :label help/report-placeholder})
+     :bookkeeping/user-request
+            (uc/get-initial-state UserRequestForm
+                                  {:id p/USER_REQUEST_FORM :potential-data {}})})
+  Object
+  (render [this]
+    (let [{:keys [bookkeeping/user-request bookkeeping/selected-items]} (om/props this)]
+      (dom/div nil
+               (ui-user-request-form user-request)
+               (ui-ledger-item-list selected-items)))))
+(def ui-books (om/factory Bookkeeping))
+
+(defui ^:once Banking
+  static om/Ident
+  (ident [_ props] [:banking/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id])
+  static
+  uc/InitialAppState
+  (initial-state [c {:keys [id]}]
+    {:db/id id})
+  Object
+  (render [this]
+    (let [{:keys [db/id]} (om/props this)]
+      (dom/div nil "I'm Banking"))))
+(def ui-banking (om/factory Banking))
+
+(defrouter TopRouter :top-router
+           (ident [this props] [(:page props) :top])
+           :bookkeeping Bookkeeping
+           :banking Banking)
 
 (defui ^:once Root
   static om/IQuery
   (query [this] [:ui/react-key
-                 {:root/user-request (om/get-query UserRequestForm)}
-                 {:root/selected-items (om/get-query LedgerItemList)}])
+                 {:bookkeeping (om/get-query Bookkeeping)}
+                 {:banking (om/get-query Banking)}])
   static
   uc/InitialAppState
   (initial-state [c params]
-    {:root/selected-items
-     (uc/get-initial-state LedgerItemList
-                           {:id p/LEDGER_ITEMS_LIST :label help/report-placeholder})
-     :root/user-request
-     (uc/get-initial-state UserRequestForm
-                           {:id p/USER_REQUEST_FORM :potential-data {}})})
+    {
+     :bookkeeping
+     (uc/get-initial-state Bookkeeping
+                           {:id p/BOOKKEEPING})
+     :banking
+     (uc/get-initial-state Banking
+                           {:id p/BANKING})
+     })
   Object
   (render [this]
-    (let [{:keys [ui/react-key root/potential-data root/user-request root/selected-items]} (om/props this)]
+    (let [{:keys [ui/react-key bookkeeping banking]} (om/props this)]
       (dom/div #js {:key react-key}
-               (ui-user-request-form user-request)
-               (ui-ledger-item-list selected-items)))))
+               (ui-books bookkeeping)
+               (ui-banking banking)))))
 
 (defonce app-1 (atom (uc/new-untangled-client
                        :networking {:remote (net/make-untangled-network

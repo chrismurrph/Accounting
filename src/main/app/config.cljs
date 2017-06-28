@@ -3,7 +3,14 @@
             [om.next :as om]
             [untangled.client.core :as uc]
             [om.next :as om :refer [defui]]
-            [untangled.client.data-fetch :as df]))
+            [untangled.client.data-fetch :as df]
+            [app.panels :as p]))
+
+(defui ^:once ConfigData
+  static om/Ident
+  (ident [this props] [:config-data/by-id p/CONFIG_DATA])
+  static om/IQuery
+  (query [this] [:config-data/ledger-accounts :config-data/bank-accounts]))
 
 (defui ^:once Config
   static om/IQuery
@@ -18,4 +25,5 @@
 
 (defn load-config-data [comp new-org-value]
   (assert (keyword? new-org-value))
-  (df/load comp :my-config-data ConfigData))
+  (df/load comp :my-config-data ConfigData
+           {:params {:request/organisation new-org-value}}))

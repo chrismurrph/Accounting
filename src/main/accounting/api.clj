@@ -8,7 +8,9 @@
             [accounting.util :as u]
             [accounting.data.meta.periods :as periods]
             [accounting.data.meta.common :as common-meta]
-            [accounting.match :as m]))
+            [accounting.match :as m]
+            [accounting.data.meta.seaweed :as seasoft-meta]
+            [accounting.data.meta.croquet :as croquet-meta]))
 
 (defn make-ledger-item [idx [kw amount]]
   (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
@@ -126,7 +128,14 @@
          (zipmap kws))))
 
 (defn config-data [kws organisation]
-  {})
+  (assert organisation)
+  {:db/id                       'CONFIG-DATA
+   :config-data/ledger-accounts ({:seaweed seasoft-meta/all-accounts
+                                  :croquet croquet-meta/all-accounts}
+                                  organisation)
+   :config-data/bank-accounts   ({:seaweed seasoft-con/seasoft-bank-accounts
+                                  :croquet croquet-con/croquet-bank-accounts}
+                                  organisation)})
 
 ;;
 ;; The id doesn't seem to matter, nor for potential data above

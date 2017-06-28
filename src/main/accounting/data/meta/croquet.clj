@@ -7,6 +7,8 @@
 (def file-names
   {:bank/bendigo "BBL.CSV"})
 
+(def all-accounts (set bank-accounts))
+
 (def splits data/splits)
 
 (def years #{2017})

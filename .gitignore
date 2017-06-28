@@ -20,3 +20,4 @@ pom.xml.asc
 README-css.md
 /resources/config
 /resources/public
+*.edn

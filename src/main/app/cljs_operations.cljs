@@ -57,7 +57,7 @@
                            [selected-report report-options] (help/reports-options-generator potential-data nil)]
                        (u/log-off (str "year: " selected-year))
                        (u/log-off (str "year options: " year-options))
-                       (u/log-on (str "period options: " period-options))
+                       (u/log-off (str "period options: " period-options))
                        (swap! state #(-> %
                                          help/blank-out-report
                                          (help/year-dropdown-rebuilder selected-year year-options)
@@ -73,12 +73,18 @@
                      (let [st @state
                            ident [:config-data/by-id p/CONFIG_DATA]
                            {:keys [config-data/ledger-accounts config-data/bank-accounts]} (get-in st ident)
-                           [selected-source-bank source-bank-options] (help/source-bank-options-generator bank-accounts nil)]
-                       (u/log-off (str "see counts: " (count ledger-accounts) ", " (count bank-accounts)))
+                           ;; Trashing will just be a checkbox. We then make it Personal at the source bank
+                           ;; (check the actual rules and see if this is born out)
+                           ledger-accounts (remove #(#{"bank" "personal"} (namespace %)) ledger-accounts)
+                           [selected-source-bank source-bank-options] (help/source-bank-options-generator bank-accounts nil)
+                           [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts nil)
+                           ]
+                       (u/log-on (str "see counts: " (count ledger-accounts) ", " (count bank-accounts)))
                        (assert (pos? (count ledger-accounts)))
                        (assert (pos? (count bank-accounts)))
                        (swap! state #(-> %
                                          (help/source-bank-dropdown-rebuilder selected-source-bank source-bank-options)
+                                         (help/target-account-dropdown-rebuilder selected-target-account target-account-options)
                                          )))))
 
 (defmutation unruly-bank-statement-line [no-params]

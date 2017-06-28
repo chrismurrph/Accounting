@@ -11,7 +11,8 @@
             [app.panels :as p]
             [untangled.ui.forms :as f]
             [app.forms-helpers :as fh]
-            [app.config :as config]))
+            [app.config :as config]
+            [app.domain-ui-helpers :as help]))
 
 ;;
 ;; Expect to only see one of these, the one that has no rule or too many rules.
@@ -27,13 +28,12 @@
      :bank-line/src-bank :bank/anz-visa
      :bank-line/date     "24/08/2016"
      :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
-     :bank-line/amount   0.00M
-     })
+     :bank-line/amount   0.00M})
   Object
   (render [this]
     (let [{:keys [db/id bank-line/src-bank bank-line/date bank-line/desc bank-line/amount]} (om/props this)
           ;_ (println (om/props this))
-          src-bank-display (name src-bank)
+          src-bank-display (help/bank-kw->bank-name src-bank)
           negative? (= \- (first (str amount)))
           amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))]
       (dom/div #js {:className "form-group"}
@@ -72,7 +72,7 @@
                                         (f/option :and "AND")
                                         (f/option :or "OR")]
                                        :default-value :single)
-                     (f/dropdown-input :rule/source-bank
+                     #_(f/dropdown-input :rule/source-bank
                                        [(f/option :not-yet-1 "Not yet loaded 1")]
                                        :default-value :not-yet-1)
                      (f/dropdown-input :rule/target-account
@@ -101,7 +101,7 @@
                                     "Logic"
                                     {:onChange (fn [evt]
                                                  )})
-               (fh/field-with-label this form :rule/source-bank
+               #_(fh/field-with-label this form :rule/source-bank
                                     "Source"
                                     {:onChange (fn [evt]
                                                  )})
@@ -131,8 +131,7 @@
       (dom/div nil
                (ui-bank-statement-line bank-line)
                (dom/br nil) (dom/br nil)
-               (ui-rule-form rule))
-      )))
+               (ui-rule-form rule)))))
 
 ;;
 ;; More than a pun. Getting a bank statement line that is either not satisfied by a rule,

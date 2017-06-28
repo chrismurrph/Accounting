@@ -113,6 +113,18 @@
    :report/trial-balance   "Trial Balance"
    :report/big-items-first "Biggest first"})
 
+(defn bank-kw->bank-name [kw]
+  (-> kw
+      name
+      (clojure.string/replace #"-" " ")
+      clojure.string/upper-case))
+
+(defn ledger-kw->account-name [kw]
+  (-> kw
+      name
+      (clojure.string/replace #"-" " ")
+      clojure.string/capitalize))
+
 (def years-options-generator (fh/options-generator
                                range-of-years
                                #(f/option (keyword (str %)) (str %))
@@ -130,8 +142,13 @@
 
 (def source-bank-options-generator (fh/options-generator
                                      (fn [_ list] list)
-                                     #(f/option % (str %))
+                                     #(f/option % (bank-kw->bank-name %))
                                      first))
+
+(def target-account-options-generator (fh/options-generator
+                                        (fn [_ list] list)
+                                        #(f/option % (ledger-kw->account-name %))
+                                        first))
 
 ;;
 ;; Useful for things like changing options in fields in panels
@@ -156,10 +173,15 @@
 (def rule-config-data-whereabouts (conj rule-form-ident :rule/config-data))
 
 (def source-bank-field-whereabouts (conj rule-form-ident :rule/source-bank))
+(def target-account-field-whereabouts (conj rule-form-ident :rule/target-account))
+
 (def rule-form-input-options (partial fh/input-options rule-form-ident))
 (def source-bank-options-whereabouts (rule-form-input-options :rule/source-bank))
+(def target-account-options-whereabouts (rule-form-input-options :rule/target-account))
+
 (def rule-form-input-default-value (partial fh/input-default-value rule-form-ident))
 (def source-bank-default-value-whereabouts (rule-form-input-default-value :rule/source-bank))
+(def target-account-default-value-whereabouts (rule-form-input-default-value :rule/target-account))
 
 ;;
 ;; When the user changes the year we need to rebuild the quarters (or months i.e. periods)
@@ -180,10 +202,9 @@
   (fh/dropdown-rebuilder
     source-bank-field-whereabouts source-bank-options-whereabouts source-bank-default-value-whereabouts))
 
-(comment "Not yet"
-         (def target-account-dropdown-rebuilder
-           (fh/dropdown-rebuilder
-             target-account-field-whereabouts target-account-options-whereabouts target-account-default-value-whereabouts)))
+(def target-account-dropdown-rebuilder
+  (fh/dropdown-rebuilder
+    target-account-field-whereabouts target-account-options-whereabouts target-account-default-value-whereabouts))
 
 ;;
 ;; REPORT

@@ -128,6 +128,11 @@
                                  #(f/option % (report-kw->report-name %))
                                  first))
 
+(def source-bank-options-generator (fh/options-generator
+                                     (fn [_ list] list)
+                                     #(f/option % (str %))
+                                     first))
+
 ;;
 ;; Useful for things like changing options in fields in panels
 ;;
@@ -147,6 +152,15 @@
 (def period-default-value-whereabouts (request-form-input-default-value :request/period))
 (def report-default-value-whereabouts (request-form-input-default-value :request/report))
 
+(def rule-form-ident [:rule/by-id p/RULE_FORM])
+(def rule-config-data-whereabouts (conj rule-form-ident :rule/config-data))
+
+(def source-bank-field-whereabouts (conj rule-form-ident :rule/source-bank))
+(def rule-form-input-options (partial fh/input-options rule-form-ident))
+(def source-bank-options-whereabouts (rule-form-input-options :rule/source-bank))
+(def rule-form-input-default-value (partial fh/input-default-value rule-form-ident))
+(def source-bank-default-value-whereabouts (rule-form-input-default-value :rule/source-bank))
+
 ;;
 ;; When the user changes the year we need to rebuild the quarters (or months i.e. periods)
 ;;
@@ -162,6 +176,15 @@
   (fh/dropdown-rebuilder
     report-field-whereabouts report-options-whereabouts report-default-value-whereabouts))
 
+(def source-bank-dropdown-rebuilder
+  (fh/dropdown-rebuilder
+    source-bank-field-whereabouts source-bank-options-whereabouts source-bank-default-value-whereabouts))
+
+(comment "Not yet"
+         (def target-account-dropdown-rebuilder
+           (fh/dropdown-rebuilder
+             target-account-field-whereabouts target-account-options-whereabouts target-account-default-value-whereabouts)))
+
 ;;
 ;; REPORT
 ;;
@@ -174,9 +197,6 @@
 (def report-ident [:ledger-item-list/by-id p/LEDGER_ITEMS_LIST])
 (def report-title-whereabouts (conj report-ident :ledger-item-list/label))
 (def report-items-whereabouts (conj report-ident :ledger-item-list/items))
-
-(def rule-ident [:rule/by-id p/RULE_FORM])
-(def rule-config-data-whereabouts (conj rule-ident :rule/config-data))
 
 ;;
 ;; Done from post-report, hence

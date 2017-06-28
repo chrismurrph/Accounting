@@ -73,16 +73,11 @@
                                         (f/option :or "OR")]
                                        :default-value :single)
                      (f/dropdown-input :rule/source-bank
-                                       [(f/option :single "")
-                                        (f/option :and "AND")
-                                        (f/option :or "OR")]
-                                       :default-value :single)
+                                       [(f/option :not-yet-1 "Not yet loaded 1")]
+                                       :default-value :not-yet-1)
                      (f/dropdown-input :rule/target-account
-                                       [(f/option :single "")
-                                        (f/option :and "AND")
-                                        (f/option :or "OR")]
-                                       :default-value :single)
-                     ])
+                                       [(f/option :not-yet-2 "Not yet loaded 2")]
+                                       :default-value :not-yet-2)])
   static om/Ident
   (ident [_ props] [:rule/by-id (:db/id props)])
   static om/IQuery
@@ -100,7 +95,7 @@
           ;at-className (if manually-executable? "btn btn-primary" "btn disabled")
           ;at-disabled (if manually-executable? "" "true")
           ]
-      (println "counts" (count ledger-accounts) (count bank-accounts))
+      (println "the counts: " (count ledger-accounts) (count bank-accounts))
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :rule/logic-operator
                                     "Logic"

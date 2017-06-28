@@ -54,11 +54,10 @@
                            potential-data (get-in st ident)
                            [selected-year year-options] (help/years-options-generator potential-data nil)
                            [selected-period period-options] (help/periods-options-generator potential-data selected-year)
-                           [selected-report report-options] (help/reports-options-generator potential-data nil)
-                           ]
+                           [selected-report report-options] (help/reports-options-generator potential-data nil)]
                        (u/log-off (str "year: " selected-year))
                        (u/log-off (str "year options: " year-options))
-                       (u/log-off (str "period options: " period-options))
+                       (u/log-on (str "period options: " period-options))
                        (swap! state #(-> %
                                          help/blank-out-report
                                          (help/year-dropdown-rebuilder selected-year year-options)
@@ -66,9 +65,21 @@
                                          (help/report-dropdown-rebuilder selected-report report-options)
                                          (dissoc :my-potential-data))))))
 
+;;
+;; No need to dissoc because targeting cleaned it up.
+;;
 (defmutation config-data [no-params]
              (action [{:keys [state]}]
-                       (swap! state dissoc :my-config-data)))
+                     (let [st @state
+                           ident [:config-data/by-id p/CONFIG_DATA]
+                           {:keys [config-data/ledger-accounts config-data/bank-accounts]} (get-in st ident)
+                           [selected-source-bank source-bank-options] (help/source-bank-options-generator bank-accounts nil)]
+                       (u/log-off (str "see counts: " (count ledger-accounts) ", " (count bank-accounts)))
+                       (assert (pos? (count ledger-accounts)))
+                       (assert (pos? (count bank-accounts)))
+                       (swap! state #(-> %
+                                         (help/source-bank-dropdown-rebuilder selected-source-bank source-bank-options)
+                                         )))))
 
 (defmutation unruly-bank-statement-line [no-params]
              (action [{:keys [state]}]

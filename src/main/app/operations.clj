@@ -39,6 +39,11 @@
                (value [{:keys [query]} {:keys [request/organisation]}]
                       (api/potential-data query organisation)))
 
+(defquery-root :my-config-data
+               "Queries for config-data and returns it to the client"
+               (value [{:keys [query]} {:keys [request/organisation]}]
+                      (api/config-data query organisation)))
+
 (defquery-root :my-unruly-bank-statement-line
                "Queries for the next unruly line and returns it to the client"
                (value [{:keys [query]} {:keys []}]

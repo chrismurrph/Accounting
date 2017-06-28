@@ -45,6 +45,22 @@
                (dom/label #js {:className "col-md-2"} src-bank-display)))))
 (def ui-bank-statement-line (om/factory BankStatementLine {:keyfn :db/id}))
 
+;; :logic-operator dropdown :and :or :single
+;; :conditions can be a sub form that has list of existing above, and way of entering below.
+;; Way of entering:
+;; :out/desc was selected from dropdown of everything in bank-line, but with :out namespace
+;; :starts-with was selected from dropdown also includes (only) :equals
+;; text comes from a text field
+;; :rule/source-bank and :rule/target-account are dropdowns - list values that must come in with config data:
+;; :config-data/ledger-accounts
+;; :config-data/bank-accounts
+(def rule {:logic-operator :or,
+           :conditions [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]],
+           :rule/source-bank :bank/anz-visa,
+           :rule/target-account :exp/office-expense,
+           :between-dates-inclusive nil,
+           :on-dates nil})
+
 (defui ^:once Banking
   static om/IQuery
   (query [this] [:page

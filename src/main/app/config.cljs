@@ -15,3 +15,7 @@
   (render [this]
     (let [{:keys [page]} (om/props this)]
       (dom/div nil (str "I'm Config: " page)))))
+
+(defn load-config-data [comp new-org-value]
+  (assert (keyword? new-org-value))
+  (df/load comp :my-config-data ConfigData))

@@ -71,4 +71,5 @@
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
                                            (bookkeeping/load-potential-data app :seaweed)
-                                           (banking/load-unruly-bank-statement-line app)))))
+                                           (banking/load-unruly-bank-statement-line app)
+                                           (config/load-config-data app :seaweed)))))

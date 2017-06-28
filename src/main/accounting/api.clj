@@ -125,6 +125,9 @@
          (mapv f)
          (zipmap kws))))
 
+(defn config-data [kws organisation]
+  {})
+
 ;;
 ;; The id doesn't seem to matter, nor for potential data above
 ;;

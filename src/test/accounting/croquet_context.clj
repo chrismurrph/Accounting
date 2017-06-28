@@ -31,7 +31,7 @@
                                    bank-records (c/import-bank-records! :croquet croquet-current-range bank-accounts)]
                                {:bank-records bank-records :bank-accounts bank-accounts}))
 
-(defn bank-statements-of-period [year month]
+#_(defn bank-statements-of-period [year month]
   (assert (number? year))
   (assert (keyword? month))
   (assert (month periods/months-set) month)
@@ -40,7 +40,7 @@
         bank-records (c/import-bank-records! :croquet [period] bank-accounts)]
     {:bank-records bank-records :bank-accounts bank-accounts}))
 
-(defn rules-of-period [year month]
+#_(defn rules-of-period [year month]
   (assert (number? year))
   (assert (keyword? month))
   (let [period (periods/make-month year month)

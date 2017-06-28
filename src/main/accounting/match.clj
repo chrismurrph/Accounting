@@ -9,8 +9,7 @@
 ;;
 (defn bank-rules [bank-accounts in-rules]
   (assert (set? bank-accounts))
-  (let [rules (filter (fn [rule]
-                        (bank-accounts (:rule/source-bank rule))) in-rules)]
+  (let [rules (filter #(bank-accounts (:rule/source-bank %)) in-rules)]
     rules))
 
 (defn -starts-with? [starts-with]
@@ -199,7 +198,7 @@
 ;;
 ;; When 2 matches come through one may have been set as the dominator. If the one dominates the
 ;; other we can return it. Otherwise return 2 as would normally.
-;; If, of all the competing matches, many dominte then we have no way of knowing which the most
+;; If, of all the competing matches, many dominate then we have no way of knowing which the most
 ;; dominant. Then we would have to start using ordinality.
 ;;
 (defn records-rule-matches [rules record]

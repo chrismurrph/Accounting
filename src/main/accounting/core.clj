@@ -102,6 +102,11 @@
        (map compact-trans)))
 
 ;;
+;; Used for reporting, when your data is 'all good'! This kind of talk is an artifact of manual processing.
+;; In reality we will silo the imported transactions. In fact in database each can have a rule-matched-against
+;; attribute. And only bank statement lines with that attribute will be used in reporting.
+;; This function is what we will use to fill that attribute!
+;;
 ;; When we know there's one rule for each we can run this. One for each is enough to get
 ;; a list of transactions for each account, which we do in a later step.
 ;; All we needed from the rule is the target account

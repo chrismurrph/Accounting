@@ -24,6 +24,26 @@
 
 (def total-range (take 3 -all-three-quarters))
 
+(def officeworks-conditions [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]])
+
+(defn officeworks-rule? [m]
+  (first (filter (fn [[k v]]
+                   (and (= (u/probe-off k "K:") :conditions) (= (u/probe-off v "V:") officeworks-conditions))) m)))
+
+(defn show-officeworks-rules [rules]
+  (filter officeworks-rule? rules))
+
+(defn read-all-edn []
+  (let [just-read (mapv t/wildify-java (u/read-edn "seaweed.edn"))]
+    ;(assert (= seasoft-con/current-rules just-read))
+    just-read))
+
+(defn get-rules [disk?]
+  (if disk?
+    (read-all-edn)
+    (->> (merge-with (comp vec concat) seasoft-d/permanent-rules (mapcat quarter->rules total-range))
+         m/canonicalise-rules)))
+
 ;;
 ;; As used/read by the program every rule object is a hash-map.
 ;;
@@ -34,21 +54,15 @@
 ;; write these, and this format will go in the database.
 ;;
 (def current-rules
-  (let [initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (mapcat quarter->rules total-range))]
-    (->> initial-rules
-         m/canonicalise-rules)))
+  (atom (->> (get-rules true)
+             ;; Task is for UI to create this rule again, and conj it onto the atom
+             ;; When that's done nothing will come from the server, and Client s/show "All complete" message
+             ;; Then replace below rule with others to get the UI correct
+             ;; Later read directly from file into atom, and each time after conj write the atom
+             (remove officeworks-rule?))))
 
 (defn show-rule-keys []
-  (distinct (mapcat keys accounting.seasoft-context/current-rules)))
-
-(def officeworks-conditions [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]])
-
-(defn officeworks? [m]
-  (first (filter (fn [[k v]]
-                   (and (= (u/probe-off k "K:") :conditions) (= (u/probe-off v "V:") officeworks-conditions))) m)))
-
-(defn show-officeworks-rules [rules]
-  (filter officeworks? rules))
+  (distinct (mapcat keys @current-rules)))
 
 (def seasoft-current-range total-range)
 (def seasoft-bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
@@ -57,28 +71,4 @@
                                {:bank-records bank-records :bank-accounts bank-accounts}))
 
 (defn write-all-edn []
-  (u/write-edn "seaweed.edn" (mapv t/civilize-joda current-rules)))
-
-(defn read-all-edn []
-  (let [just-read (mapv t/wildify-java (u/read-edn "seaweed.edn"))]
-    ;(assert (= seasoft-con/current-rules just-read))
-    just-read))
-
-#_(defn bank-statements-of-period [year quarter]
-  (assert (number? year))
-  (assert (keyword? quarter))
-  (assert (quarter periods/quarters-set) quarter)
-  (let [period (periods/make-quarter year quarter)
-        bank-accounts (set seasoft-bank-accounts)
-        bank-records (c/import-bank-records! :seaweed [period] bank-accounts)]
-    {:bank-records bank-records :bank-accounts bank-accounts}))
-
-#_(defn rules-of-period [year quarter]
-  (assert (number? year))
-  (assert (keyword? quarter))
-  (let [period (periods/make-quarter year quarter)
-        initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (apply concat (map quarter->rules [period])))]
-    (->> initial-rules
-         m/canonicalise-rules
-         u/probe-off)))
-
+  (u/write-edn "seaweed.edn" (mapv t/civilize-joda @current-rules)))

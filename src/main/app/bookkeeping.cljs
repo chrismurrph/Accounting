@@ -78,11 +78,11 @@
      (df/load comp
               :my-selected-items LedgerItem
               {:target        help/report-items-whereabouts
+               :post-mutation `cljs-ops/post-report
                :params        {:request/organisation organisation
                                :request/year         year
                                :request/period       period
                                :request/report       report}
-               :post-mutation `cljs-ops/post-report
                :refresh       [:request/manually-executable?]})))
 
 (defn load-potential-data [comp new-org-value]

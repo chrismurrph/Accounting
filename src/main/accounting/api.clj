@@ -142,9 +142,20 @@
 ;;
 (defn next-unruly-line [kws]
   (println kws)
-  {:db/id              'BANK-STATEMENT-LINE
-   :bank-line/src-bank :bank/anz-visa
-   :bank-line/date     "24/08/2016"
-   :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
-   :bank-line/amount   71.01M})
+  (merge {:db/id 'BANK-STATEMENT-LINE
+          ;:bank-line/src-bank :bank/anz-visa
+          ;:bank-line/date     "24/08/2016"
+          ;:bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
+          ;:bank-line/amount   71.01M
+          }
+         (->> (c/records-without-single-rule-match seasoft-con/seasoft-bank-statements (remove seasoft-con/officeworks-rule? @seasoft-con/current-rules))
+              ffirst
+              (map (fn [[k v]]
+                     [({:out/date     :bank-line/date
+                        :out/amount   :bank-line/amount
+                        :out/desc     :bank-line/desc
+                        :out/src-bank :bank-line/src-bank}
+                        k) v]))
+              (into {})
+              u/probe-on)))
 

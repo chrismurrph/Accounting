@@ -40,7 +40,7 @@
                     [:out/amount :equals 235.00M]]})
 
 (defn view-anz-coy-rules []
-  (u/pp (m/bank-rules #{:bank/anz-coy} seasoft-con/current-rules)))
+  (u/pp (m/bank-rules #{:bank/anz-coy} @seasoft-con/current-rules)))
 
 (defn view-first-seaweed-rule []
   (->> seasoft-con/current-rules

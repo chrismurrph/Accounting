@@ -4,7 +4,9 @@
             [untangled.client.core :as uc]
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
-            [app.panels :as p]))
+            [app.cljs-operations :as cljs-ops]
+            [app.panels :as p]
+            [app.domain-ui-helpers :as help]))
 
 (defui ^:once ConfigData
   static om/Ident
@@ -26,4 +28,6 @@
 (defn load-config-data [comp new-org-value]
   (assert (keyword? new-org-value))
   (df/load comp :my-config-data ConfigData
-           {:params {:request/organisation new-org-value}}))
+           {:target        help/rule-config-data-whereabouts
+            :post-mutation `cljs-ops/config-data
+            :params        {:request/organisation new-org-value}}))

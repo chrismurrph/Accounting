@@ -65,3 +65,11 @@
                                          (help/period-dropdown-rebuilder selected-period period-options)
                                          (help/report-dropdown-rebuilder selected-report report-options)
                                          (dissoc :my-potential-data))))))
+
+(defmutation config-data [no-params]
+             (action [{:keys [state]}]
+                       (swap! state dissoc :my-config-data)))
+
+(defmutation unruly-bank-statement-line [no-params]
+             (action [{:keys [state]}]
+                     (swap! state dissoc :my-unruly-bank-statement-line)))

@@ -175,6 +175,9 @@
 (def report-title-whereabouts (conj report-ident :ledger-item-list/label))
 (def report-items-whereabouts (conj report-ident :ledger-item-list/items))
 
+(def rule-ident [:rule/by-id p/RULE_FORM])
+(def rule-config-data-whereabouts (conj rule-ident :rule/config-data))
+
 ;;
 ;; Done from post-report, hence
 ;; now that the report's data is on the screen we'll set its title - pessimistic update

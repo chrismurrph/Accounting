@@ -69,4 +69,6 @@
                        :networking {:remote (net/make-untangled-network
                                               "/api"
                                               :global-error-callback (constantly nil))}
-                       :started-callback (fn [app] (bookkeeping/load-potential-data app :seaweed)))))
+                       :started-callback (fn [app]
+                                           (bookkeeping/load-potential-data app :seaweed)
+                                           (banking/load-unruly-bank-statement-line app)))))

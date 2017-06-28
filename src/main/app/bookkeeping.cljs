@@ -83,7 +83,7 @@
                                :request/period       period
                                :request/report       report}
                :post-mutation `cljs-ops/post-report
-               :refresh [:request/manually-executable?]})))
+               :refresh       [:request/manually-executable?]})))
 
 (defn load-potential-data [comp new-value]
   (assert (keyword? new-value))
@@ -92,16 +92,18 @@
             :post-mutation `cljs-ops/potential-data
             :params        {:request/organisation new-value}}))
 
+;; Hopefully there will be a decent error message rather than user seeing this
+(def initial-potential-data {:potential-data/period-type       :period-type/unknown
+                             :potential-data/latest-period     {:period/quarter  :q1
+                                                                :period/tax-year 2000}
+                             :potential-data/commencing-period {:period/quarter  :q1
+                                                                :period/tax-year 2000}})
 (defui ^:once UserRequestForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id                        id
                         :request/manually-executable? true
-                        :potential-data               {:potential-data/period-type       :period-type/unknown
-                                         :potential-data/latest-period     {:period/quarter  :q1
-                                                                            :period/tax-year 2000}
-                                         :potential-data/commencing-period {:period/quarter  :q1
-                                                                            :period/tax-year 2000}}}))
+                        :potential-data               initial-potential-data}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      ;; Here hard-coding what will come in at login time
@@ -130,8 +132,8 @@
                          :period-type/monthly "Month"
                          :period-type/unknown "Unknown"
                          nil "Unknown")
-          on-className (if manually-executable? "btn btn-primary" "btn disabled")
-          on-disabled (if manually-executable? "" "true")]
+          at-className (if manually-executable? "btn btn-primary" "btn disabled")
+          at-disabled (if manually-executable? "" "true")]
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :request/organisation "Organisation"
                                     {:onChange (fn [evt]
@@ -150,8 +152,8 @@
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report)])
                                                  ((execute-report this organisation year period (u/keywordize (.. evt -target -value)))))})
-               (dom/button #js {:className on-className
-                                :disabled  on-disabled
+               (dom/button #js {:className at-className
+                                :disabled  at-disabled
                                 :onClick   (execute-report this organisation year period report)}
                            (if manually-executable? "Execute Report" "Auto Execute ON"))))))
 (def ui-user-request-form (om/factory UserRequestForm))

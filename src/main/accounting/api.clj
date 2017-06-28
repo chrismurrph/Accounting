@@ -113,18 +113,26 @@
                       organisation)]
     (fn [kw]
       (case kw
-        :db/id :potential-data
+        :db/id 'POTENTIAL-DATA
         :potential-data/period-type (-> common-meta/human-meta organisation :period-type)
         :potential-data/commencing-period (first total-range)
         :potential-data/latest-period (last total-range)
-        :potential-data/possible-reports [:report/trial-balance :report/big-items-first :report/profit-and-loss :report/balance-sheet]
-        ))))
+        :potential-data/possible-reports [:report/trial-balance :report/big-items-first :report/profit-and-loss :report/balance-sheet]))))
 
 (defn potential-data [kws organisation]
   (let [f (get-by-limit-kw organisation)]
     (->> kws
          (mapv f)
-         (zipmap kws)
-         ;vector
-         )))
+         (zipmap kws))))
+
+;;
+;; The id doesn't seem to matter, nor for potential data above
+;;
+(defn next-unruly-line [kws]
+  (println kws)
+  {:db/id              'BANK-STATEMENT-LINE
+   :bank-line/src-bank :bank/anz-visa
+   :bank-line/date     "24/08/2016"
+   :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
+   :bank-line/amount   71.01M})
 

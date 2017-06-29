@@ -114,16 +114,16 @@
    :report/big-items-first "Biggest first"})
 
 (defn bank-kw->bank-name [kw]
-  (-> kw
-      name
-      (clojure.string/replace #"-" " ")
-      clojure.string/upper-case))
+  (and kw (-> kw
+              name
+              (clojure.string/replace #"-" " ")
+              clojure.string/upper-case)))
 
 (defn ledger-kw->account-name [kw]
-  (-> kw
-      name
-      (clojure.string/replace #"-" " ")
-      clojure.string/capitalize))
+  (and kw (-> kw
+              name
+              (clojure.string/replace #"-" " ")
+              clojure.string/capitalize)))
 
 (def years-options-generator (fh/options-generator
                                range-of-years
@@ -171,7 +171,11 @@
 
 (def rule-form-ident [:rule-form/by-id p/RULE_FORM])
 (def rule-form-config-data-whereabouts (conj rule-form-ident :rule-form/config-data))
-(def rule-form-existing-rules-whereabouts (conj rule-form-ident :rule-form/existing-rules))
+; Not where they go:
+;(def rule-form-existing-rules-whereabouts (conj rule-form-ident :rule-form/existing-rules))
+
+(def rules-list-ident [:rules-list/by-id p/RULES_LIST])
+(def rules-list-items-whereabouts (conj rules-list-ident :rules-list/items))
 
 ;
 ;(def source-bank-field-whereabouts (conj rule-form-ident :rule-form/source-bank))
@@ -200,9 +204,9 @@
   (fh/dropdown-rebuilder
     report-field-whereabouts report-options-whereabouts report-default-value-whereabouts))
 
-(def source-bank-dropdown-rebuilder
-  (fh/dropdown-rebuilder
-    source-bank-field-whereabouts source-bank-options-whereabouts source-bank-default-value-whereabouts))
+#_(def source-bank-dropdown-rebuilder
+    (fh/dropdown-rebuilder
+      source-bank-field-whereabouts source-bank-options-whereabouts source-bank-default-value-whereabouts))
 
 (def target-account-dropdown-rebuilder
   (fh/dropdown-rebuilder

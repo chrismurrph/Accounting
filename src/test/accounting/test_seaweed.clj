@@ -33,3 +33,9 @@
   (-> (c/trial-balance seasoft-con/seasoft-bank-statements @seasoft-con/current-rules api/seasoft-splits data/ye-2016)
       (select-keys seasoft-meta/bank-accounts)
       u/pp))
+
+(defn show-some-rules []
+  (->> @seasoft-con/current-rules
+       (remove :rule/permanent?)
+       (take 3)
+       u/pp))

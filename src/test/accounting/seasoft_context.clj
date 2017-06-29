@@ -42,10 +42,18 @@
     ;(assert (= seasoft-con/current-rules just-read))
     just-read))
 
+(defn mark-permanents-permanent [rules-m]
+  (->> rules-m
+       (map (fn [[k v]]
+              [k (mapv #(assoc % :rule/permanent? true) v)]))
+       (into {})))
+
 (defn get-rules [disk?]
   (if disk?
     (read-all-edn)
-    (->> (merge-with (comp vec concat) seasoft-d/permanent-rules (mapcat quarter->rules total-range))
+    (->> (merge-with (comp vec concat)
+                     (mark-permanents-permanent seasoft-d/permanent-rules)
+                     (mapcat quarter->rules total-range))
          m/canonicalise-rules)))
 
 ;;
@@ -58,12 +66,12 @@
 ;; write these, and this format will go in the database.
 ;;
 (def current-rules
-  (atom (->> (get-rules true)
+  (atom (->> (get-rules false)
              ;; Task is for UI to create this rule again, and conj it onto the atom
              ;; When that's done nothing will come from the server, and Client s/show "All complete" message
              ;; Then replace below rule with others to get the UI correct
              ;; Later read directly from file into atom, and each time after conj write the atom
-             ;(remove officeworks-rule?)
+             (remove officeworks-rule?)
              )))
 
 (defn show-rule-keys []

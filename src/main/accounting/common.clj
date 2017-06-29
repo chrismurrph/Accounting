@@ -3,5 +3,7 @@
 (defn attach-period [period rules-in]
   (assert period)
   (assert (seq rules-in) (str "No rules for " period))
-  (into {} (map (fn [[k v]]
-                  [k (mapv #(assoc % :period period) v)]) rules-in)))
+  (->> rules-in
+       (map (fn [[k v]]
+              [k (mapv #(assoc % :rule/period period :rule/permanent? false) v)]))
+       (into {})))

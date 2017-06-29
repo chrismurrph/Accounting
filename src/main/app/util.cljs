@@ -8,6 +8,9 @@
       (subs 1)
       keyword))
 
+(defn kw->string [kw]
+  (and kw (subs (str kw) 1)))
+
 (defn kw-like-str? [x]
   (and (string? x) (= \: (first x)) (not= \: (second x))))
 

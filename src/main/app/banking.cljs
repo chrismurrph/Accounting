@@ -31,54 +31,103 @@
      :bank-line/amount   0.00M})
   Object
   (render [this]
-    (let [{:keys [db/id bank-line/src-bank bank-line/date bank-line/desc bank-line/amount]} (om/props this)
-          ;_ (println (om/props this))
-          src-bank-display (help/bank-kw->bank-name src-bank)
-          negative? (= \- (first (str amount)))
-          amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))]
-      (dom/div #js {:className "form-group"}
-               (dom/label #js {:className "col-md-1"} date)
-               (dom/label #js {:className "col-md-4"} desc)
-               (dom/label #js {:style #js {:color (if negative? "red" "")} :className "text-right col-md-1"} amount-display)
-               (dom/label #js {:className "col-md-6"} src-bank-display)))))
+    (let [{:keys [db/id bank-line/src-bank bank-line/date bank-line/desc bank-line/amount]} (om/props this)]
+      (let [src-bank-display (help/bank-kw->bank-name src-bank)
+            negative? (= \- (first (str amount)))
+            amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))]
+        (dom/div #js {:className "form-group"}
+                 (dom/label #js {:className "col-md-1"} date)
+                 (dom/label #js {:className "col-md-4"} desc)
+                 (dom/label #js {:style #js {:color (if negative? "red" "")} :className "text-right col-md-1"} amount-display)
+                 (dom/label #js {:className "col-md-6"} src-bank-display))))))
 (def ui-bank-statement-line (om/factory BankStatementLine {:keyfn :db/id}))
 
-(defui ^:once Rule
+(defui ^:once Condition
+  Object
+  (render [this]
+    (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
+          field-display (and field (subs (str field) 1))
+          predicate-display (and predicate (subs (str predicate) 1))]
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} field-display)
+              (dom/td #js {:className "col-md-2"} predicate-display)
+              (dom/td #js {:className "col-md-2"} subject)))))
+(def ui-condition (om/factory Condition {:keyfn :condition/subject}))
+
+(defui ^:once Rule-1
+  static om/Ident
+  (ident [this props] [:rule/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id :rule/permanent? :rule/source-bank :rule/target-account :rule/logic-operator :rule/conditions])
+  Object
+  (render [this]
+    (let [{:keys [db/id rule/permanent? rule/source-bank rule/target-account rule/logic-operator rule/conditions]} (om/props this)
+          _ (assert (some? permanent?))
+          permanent-display (if permanent? "true" "false")
+          source-bank-display (u/kw->string source-bank)
+          target-account-display (u/kw->string target-account)
+          logic-operator-display (u/kw->string logic-operator)
+          num-conds (str (count conditions))
+          conds (str conditions)
+          ]
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} num-conds)
+              (dom/td #js {:className "col-md-2"} permanent-display)
+              (dom/td #js {:className "col-md-2"} source-bank-display)
+              (dom/td #js {:className "col-md-2"} target-account-display)
+              (dom/td #js {:className "col-md-2"} logic-operator-display)
+              (dom/td #js {:className "col-md-2"} conds)))))
+
+(defui ^:once Rule-2
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   static om/IQuery
   (query [this] [:db/id :rule/source-bank :rule/target-account])
   Object
   (render [this]
-    (let [{:keys [db/id rule/source-bank rule/target-account]} (om/props this)
-          ;type-display (and type (subs (str type) 1))
-          ;negative? (= \- (first (str amount)))
-          ;amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))
-          ;name-display (clojure.string/replace name #"-" " ")
+    (let [{:keys [db/id rule/source-bank rule/target-account rule/conditions]} (om/props this)
+          source-bank-display (and source-bank (subs (str source-bank) 1))
+          target-account-display (and target-account (subs (str target-account) 1))
+          num-conds (str (count conditions))
           ]
-      (assert (and source-bank target-account))
-      (dom/tr nil
-              (dom/td #js {:className "col-md-2"} source-bank)
-              (dom/td #js {:className "col-md-2"} target-account)))))
+      (dom/label nil
+                 (str id " " source-bank-display " " target-account-display " NUM conditions: " num-conds)
+                 ))))
+(def Rule Rule-1)
 (def ui-rule (om/factory Rule {:keyfn :db/id}))
+
+(defn make-condition [[field predicate subject]]
+  {:condition/field     field
+   :condition/predicate predicate
+   :condition/subject   subject})
 
 (defui ^:once RulesList
   static om/Ident
-  (ident [this props] [:rules-list/by-id (:db/id props)])
+  (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
-  (query [this] [:db/id {:rules-list/items (om/get-query Rule)}])
+  (query [this] [:db/id :rules-list/label {:rules-list/items (om/get-query Rule)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id            id
+     :rules-list/label label
      :rules-list/items []})
   Object
   (render [this]
-    (let [{:keys [db/id rules-list/items]} (om/props this)]
-      (dom/div nil
-               ;; table-inverse did not work
-               ;; table-striped doesn't work well with hover as same colour
-               (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                          (dom/tbody nil (map #(ui-rule %) items)))))))
+    (let [{:keys [db/id rules-list/label rules-list/items]} (om/props this)]
+      (if (= 1 (count items))
+        (let [conditions (map make-condition (:rule/conditions (first items)))]
+          (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                     (dom/tbody nil (map ui-condition conditions))))
+        (dom/div nil
+                 (dom/label nil (str "Num rules: " (count items)))
+                 (dom/div nil
+                          ;(dom/label nil (str "ID: " id ", <" label "> " (count items)))
+                          ;; table-inverse did not work
+                          ;; table-striped doesn't work well with hover as same colour
+                          (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                                     (dom/tbody nil (map ui-rule items)))
+                          #_(map ui-rule items)
+                          ))))))
 (def ui-rules-list (om/factory RulesList))
 
 (def rule {:logic-operator          :or,
@@ -110,8 +159,9 @@
 
 (defn load-existing-rules [comp source-bank target-ledger]
   (df/load comp :my-existing-rules Rule
-           {:target help/rule-form-existing-rules-whereabouts
-            :params {:source-bank source-bank :target-ledger target-ledger}}))
+           {:target  help/rules-list-items-whereabouts
+            :refresh [[:rules-list/by-id p/RULES_LIST]]
+            :params  {:source-bank source-bank :target-ledger target-ledger}}))
 
 (def type->desc
   {:type/exp       "Expense"
@@ -124,6 +174,7 @@
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
     (f/build-form this {:db/id                         id
+                        :rule-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
                         :rule-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
@@ -192,7 +243,9 @@
                                                            {:onChange (fn [evt]
                                                                         (let [new-val (u/target-kw evt)]
                                                                           (u/log-on (str "src bank: " src-bank ", target ledger: " new-val))
-                                                                          (load-existing-rules this src-bank new-val)))}))))))
+                                                                          (load-existing-rules this src-bank new-val)))}))
+               (ui-rules-list existing-rules)))))
+
 (def ui-rule-form (om/factory RuleForm))
 
 (defui ^:once Banking
@@ -208,7 +261,9 @@
   Object
   (render [this]
     (let [{:keys [page banking/bank-line banking/rule-form]} (om/props this)]
-      (dom/div nil
-               (ui-bank-statement-line bank-line)
-               (dom/br nil) (dom/br nil)
-               (ui-rule-form rule-form)))))
+      (if (:bank-line/src-bank bank-line)
+        (dom/div nil
+                 (ui-bank-statement-line bank-line)
+                 (dom/br nil) (dom/br nil)
+                 (ui-rule-form rule-form))
+        (dom/label nil "All imported bank statement lines have been reconciled against rules")))))

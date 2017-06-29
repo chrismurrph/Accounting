@@ -161,9 +161,12 @@
               u/probe-on)))
 
 (defn rule->outgoing [idx {:keys [logic-operator conditions rule/source-bank
+                                  rule/permanent? rule/period
                                   rule/target-account between-dates-inclusive
                                   on-dates]}]
   {:db/id                        idx
+   :rule/period                  period
+   :rule/permanent?              permanent?
    :rule/source-bank             source-bank
    :rule/target-account          target-account
    :rule/between-dates-inclusive between-dates-inclusive

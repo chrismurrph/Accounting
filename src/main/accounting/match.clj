@@ -12,6 +12,17 @@
   (let [rules (filter #(bank-accounts (:rule/source-bank %)) in-rules)]
     rules))
 
+;;
+;; Filter so only get the rules of certain bank accounts
+;;
+(defn filter-rules [bank-accounts ledger-accounts in-rules]
+  (assert (set? bank-accounts))
+  (assert (set? ledger-accounts))
+  (assert (seq bank-accounts))
+  (assert (seq ledger-accounts))
+  (let [rules (filter #(and (bank-accounts (:rule/source-bank %)) (ledger-accounts (:rule/target-account %))) in-rules)]
+    rules))
+
 (defn -starts-with? [starts-with]
   (fn [field-value]
     (s/starts-with? field-value starts-with)))

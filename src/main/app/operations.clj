@@ -48,3 +48,8 @@
                "Queries for the next unruly line and returns it to the client"
                (value [{:keys [query]} {:keys []}]
                       (api/next-unruly-line query)))
+
+(defquery-root :my-existing-rules
+               "Queries for existing rules"
+               (value [{:keys [query]} {:keys [source-bank target-ledger]}]
+                      (api/rules-from-bank-ledger query source-bank target-ledger)))

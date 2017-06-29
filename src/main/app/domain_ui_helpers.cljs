@@ -169,19 +169,21 @@
 (def period-default-value-whereabouts (request-form-input-default-value :request/period))
 (def report-default-value-whereabouts (request-form-input-default-value :request/report))
 
-(def rule-form-ident [:rule/by-id p/RULE_FORM])
-(def rule-config-data-whereabouts (conj rule-form-ident :rule/config-data))
+(def rule-form-ident [:rule-form/by-id p/RULE_FORM])
+(def rule-form-config-data-whereabouts (conj rule-form-ident :rule-form/config-data))
+(def rule-form-existing-rules-whereabouts (conj rule-form-ident :rule-form/existing-rules))
 
-(def source-bank-field-whereabouts (conj rule-form-ident :rule/source-bank))
-(def target-account-field-whereabouts (conj rule-form-ident :rule/target-account))
+;
+;(def source-bank-field-whereabouts (conj rule-form-ident :rule-form/source-bank))
+(def target-account-field-whereabouts (conj rule-form-ident :rule-form/target-ledger))
 
 (def rule-form-input-options (partial fh/input-options rule-form-ident))
-(def source-bank-options-whereabouts (rule-form-input-options :rule/source-bank))
-(def target-account-options-whereabouts (rule-form-input-options :rule/target-account))
+(def source-bank-options-whereabouts (rule-form-input-options :rule-form/source-bank))
+(def target-account-options-whereabouts (rule-form-input-options :rule-form/target-ledger))
 
 (def rule-form-input-default-value (partial fh/input-default-value rule-form-ident))
-(def source-bank-default-value-whereabouts (rule-form-input-default-value :rule/source-bank))
-(def target-account-default-value-whereabouts (rule-form-input-default-value :rule/target-account))
+(def source-bank-default-value-whereabouts (rule-form-input-default-value :rule-form/source-bank))
+(def target-account-default-value-whereabouts (rule-form-input-default-value :rule-form/target-ledger))
 
 ;;
 ;; When the user changes the year we need to rebuild the quarters (or months i.e. periods)

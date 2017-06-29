@@ -10,7 +10,8 @@
             [accounting.data.meta.common :as common-meta]
             [accounting.match :as m]
             [accounting.data.meta.seaweed :as seasoft-meta]
-            [accounting.data.meta.croquet :as croquet-meta]))
+            [accounting.data.meta.croquet :as croquet-meta]
+            [accounting.time :as t]))
 
 (defn make-ledger-item [idx [kw amount]]
   (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
@@ -148,7 +149,7 @@
           ;:bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
           ;:bank-line/amount   71.01M
           }
-         (->> (c/records-without-single-rule-match seasoft-con/seasoft-bank-statements (remove seasoft-con/officeworks-rule? @seasoft-con/current-rules))
+         (->> (c/records-without-single-rule-match seasoft-con/seasoft-bank-statements @seasoft-con/current-rules)
               ffirst
               (map (fn [[k v]]
                      [({:out/date     :bank-line/date
@@ -158,4 +159,25 @@
                         k) v]))
               (into {})
               u/probe-on)))
+
+(defn rule->outgoing [idx {:keys [logic-operator conditions rule/source-bank
+                                  rule/target-account between-dates-inclusive
+                                  on-dates]}]
+  {:db/id                        idx
+   :rule/source-bank             source-bank
+   :rule/target-account          target-account
+   :rule/between-dates-inclusive between-dates-inclusive
+   :rule/on-dates                on-dates
+   :rule/conditions              conditions
+   :rule/logic-operator          logic-operator})
+
+(defn rules-from-bank-ledger [kws source-bank target-ledger]
+  (assert (keyword? source-bank))
+  (assert (keyword? target-ledger))
+  (println "Choosing on " source-bank " and " target-ledger)
+  (let [to-send (m/filter-rules #{source-bank} #{target-ledger} (mapv t/civilize-joda @seasoft-con/current-rules))]
+    (->> to-send
+         (map-indexed rule->outgoing)
+         vec
+         u/probe-on)))
 

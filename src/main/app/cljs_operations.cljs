@@ -18,10 +18,6 @@
                                        help/set-report-title
                                        (assoc-in help/executable-field-whereabouts false)))))
 
-#_(defmutation disable-report-execution [no-params]
-             (action [{:keys [state]}]
-                     (swap! state assoc-in help/executable-field-whereabouts false)))
-
 (defmutation enable-report-execution [no-params]
              (action [{:keys [state]}]
                      (swap! state assoc-in help/executable-field-whereabouts true)))
@@ -66,12 +62,14 @@
                                          (help/report-dropdown-rebuilder selected-report report-options)
                                          (dissoc :my-potential-data))))))
 
-(def always-remove #{"bank" "personal"})
+(def always-remove #{"bank"})
 (def type->what-remove
-  {:type/exp (set/union always-remove #{"income" "non-exp" "personal"})
-   :type/non-exp (set/union always-remove #{"income" "exp" "personal"})
-   :type/personal (set/union always-remove #{"income" "non-exp" "exp"})
-   :type/income (set/union always-remove #{"personal" "non-exp" "exp"})})
+  {:type/exp (set/union always-remove #{"income" "non-exp" "personal" "liab"})
+   :type/non-exp (set/union always-remove #{"income" "exp" "personal" "liab"})
+   :type/personal (set/union always-remove #{"income" "non-exp" "exp" "liab"})
+   :type/income (set/union always-remove #{"personal" "non-exp" "exp" "liab"})
+   :type/liab (set/union always-remove #{"personal" "non-exp" "exp" "income"})
+   })
 
 (defmutation config-data-for-target-dropdown [{:keys [acct-type]}]
              (action [{:keys [state]}]

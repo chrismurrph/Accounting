@@ -68,29 +68,25 @@
   (query [this] [:potential-data/period-type :potential-data/commencing-period
                  :potential-data/latest-period :potential-data/possible-reports]))
 
-;;
-;; Manually executable problems.
-;; First is I don't know how to disable a button (do bootstrap class selectors)
-;; No other problems - just call this fn whenever quarter or report are changed
-;;
 (defn execute-report [comp organisation year period report]
   #((om/transact! comp `[(cljs-ops/touch-report)])
      (df/load comp
               :my-selected-items LedgerItem
               {:target        help/report-items-whereabouts
-               :post-mutation `cljs-ops/post-report
                :params        {:request/organisation organisation
                                :request/year         year
                                :request/period       period
                                :request/report       report}
+               :post-mutation `cljs-ops/post-report
                :refresh       [:request/manually-executable?]})))
 
 (defn load-potential-data [comp new-org-value]
   (assert (keyword? new-org-value))
   (df/load comp :my-potential-data PotentialData
            {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
+            :params        {:request/organisation new-org-value}
             :post-mutation `cljs-ops/potential-data
-            :params        {:request/organisation new-org-value}}))
+            }))
 
 ;; Hopefully there will be a decent error message rather than user seeing this
 (def initial-potential-data {:potential-data/period-type       :period-type/unknown

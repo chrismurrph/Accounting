@@ -33,6 +33,10 @@
 (defn show-officeworks-rules [rules]
   (filter officeworks-rule? rules))
 
+;;
+;; If we really need Joda dates we are gonna have to convert on the client. They don't go
+;; across the wire.
+;;
 (defn read-all-edn []
   (let [just-read (mapv t/wildify-java (u/read-edn "seaweed.edn"))]
     ;(assert (= seasoft-con/current-rules just-read))
@@ -59,7 +63,8 @@
              ;; When that's done nothing will come from the server, and Client s/show "All complete" message
              ;; Then replace below rule with others to get the UI correct
              ;; Later read directly from file into atom, and each time after conj write the atom
-             (remove officeworks-rule?))))
+             ;(remove officeworks-rule?)
+             )))
 
 (defn show-rule-keys []
   (distinct (mapcat keys @current-rules)))

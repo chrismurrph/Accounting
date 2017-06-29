@@ -43,6 +43,44 @@
                (dom/label #js {:className "col-md-6"} src-bank-display)))))
 (def ui-bank-statement-line (om/factory BankStatementLine {:keyfn :db/id}))
 
+(defui ^:once Rule
+  static om/Ident
+  (ident [this props] [:rule/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id :rule/source-bank :rule/target-account])
+  Object
+  (render [this]
+    (let [{:keys [db/id rule/source-bank rule/target-account]} (om/props this)
+          ;type-display (and type (subs (str type) 1))
+          ;negative? (= \- (first (str amount)))
+          ;amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))
+          ;name-display (clojure.string/replace name #"-" " ")
+          ]
+      (assert (and source-bank target-account))
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} source-bank)
+              (dom/td #js {:className "col-md-2"} target-account)))))
+(def ui-rule (om/factory Rule {:keyfn :db/id}))
+
+(defui ^:once RulesList
+  static om/Ident
+  (ident [this props] [:rules-list/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id {:rules-list/items (om/get-query Rule)}])
+  static uc/InitialAppState
+  (initial-state [comp-class {:keys [id label]}]
+    {:db/id            id
+     :rules-list/items []})
+  Object
+  (render [this]
+    (let [{:keys [db/id rules-list/items]} (om/props this)]
+      (dom/div nil
+               ;; table-inverse did not work
+               ;; table-striped doesn't work well with hover as same colour
+               (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                          (dom/tbody nil (map #(ui-rule %) items)))))))
+(def ui-rules-list (om/factory RulesList))
+
 (def rule {:logic-operator          :or,
            :conditions              [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]],
            :rule/source-bank        :bank/anz-visa,
@@ -59,45 +97,76 @@
 ;; :config-data/ledger-accounts
 ;; :config-data/bank-accounts
 
+;;
+;; More than a pun. Getting a bank statement line that is either not satisfied by a rule,
+;; or has too many rules. In the first unruly case the user must pick one. In the second
+;; unruly case the user must pick one from many (assert which one dominates).
+;; If nothing comes back a message saying 'all good' is displayed to the user.
+;; Once the user has done the rules thing he presses the button which calls this fn again.
+;;
+(defn load-unruly-bank-statement-line [comp]
+  (df/load comp :my-unruly-bank-statement-line BankStatementLine
+           {:post-mutation `cljs-ops/unruly-bank-statement-line}))
+
+(defn load-existing-rules [comp source-bank target-ledger]
+  (df/load comp :my-existing-rules Rule
+           {:target help/rule-form-existing-rules-whereabouts
+            :params {:source-bank source-bank :target-ledger target-ledger}}))
+
 (def type->desc
-  {:type/exp      "Expense"
-   :type/non-exp  "Non-Expense"
-   :type/income   "Income"
-   :type/personal "Personal"})
+  {:type/exp       "Expense"
+   :type/non-exp   "Non-Expense"
+   :type/income    "Income"
+   :type/personal  "Personal"
+   :type/liability "Liability"})
 
 (defui ^:once RuleForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
-    (f/build-form this {:db/id            id
-                        :rule/config-data nil}))
+    (f/build-form this {:db/id                         id
+                        :rule-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :ui/type
                                        [(f/option :type/exp "Expense")
                                         (f/option :type/non-exp "Non-Expense")
                                         (f/option :type/income "Income")
-                                        (f/option :type/personal "Personal")]
-                                       ;; Give it a default value once they have chosen one
-                                       ;; (in actual fact it doesn't matter b/c won't be displayed)
-                                       ;:default-value :type/exp
+                                        ;; S/be done with checkbox. Sep ui/personal? then we don't need to display the
+                                        ;; target-ledger, which will be auto-set to same bank account but with :personal
+                                        ;; namespace at the beginning.
+                                        ;; For examples rule on server will end up being:
+                                        ;; :rule/source-bank :bank/amp, :rule/target-account :personal/amp
+                                        ;; OR
+                                        ;; :rule/source-bank :bank/anz-visa, :rule/target-account :personal/anz-visa
+                                        ;; For this to happen there will need to be a mutation to set the target
+                                        ;; account (known here as target-ledger). Un-setting to of course un-set.
+                                        ;; When personal/trash is on the target-ledger drop down will disappear.
+                                        ;;
+                                        ;(f/option :type/personal "Personal")
+                                        (f/option :type/liab "Liability")]
                                        )
-                     ;; Here hard-coding what will come in at login time
-                     (f/dropdown-input :rule/target-account
+                     (f/dropdown-input :rule-form/target-ledger
                                        [(f/option :not-yet-2 "Not yet loaded 2")]
                                        :default-value :not-yet-2)
-                     (f/dropdown-input :rule/logic-operator
+                     (f/dropdown-input :rule-form/logic-operator
                                        [(f/option :single "")
                                         (f/option :and "AND")
                                         (f/option :or "OR")]
                                        :default-value :single)])
   static om/Ident
-  (ident [_ props] [:rule/by-id (:db/id props)])
+  (ident [_ props] [:rule-form/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :ui/type :rule/logic-operator :rule/source-bank :rule/target-account
-              {:rule/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key])
+  (query [_] [:db/id :ui/type :rule-form/logic-operator
+              {:rule-form/bank-statement-line (om/get-query BankStatementLine)}
+              :rule-form/target-ledger
+              ;; Only when there's a target account will any of these come back
+              {:rule-form/existing-rules (om/get-query RulesList)}
+              {:rule-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key])
   Object
   (render [this]
-    (let [{:keys [ui/type rule/config-data rule/logic-operator rule/source-bank rule/target-account] :as form} (om/props this)
+    (let [{:keys [ui/type rule-form/config-data rule-form/logic-operator rule-form/bank-statement-line
+                  rule-form/target-ledger rule-form/existing-rules] :as form} (om/props this)
+          {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts config-data/bank-accounts]} config-data
           ;period-label (condp = period-type
           ;               :period-type/quarterly "Quarter"
@@ -116,38 +185,30 @@
                                     {:onChange (fn [evt]
                                                  (let [new-val (u/target-kw evt)]
                                                    (when (type->desc new-val)
-                                                     (om/transact! this `[(cljs-ops/config-data-for-target-dropdown {:acct-type ~new-val})]))))})
-               (when type-description (fh/field-with-label this form :rule/target-account
+                                                     (om/transact! this `[(cljs-ops/config-data-for-target-dropdown
+                                                                            {:acct-type ~new-val})]))))})
+               (when type-description (fh/field-with-label this form :rule-form/target-ledger
                                                            type-description
-                                               {:onChange (fn [evt]
-                                                            )}))))))
+                                                           {:onChange (fn [evt]
+                                                                        (let [new-val (u/target-kw evt)]
+                                                                          (u/log-on (str "src bank: " src-bank ", target ledger: " new-val))
+                                                                          (load-existing-rules this src-bank new-val)))}))))))
 (def ui-rule-form (om/factory RuleForm))
 
 (defui ^:once Banking
   static om/IQuery
   (query [this] [:page
                  {:banking/bank-line (om/get-query BankStatementLine)}
-                 {:banking/rule (om/get-query RuleForm)}])
+                 {:banking/rule-form (om/get-query RuleForm)}])
   static
   uc/InitialAppState
   (initial-state [c params] {:page              :banking
                              :banking/bank-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
-                             :banking/rule      (uc/get-initial-state RuleForm {:id p/RULE_FORM})})
+                             :banking/rule-form (uc/get-initial-state RuleForm {:id p/RULE_FORM})})
   Object
   (render [this]
-    (let [{:keys [page banking/bank-line banking/rule]} (om/props this)]
+    (let [{:keys [page banking/bank-line banking/rule-form]} (om/props this)]
       (dom/div nil
                (ui-bank-statement-line bank-line)
                (dom/br nil) (dom/br nil)
-               (ui-rule-form rule)))))
-
-;;
-;; More than a pun. Getting a bank statement line that is either not satisfied by a rule,
-;; or has too many rules. In the first unruly case the user must pick one. In the second
-;; unruly case the user must pick one from many (assert which one dominates).
-;; If nothing comes back a message saying 'all good' is displayed to the user.
-;; Once the user has done the rules thing he presses the button which calls this fn again.
-;;
-(defn load-unruly-bank-statement-line [comp]
-  (df/load comp :my-unruly-bank-statement-line BankStatementLine
-           {:post-mutation `cljs-ops/unruly-bank-statement-line}))
+               (ui-rule-form rule-form)))))

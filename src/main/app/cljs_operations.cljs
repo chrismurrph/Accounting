@@ -6,7 +6,8 @@
     [app.domain-ui-helpers :as help]
     [app.util :as u]
     [untangled.ui.forms :as f]
-    [app.forms-helpers :as fh]))
+    [app.forms-helpers :as fh]
+    [clojure.set :as set]))
 
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
@@ -65,25 +66,27 @@
                                          (help/report-dropdown-rebuilder selected-report report-options)
                                          (dissoc :my-potential-data))))))
 
-;;
-;; No need to dissoc because targeting cleaned it up.
-;;
-(defmutation config-data [no-params]
+(def always-remove #{"bank" "personal"})
+(def type->what-remove
+  {:type/exp (set/union always-remove #{"income" "non-exp" "personal"})
+   :type/non-exp (set/union always-remove #{"income" "exp" "personal"})
+   :type/personal (set/union always-remove #{"income" "non-exp" "exp"})
+   :type/income (set/union always-remove #{"personal" "non-exp" "exp"})})
+
+(defmutation config-data-for-target-dropdown [{:keys [acct-type]}]
              (action [{:keys [state]}]
                      (let [st @state
                            ident [:config-data/by-id p/CONFIG_DATA]
-                           {:keys [config-data/ledger-accounts config-data/bank-accounts]} (get-in st ident)
-                           ;; Trashing will just be a checkbox. We then make it Personal at the source bank
-                           ;; (check the actual rules and see if this is born out)
-                           ledger-accounts (remove #(#{"bank" "personal"} (namespace %)) ledger-accounts)
-                           [selected-source-bank source-bank-options] (help/source-bank-options-generator bank-accounts nil)
+                           {:keys [config-data/ledger-accounts #_config-data/bank-accounts]} (get-in st ident)
+                           to-remove (type->what-remove acct-type)
+                           _ (assert to-remove (str "No set found from <" acct-type ">"))
+                           ledger-accounts (remove #(to-remove (namespace %)) ledger-accounts)
+                           ;[selected-source-bank source-bank-options] (help/source-bank-options-generator bank-accounts nil)
                            [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts nil)
                            ]
-                       (u/log-on (str "see counts: " (count ledger-accounts) ", " (count bank-accounts)))
+                       (u/log-on (str "see counts: " (count ledger-accounts)))
                        (assert (pos? (count ledger-accounts)))
-                       (assert (pos? (count bank-accounts)))
                        (swap! state #(-> %
-                                         (help/source-bank-dropdown-rebuilder selected-source-bank source-bank-options)
                                          (help/target-account-dropdown-rebuilder selected-target-account target-account-options)
                                          )))))
 

@@ -59,6 +59,12 @@
 ;; :config-data/ledger-accounts
 ;; :config-data/bank-accounts
 
+(def type->desc
+  {:type/exp      "Expense"
+   :type/non-exp  "Non-Expense"
+   :type/income   "Income"
+   :type/personal "Personal"})
+
 (defui ^:once RuleForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
@@ -66,26 +72,32 @@
                         :rule/config-data nil}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
+                     (f/dropdown-input :ui/type
+                                       [(f/option :type/exp "Expense")
+                                        (f/option :type/non-exp "Non-Expense")
+                                        (f/option :type/income "Income")
+                                        (f/option :type/personal "Personal")]
+                                       ;; Give it a default value once they have chosen one
+                                       ;; (in actual fact it doesn't matter b/c won't be displayed)
+                                       ;:default-value :type/exp
+                                       )
                      ;; Here hard-coding what will come in at login time
+                     (f/dropdown-input :rule/target-account
+                                       [(f/option :not-yet-2 "Not yet loaded 2")]
+                                       :default-value :not-yet-2)
                      (f/dropdown-input :rule/logic-operator
                                        [(f/option :single "")
                                         (f/option :and "AND")
                                         (f/option :or "OR")]
-                                       :default-value :single)
-                     #_(f/dropdown-input :rule/source-bank
-                                       [(f/option :not-yet-1 "Not yet loaded 1")]
-                                       :default-value :not-yet-1)
-                     (f/dropdown-input :rule/target-account
-                                       [(f/option :not-yet-2 "Not yet loaded 2")]
-                                       :default-value :not-yet-2)])
+                                       :default-value :single)])
   static om/Ident
   (ident [_ props] [:rule/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :rule/logic-operator :rule/source-bank :rule/target-account
+  (query [_] [:db/id :ui/type :rule/logic-operator :rule/source-bank :rule/target-account
               {:rule/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key])
   Object
   (render [this]
-    (let [{:keys [rule/config-data rule/logic-operator rule/source-bank rule/target-account] :as form} (om/props this)
+    (let [{:keys [ui/type rule/config-data rule/logic-operator rule/source-bank rule/target-account] :as form} (om/props this)
           {:keys [config-data/ledger-accounts config-data/bank-accounts]} config-data
           ;period-label (condp = period-type
           ;               :period-type/quarterly "Quarter"
@@ -94,25 +106,21 @@
           ;               nil "Unknown")
           ;at-className (if manually-executable? "btn btn-primary" "btn disabled")
           ;at-disabled (if manually-executable? "" "true")
+          type-description (type->desc type)
           ]
-      (println "the counts: " (count ledger-accounts) (count bank-accounts))
+      (u/log-off (str "the counts: " (count ledger-accounts) (count bank-accounts)))
+      (u/log-off type)
       (dom/div #js {:className "form-horizontal"}
-               (fh/field-with-label this form :rule/logic-operator
-                                    "Logic"
+               (fh/field-with-label this form :ui/type
+                                    "Type"
                                     {:onChange (fn [evt]
-                                                 )})
-               #_(fh/field-with-label this form :rule/source-bank
-                                    "Source"
-                                    {:onChange (fn [evt]
-                                                 )})
-               (fh/field-with-label this form :rule/target-account
-                                    "Target"
-                                    {:onChange (fn [evt]
-                                                 )})
-               #_(dom/button #js {:className at-className
-                                  :disabled  at-disabled
-                                  :onClick   (execute-report this organisation year period report)}
-                             (if manually-executable? "Execute Report" "Auto Execute ON"))))))
+                                                 (let [new-val (u/target-kw evt)]
+                                                   (when (type->desc new-val)
+                                                     (om/transact! this `[(cljs-ops/config-data-for-target-dropdown {:acct-type ~new-val})]))))})
+               (when type-description (fh/field-with-label this form :rule/target-account
+                                                           type-description
+                                               {:onChange (fn [evt]
+                                                            )}))))))
 (def ui-rule-form (om/factory RuleForm))
 
 (defui ^:once Banking

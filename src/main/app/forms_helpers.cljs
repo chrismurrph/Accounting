@@ -21,7 +21,7 @@
   "A non-library helper function, written by you to help lay out your form."
   ([comp form name label] (field-with-label comp form name label nil))
   ([comp form name label {:keys [validation-message onChange] :as params}]
-   (assert label)
+   (assert label (str "No label passed in for " name))
    (assert (or (nil? onChange) (fn? onChange)))
     ;(println params)
    (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}

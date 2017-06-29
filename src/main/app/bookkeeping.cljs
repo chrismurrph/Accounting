@@ -138,7 +138,7 @@
                (fh/field-with-label this form :request/organisation "Organisation"
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report)])
-                                                 (let [new-org-value (u/keywordize (.. evt -target -value))]
+                                                 (let [new-org-value (u/target-kw evt)]
                                                    (load-potential-data this new-org-value))
                                                  (om/transact! this `[(cljs-ops/enable-report-execution)]))})
                (fh/field-with-label this form :request/year "Year"
@@ -147,11 +147,11 @@
                (fh/field-with-label this form :request/period period-label
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report)])
-                                                 ((execute-report this organisation year (u/keywordize (.. evt -target -value)) report)))})
+                                                 ((execute-report this organisation year (u/target-kw evt) report)))})
                (fh/field-with-label this form :request/report "Report"
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report)])
-                                                 ((execute-report this organisation year period (u/keywordize (.. evt -target -value)))))})
+                                                 ((execute-report this organisation year period (u/target-kw evt))))})
                (dom/button #js {:className at-className
                                 :disabled  at-disabled
                                 :onClick   (execute-report this organisation year period report)}

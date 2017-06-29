@@ -14,6 +14,9 @@
 (defn keywordize [x]
   (cond-> x (kw-like-str? x) string->kw))
 
+(defn target-kw [evt]
+  (keywordize (.. evt -target -value)))
+
 (defn abs [n]
   (if (neg? n) (- n) n))
 

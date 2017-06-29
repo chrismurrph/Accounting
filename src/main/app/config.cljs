@@ -28,6 +28,7 @@
 (defn load-config-data [comp new-org-value]
   (assert (keyword? new-org-value))
   (df/load comp :my-config-data ConfigData
-           {:target        help/rule-config-data-whereabouts
-            :post-mutation `cljs-ops/config-data
-            :params        {:request/organisation new-org-value}}))
+           {:target help/rule-config-data-whereabouts
+            :params        {:request/organisation new-org-value}
+            ;:post-mutation `cljs-ops/config-data
+            }))

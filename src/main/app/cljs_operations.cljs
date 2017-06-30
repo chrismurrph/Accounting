@@ -34,7 +34,7 @@
 
 ;;
 ;; Assumes that state has already been changed, so that year-field-whereabouts has what the user has just chosen
-;; Changes the period options to those that are possible, to those that reflect the data available
+;; Changes the period options to those that are possible ... to those that reflect the data available
 ;;
 (defmutation year-changed [no-params]
              (action [{:keys [state]}]
@@ -47,7 +47,7 @@
                        (swap! state #(-> %
                                          (help/period-dropdown-rebuilder selected-period period-options))))))
 
-(defmutation potential-data [no-params]
+(defmutation post-potential-data [no-params]
              (action [{:keys [state]}]
                      (let [st @state
                            ident (:my-potential-data st)
@@ -79,12 +79,15 @@
    :type/liab (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
-(defmutation add-phone [{:keys [id person]}]
+(defmutation add-phone [{:keys [id person phone-form]}]
   (action [{:keys [state]}]
-          (u/log-on (str "supposed be adding phone for: " person))
-          state))
+          (let [new-phone    (f/build-form phone-form #_uubms/ValidatedPhoneForm {:db/id id :phone/type :home :phone/number ""})
+                person-ident [:people/by-id person]
+                phone-ident  (om/ident phone-form #_uubms/ValidatedPhoneForm new-phone)]
+            (swap! state assoc-in phone-ident new-phone)
+            (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
 
-(defmutation add-phone [{:keys [id person]}]
+#_(defmutation create-person [{:keys [id]}]
   (action [{:keys [state]}]
           (let [new-phone    (f/build-form uubms/ValidatedPhoneForm {:db/id id :phone/type :home :phone/number ""})
                 person-ident [:people/by-id person]

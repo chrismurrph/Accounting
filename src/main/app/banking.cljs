@@ -161,14 +161,33 @@
 
 (def avant-type-selected :not-yet-3)
 
-(def ui-vphone-form (om/factory uubms/ValidatedPhoneForm))
+(defui ^:once ValidatedPhoneForm
+  static uc/InitialAppState
+  (initial-state [this params] (f/build-form this (or params {})))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/text-input :phone/number :validator `help/us-phone?) ; Addition of validator
+                     (f/dropdown-input :phone/type [(f/option :home "Home") (f/option :work "Work")])])
+  static om/IQuery
+  (query [this] [:db/id :phone/type :phone/number f/form-key])
+  static om/Ident
+  (ident [this props] [:phone/by-id (:db/id props)])
+  Object
+  (render [this]
+    (let [form (om/props this)]
+      (dom/div #js {:className "form-horizontal"}
+               (fh/field-with-label this form :phone/type "Phone type:")
+               ;; One more parameter to give the validation error message:
+               (fh/field-with-label this form :phone/number "Number:" "Please format as (###) ###-####")))))
+
+(def ui-vphone-form (om/factory ValidatedPhoneForm))
 
 (defui ^:once PersonForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/subform-element :person/phone-numbers uubms/ValidatedPhoneForm :many)
+                     (f/subform-element :person/phone-numbers ValidatedPhoneForm :many)
                      (f/text-input :person/name :validator `help/name-valid?)
                      (f/integer-input :person/age :validator `f/in-range?
                                       :validator-args {:min 1 :max 110})
@@ -178,7 +197,7 @@
   (query [this] [f/form-root-key f/form-key
                  :db/id :person/name :person/age
                  :person/registered-to-vote?
-                 {:person/phone-numbers (om/get-query uubms/ValidatedPhoneForm)}])
+                 {:person/phone-numbers (om/get-query ValidatedPhoneForm)}])
   static om/Ident
   (ident [this props] [:people/by-id (:db/id props)])
   Object
@@ -197,8 +216,9 @@
                (dom/div #js {:className "button-group"}
                         (dom/button #js {:className "btn btn-primary"
                                          :onClick   #(om/transact! this
-                                                                   `[(cljs-ops/add-phone ~{:id     (om/tempid)
-                                                                                           :person (:db/id props)})])}
+                                                                   `[(cljs-ops/add-phone ~{:id         (om/tempid)
+                                                                                           :person     (:db/id props)
+                                                                                           :phone-form ValidatedPhoneForm})])}
                                     "Add Phone")
                         (dom/button #js {:className "btn btn-default" :disabled (f/valid? props)
                                          :onClick   #(f/validate-entire-form! this props)}
@@ -218,14 +238,15 @@
                      :person/name                "Tony Kay"
                      :person/age                 43
                      :person/registered-to-vote? false
-                     :person/phone-numbers       [(uc/initial-state uubms/ValidatedPhoneForm
+                     :person/phone-numbers       [(uc/initial-state ValidatedPhoneForm
                                                                     {:db/id        22
                                                                      :phone/type   :work
                                                                      :phone/number "(123) 412-1212"})
-                                                  (uc/initial-state uubms/ValidatedPhoneForm
+                                                  (uc/initial-state ValidatedPhoneForm
                                                                     {:db/id        23
                                                                      :phone/type   :home
                                                                      :phone/number "(541) 555-1212"})]}))
+
 (defn banking-initial-state [id]
   {:db/id                            id
    :banking-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
@@ -291,7 +312,9 @@
                           (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
                                               " from " (help/bank-kw->bank-name src-bank)
                                               ". You need to create a new rule:"))
-                          (ui-person-form person))
+                          (if person
+                            (ui-person-form person)
+                            (u/log "Better create new person")))
                  (ui-rules-list existing-rules))))))
 
 (def ui-banking-form (om/factory BankingForm))

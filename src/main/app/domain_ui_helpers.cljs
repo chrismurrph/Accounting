@@ -113,11 +113,71 @@
    :report/trial-balance   "Trial Balance"
    :report/big-items-first "Biggest first"})
 
+(defn make-example-bank-line [id]
+  {:db/id              id
+   :bank-line/src-bank :bank/anz-visa
+   :bank-line/date     "24/08/2016"
+   :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
+   :bank-line/amount   0.00M})
+
+(def example-rule
+  {:logic-operator          :or,
+   :conditions              [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]],
+   :rule/source-bank        :bank/anz-visa,
+   :rule/target-account     :exp/office-expense,
+   :between-dates-inclusive nil,
+   :on-dates                nil})
+
+(defn make-condition [[field predicate subject]]
+  {:condition/field     field
+   :condition/predicate predicate
+   :condition/subject   subject})
+
+(def type->desc
+  {:type/exp       "Expense"
+   :type/non-exp   "Non-Expense"
+   :type/income    "Income"
+   :type/personal  "Personal"
+   :type/liability "Liability"})
+
+(def type-options
+  [(f/option :type/exp "Expense")
+   (f/option :type/non-exp "Non-Expense")
+   (f/option :type/income "Income")
+   ;; S/be done with checkbox. Sep ui/personal? then we don't need to display the
+   ;; target-ledger, which will be auto-set to same bank account but with :personal
+   ;; namespace at the beginning.
+   ;; For examples rule on server will end up being:
+   ;; :rule/source-bank :bank/amp, :rule/target-account :personal/amp
+   ;; OR
+   ;; :rule/source-bank :bank/anz-visa, :rule/target-account :personal/anz-visa
+   ;; For this to happen there will need to be a mutation to set the target
+   ;; account (known here as target-ledger). Un-setting to of course un-set.
+   ;; When personal/trash is on the target-ledger drop down will disappear.
+   ;;
+   ;(f/option :type/personal "Personal")
+   (f/option :type/liab "Liability")])
+
+(def logic-options
+  [(f/option :single "")
+   (f/option :and "AND")
+   (f/option :or "OR")])
+
 (defn bank-kw->bank-name [kw]
   (and kw (-> kw
               name
               (clojure.string/replace #"-" " ")
               clojure.string/upper-case)))
+
+;;
+;; Not yet worth the effort, but the idea was any short words
+;; to be upper-cased, because seeing ATO much better than Ato.
+;; Probably later we won't just be doing everything off keywords
+;;
+(comment (defn upper-or-capitalize [s]
+           (if (> (count s) 3)
+             (clojure.string/capitalize s)
+             (clojure.string/upper-case s))))
 
 (defn ledger-kw->account-name [kw]
   (and kw (-> kw
@@ -141,9 +201,9 @@
                                  first))
 
 #_(def source-bank-options-generator (fh/options-generator
-                                     (fn [_ list] list)
-                                     #(f/option % (bank-kw->bank-name %))
-                                     first))
+                                       (fn [_ list] list)
+                                       #(f/option % (bank-kw->bank-name %))
+                                       first))
 
 (def target-account-options-generator (fh/options-generator
                                         (fn [_ list] list)

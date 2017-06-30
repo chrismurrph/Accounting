@@ -20,12 +20,12 @@
 (defn field-with-label
   "A non-library helper function, written by you to help lay out your form."
   ([comp form name label] (field-with-label comp form name label nil))
-  ([comp form name label {:keys [validation-message onChange] :as params}]
+  ([comp form name label {:keys [validation-message onChange label-width-css] :as params}]
    (assert label (str "No label passed in for " name))
    (assert (or (nil? onChange) (fn? onChange)))
     ;(println params)
    (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
-            (dom/label #js {:className "col-sm-1" :htmlFor name} label)
+            (dom/label #js {:className (or label-width-css "col-sm-1") :htmlFor name} label)
             (dom/div #js {:className "col-sm-2"} (f/form-field comp form name :onChange onChange))
             (when (and validation-message (f/invalid? form name))
               (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message)))))

@@ -7,7 +7,8 @@
     [app.util :as u]
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]
-    [clojure.set :as set]))
+    [clojure.set :as set]
+    [untangled.client.data-fetch :as df]))
 
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
@@ -84,22 +85,24 @@
              (action [{:keys [state]}]
                      (swap! state assoc-in help/rules-list-selected-rule nil)))
 
-(defmutation config-data-for-target-dropdown [{:keys [acct-type]}]
+(defmutation config-data-for-target-ledger-dropdown [{:keys [acct-type src-bank]}]
              (action [{:keys [state]}]
                      (let [st @state
                            ident [:config-data/by-id p/CONFIG_DATA]
-                           {:keys [config-data/ledger-accounts #_config-data/bank-accounts]} (get-in st ident)
+                           {:keys [config-data/ledger-accounts]} (get-in st ident)
                            to-remove (type->what-remove acct-type)
                            _ (assert to-remove (str "No set found from <" acct-type ">"))
                            ledger-accounts (remove #(to-remove (namespace %)) ledger-accounts)
-                           ;[selected-source-bank source-bank-options] (help/source-bank-options-generator bank-accounts nil)
                            [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts nil)
+                           alphabetic-target-account-options (sort-by :option/label target-account-options)
+                           ;; On this one we will need to do the same event as if the user had selected it
+                           ;; Hmm - that involves a load which I don't want to do from a mutation
+                           pre-selected (-> alphabetic-target-account-options first :option/key)
                            ]
                        (u/log-on (str "see counts: " (count ledger-accounts)))
                        (assert (pos? (count ledger-accounts)))
                        (swap! state #(-> %
-                                         (help/target-account-dropdown-rebuilder selected-target-account (sort-by :option/label target-account-options))
-                                         )))))
+                                         (help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options))))))
 
 (defmutation unruly-bank-statement-line [no-params]
              (action [{:keys [state]}]

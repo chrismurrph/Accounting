@@ -24,11 +24,7 @@
   (query [this] [:db/id :bank-line/src-bank :bank-line/date :bank-line/desc :bank-line/amount])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id]}]
-    {:db/id              id
-     :bank-line/src-bank :bank/anz-visa
-     :bank-line/date     "24/08/2016"
-     :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
-     :bank-line/amount   0.00M})
+    (help/make-example-bank-line id))
   Object
   (render [this]
     (let [{:keys [db/id bank-line/src-bank bank-line/date bank-line/desc bank-line/amount]} (om/props this)]
@@ -82,17 +78,12 @@
 
 (def rule-header
   (dom/tr nil
-          (dom/th #js {:className "col-md-2"} "Num conditions")
           (dom/th #js {:className "col-md-2"} "Permanent?")
           (dom/th #js {:className "col-md-2"} "Source bank account")
           (dom/th #js {:className "col-md-2"} "Target ledger account")
           (dom/th #js {:className "col-md-2"} "Logic operator")
+          (dom/th #js {:className "col-md-2"} "Num conditions")
           (dom/th #js {:className "col-md-2"} "Conditions")))
-
-(defn make-condition [[field predicate subject]]
-  {:condition/field     field
-   :condition/predicate predicate
-   :condition/subject   subject})
 
 (defui ^:once RulesList
   static om/Ident
@@ -116,7 +107,7 @@
                #_(dom/label nil (str "DEBUG - Matching rules count: " (count items) (when selected-rule (str ", selected rule: " (inc selected-rule)))))
                (if (or selected-rule (= 1 (count items)))
                  (let [{:keys [rule/logic-operator] :as the-rule} (nth items (or selected-rule 0))
-                       conditions (map make-condition (:rule/conditions the-rule))]
+                       conditions (map help/make-condition (:rule/conditions the-rule))]
                    (dom/div nil
                             (when selected-rule
                               (dom/div nil
@@ -136,12 +127,6 @@
                                        (dom/tbody nil (map #(ui-rule (om/computed % {:rule-selected rule-selected})) items))))))))))
 (def ui-rules-list (om/factory RulesList))
 
-(def rule {:logic-operator          :or,
-           :conditions              [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]],
-           :rule/source-bank        :bank/anz-visa,
-           :rule/target-account     :exp/office-expense,
-           :between-dates-inclusive nil,
-           :on-dates                nil})
 ;; :logic-operator dropdown :and :or :single
 ;; :conditions can be a sub form that has list of existing above, and way of entering below.
 ;; Way of entering:
@@ -152,11 +137,14 @@
 ;; :config-data/ledger-accounts
 
 ;;
-;; More than a pun. Getting a bank statement line that is either not satisfied by a rule,
+;; 'unruly' is more than a pun. Getting a bank statement line that is either not satisfied by a rule,
 ;; or has too many rules. In the first unruly case the user must pick one. In the second
 ;; unruly case the user must pick one from many (assert which one dominates).
 ;; If nothing comes back a message saying 'all good' is displayed to the user.
 ;; Once the user has done the rules thing he presses the button which calls this fn again.
+;; Something else that may come is a [Merge edit] button, which won't be available if there
+;; are two and one is permanent and the other is temporal. In that case user has to understand
+;; that can edit one and come back, then merge will be available.
 ;;
 (defn load-unruly-bank-statement-line [comp]
   (df/load comp :my-unruly-bank-statement-line BankStatementLine
@@ -165,15 +153,10 @@
 (defn load-existing-rules [comp source-bank target-ledger]
   (df/load comp :my-existing-rules Rule
            {:target  help/rules-list-items-whereabouts
-            :refresh [[:rules-list/by-id p/RULES_LIST]]
+            ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
+            ;; but the existing rules were not being displayed.
+            :refresh [[:rule-form/by-id p/RULE_FORM]]
             :params  {:source-bank source-bank :target-ledger target-ledger}}))
-
-(def type->desc
-  {:type/exp       "Expense"
-   :type/non-exp   "Non-Expense"
-   :type/income    "Income"
-   :type/personal  "Personal"
-   :type/liability "Liability"})
 
 (defui ^:once RuleForm
   static uc/InitialAppState
@@ -183,31 +166,11 @@
                         :rule-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/dropdown-input :ui/type
-                                       [(f/option :type/exp "Expense")
-                                        (f/option :type/non-exp "Non-Expense")
-                                        (f/option :type/income "Income")
-                                        ;; S/be done with checkbox. Sep ui/personal? then we don't need to display the
-                                        ;; target-ledger, which will be auto-set to same bank account but with :personal
-                                        ;; namespace at the beginning.
-                                        ;; For examples rule on server will end up being:
-                                        ;; :rule/source-bank :bank/amp, :rule/target-account :personal/amp
-                                        ;; OR
-                                        ;; :rule/source-bank :bank/anz-visa, :rule/target-account :personal/anz-visa
-                                        ;; For this to happen there will need to be a mutation to set the target
-                                        ;; account (known here as target-ledger). Un-setting to of course un-set.
-                                        ;; When personal/trash is on the target-ledger drop down will disappear.
-                                        ;;
-                                        ;(f/option :type/personal "Personal")
-                                        (f/option :type/liab "Liability")]
-                                       )
+                     (f/dropdown-input :ui/type help/type-options)
                      (f/dropdown-input :rule-form/target-ledger
                                        [(f/option :not-yet-2 "Not yet loaded 2")]
                                        :default-value :not-yet-2)
-                     (f/dropdown-input :rule-form/logic-operator
-                                       [(f/option :single "")
-                                        (f/option :and "AND")
-                                        (f/option :or "OR")]
+                     (f/dropdown-input :rule-form/logic-operator help/logic-options
                                        :default-value :single)])
   static om/Ident
   (ident [_ props] [:rule-form/by-id (:db/id props)])
@@ -226,27 +189,33 @@
                   rule-form/target-ledger rule-form/existing-rules] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts]} config-data
-          type-description (type->desc type)
-          ]
+          type-description (help/type->desc type)
+          matching-rules-count (-> existing-rules :rules-list/items count)]
       (dom/div #js {:className "form-horizontal"}
+               #_(dom/label nil (str "DEBUG - Target ledger is " target-ledger
+                                   ", and count of existing: " (-> existing-rules :rules-list/items count)))
                (fh/field-with-label this form :ui/type
                                     "Type"
-                                    {:onChange (fn [evt]
+                                    {:label-width-css "col-sm-2"
+                                     :onChange (fn [evt]
                                                  (let [new-val (u/target-kw evt)]
-                                                   (when (type->desc new-val)
-                                                     (om/transact! this `[(cljs-ops/config-data-for-target-dropdown
+                                                   (when (help/type->desc new-val)
+                                                     (om/transact! this `[(cljs-ops/config-data-for-target-ledger-dropdown
                                                                             {:acct-type ~new-val})]))))})
                (when type-description (fh/field-with-label this form :rule-form/target-ledger
-                                                           type-description
-                                                           {:onChange (fn [evt]
-                                                                        (let [new-val (u/target-kw evt)]
-                                                                          (u/log-on (str "src bank: " src-bank ", target ledger: " new-val))
-                                                                          (load-existing-rules this src-bank new-val)))}))
+                                                           (str "Target " type-description)
+                                                           {:label-width-css "col-sm-2"
+                                                            :onChange (fn [evt]
+                                                                        (let [new-target-ledger-val (u/target-kw evt)]
+                                                                          (u/log-on (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
+                                                                          (load-existing-rules this src-bank new-target-ledger-val)))}))
                ;Remember that :rule-form is initially how are querying for a rule, that might become the new rule, or
                ; might become editing one of the existing rules. [Select Existing]
                ;whereas :rule is one of many possibilities may want to start editing
                ;(fh/field-with-label this form :rule-form/logic-operator "Selector")
-               (ui-rules-list existing-rules)))))
+               (if (zero? matching-rules-count)
+                 (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger) ". Create new rule:"))
+                 (ui-rules-list existing-rules))))))
 
 (def ui-rule-form (om/factory RuleForm))
 

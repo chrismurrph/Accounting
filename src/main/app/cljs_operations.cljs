@@ -8,7 +8,9 @@
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]
     [clojure.set :as set]
-    [untangled.client.data-fetch :as df]))
+    [untangled.client.data-fetch :as df]
+    [untangled.client.core :as uc]
+    [app.uis-used-by-mutations :as uubms]))
 
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
@@ -81,6 +83,14 @@
   (action [{:keys [state]}]
           (u/log-on (str "supposed be adding phone for: " person))
           state))
+
+(defmutation add-phone [{:keys [id person]}]
+  (action [{:keys [state]}]
+          (let [new-phone    (f/build-form uubms/ValidatedPhoneForm {:db/id id :phone/type :home :phone/number ""})
+                person-ident [:people/by-id person]
+                phone-ident  (om/ident uubms/ValidatedPhoneForm new-phone)]
+            (swap! state assoc-in phone-ident new-phone)
+            (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
 
 (defmutation selected-rule [{:keys [selected]}]
              (action [{:keys [state]}]

@@ -9,6 +9,7 @@
             [goog.string.format]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
+            [app.uis-used-by-mutations :as uubms]
             [untangled.ui.forms :as f]
             [app.forms-helpers :as fh]
             [app.config :as config]
@@ -160,33 +161,14 @@
 
 (def avant-type-selected :not-yet-3)
 
-(defui ^:once ValidatedPhoneForm
-  static uc/InitialAppState
-  (initial-state [this params] (f/build-form this (or params {})))
-  static f/IForm
-  (form-spec [this] [(f/id-field :db/id)
-                     (f/text-input :phone/number :validator `help/us-phone?) ; Addition of validator
-                     (f/dropdown-input :phone/type [(f/option :home "Home") (f/option :work "Work")])])
-  static om/IQuery
-  (query [this] [:db/id :phone/type :phone/number f/form-key])
-  static om/Ident
-  (ident [this props] [:phone/by-id (:db/id props)])
-  Object
-  (render [this]
-    (let [form (om/props this)]
-      (dom/div #js {:className "form-horizontal"}
-               (fh/field-with-label this form :phone/type "Phone type:")
-               ;; One more parameter to give the validation error message:
-               (fh/field-with-label this form :phone/number "Number:" "Please format as (###) ###-####")))))
-
-(def ui-vphone-form (om/factory ValidatedPhoneForm))
+(def ui-vphone-form (om/factory uubms/ValidatedPhoneForm))
 
 (defui ^:once PersonForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/subform-element :person/phone-numbers ValidatedPhoneForm :many)
+                     (f/subform-element :person/phone-numbers uubms/ValidatedPhoneForm :many)
                      (f/text-input :person/name :validator `help/name-valid?)
                      (f/integer-input :person/age :validator `f/in-range?
                                       :validator-args {:min 1 :max 110})
@@ -196,7 +178,7 @@
   (query [this] [f/form-root-key f/form-key
                  :db/id :person/name :person/age
                  :person/registered-to-vote?
-                 {:person/phone-numbers (om/get-query ValidatedPhoneForm)}])
+                 {:person/phone-numbers (om/get-query uubms/ValidatedPhoneForm)}])
   static om/Ident
   (ident [this props] [:people/by-id (:db/id props)])
   Object
@@ -236,11 +218,11 @@
                      :person/name                "Tony Kay"
                      :person/age                 43
                      :person/registered-to-vote? false
-                     :person/phone-numbers       [(uc/initial-state ValidatedPhoneForm
+                     :person/phone-numbers       [(uc/initial-state uubms/ValidatedPhoneForm
                                                                     {:db/id        22
                                                                      :phone/type   :work
                                                                      :phone/number "(123) 412-1212"})
-                                                  (uc/initial-state ValidatedPhoneForm
+                                                  (uc/initial-state uubms/ValidatedPhoneForm
                                                                     {:db/id        23
                                                                      :phone/type   :home
                                                                      :phone/number "(541) 555-1212"})]}))

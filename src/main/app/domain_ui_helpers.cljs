@@ -16,6 +16,14 @@
    :jan "Jan" :feb "Feb" :mar "Mar" :apr "Apr" :may "May" :jun "Jun" :jul "Jul"
    :aug "Aug" :sep "Sep" :oct "Oct" :nov "Nov" :dec "Dec"})
 
+;; Sample validator that requires there be at least two words
+(defmethod f/form-field-valid? `name-valid? [_ value args]
+  (let [trimmed-value (clojure.string/trim value)]
+    (clojure.string/includes? trimmed-value " ")))
+
+(defmethod f/form-field-valid? `us-phone? [sym value args]
+  (seq (re-matches #"[(][0-9][0-9][0-9][)] [0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]" value)))
+
 (defn following-period [periods m]
   (->> periods
        (drop-while #(not= m %))
@@ -229,26 +237,26 @@
 (def period-default-value-whereabouts (request-form-input-default-value :request/period))
 (def report-default-value-whereabouts (request-form-input-default-value :request/report))
 
-(def rule-form-ident [:rule-form/by-id p/RULE_FORM])
-(def rule-form-config-data-whereabouts (conj rule-form-ident :rule-form/config-data))
+(def banking-form-ident [:banking-form/by-id p/BANKING_FORM])
+(def banking-form-config-data-whereabouts (conj banking-form-ident :banking-form/config-data))
 ; Not where they go:
-;(def rule-form-existing-rules-whereabouts (conj rule-form-ident :rule-form/existing-rules))
+;(def banking-form-existing-rules-whereabouts (conj banking-form-ident :banking-form/existing-rules))
 
 (def rules-list-ident [:rules-list/by-id p/RULES_LIST])
 (def rules-list-items-whereabouts (conj rules-list-ident :rules-list/items))
 (def rules-list-selected-rule (conj rules-list-ident :ui/selected-rule))
 
 ;
-;(def source-bank-field-whereabouts (conj rule-form-ident :rule-form/source-bank))
-(def target-account-field-whereabouts (conj rule-form-ident :rule-form/target-ledger))
+;(def source-bank-field-whereabouts (conj banking-form-ident :banking-form/source-bank))
+(def target-account-field-whereabouts (conj banking-form-ident :banking-form/target-ledger))
 
-(def rule-form-input-options (partial fh/input-options rule-form-ident))
-(def source-bank-options-whereabouts (rule-form-input-options :rule-form/source-bank))
-(def target-account-options-whereabouts (rule-form-input-options :rule-form/target-ledger))
+(def banking-form-input-options (partial fh/input-options banking-form-ident))
+(def source-bank-options-whereabouts (banking-form-input-options :banking-form/source-bank))
+(def target-account-options-whereabouts (banking-form-input-options :banking-form/target-ledger))
 
-(def rule-form-input-default-value (partial fh/input-default-value rule-form-ident))
-(def source-bank-default-value-whereabouts (rule-form-input-default-value :rule-form/source-bank))
-(def target-account-default-value-whereabouts (rule-form-input-default-value :rule-form/target-ledger))
+(def banking-form-input-default-value (partial fh/input-default-value banking-form-ident))
+(def source-bank-default-value-whereabouts (banking-form-input-default-value :banking-form/source-bank))
+(def target-account-default-value-whereabouts (banking-form-input-default-value :banking-form/target-ledger))
 
 ;;
 ;; When the user changes the year we need to rebuild the quarters (or months i.e. periods)

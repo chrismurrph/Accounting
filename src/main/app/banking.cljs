@@ -155,86 +155,181 @@
            {:target  help/rules-list-items-whereabouts
             ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
             ;; but the existing rules were not being displayed.
-            :refresh [[:rule-form/by-id p/RULE_FORM]]
+            :refresh [[:banking-form/by-id p/BANKING_FORM]]
             :params  {:source-bank source-bank :target-ledger target-ledger}}))
 
-(defui ^:once RuleForm
+(def avant-type-selected :not-yet-3)
+
+(defui ^:once ValidatedPhoneForm
+  static uc/InitialAppState
+  (initial-state [this params] (f/build-form this (or params {})))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/text-input :phone/number :validator `help/us-phone?) ; Addition of validator
+                     (f/dropdown-input :phone/type [(f/option :home "Home") (f/option :work "Work")])])
+  static om/IQuery
+  (query [this] [:db/id :phone/type :phone/number f/form-key])
+  static om/Ident
+  (ident [this props] [:phone/by-id (:db/id props)])
+  Object
+  (render [this]
+    (let [form (om/props this)]
+      (dom/div #js {:className "form-horizontal"}
+               (fh/field-with-label this form :phone/type "Phone type:")
+               ;; One more parameter to give the validation error message:
+               (fh/field-with-label this form :phone/number "Number:" "Please format as (###) ###-####")))))
+
+(def ui-vphone-form (om/factory ValidatedPhoneForm))
+
+(defui ^:once PersonForm
+  static uc/InitialAppState
+  (initial-state [this params] (f/build-form this (or params {})))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/subform-element :person/phone-numbers ValidatedPhoneForm :many)
+                     (f/text-input :person/name :validator `help/name-valid?)
+                     (f/integer-input :person/age :validator `f/in-range?
+                                      :validator-args {:min 1 :max 110})
+                     (f/checkbox-input :person/registered-to-vote?)])
+  static om/IQuery
+  ; NOTE: f/form-root-key so that sub-forms will trigger render here
+  (query [this] [f/form-root-key f/form-key
+                 :db/id :person/name :person/age
+                 :person/registered-to-vote?
+                 {:person/phone-numbers (om/get-query ValidatedPhoneForm)}])
+  static om/Ident
+  (ident [this props] [:people/by-id (:db/id props)])
+  Object
+  (render [this]
+    (let [{:keys [person/phone-numbers] :as props} (om/props this)]
+      (dom/div #js {:className "form-horizontal"}
+               (fh/field-with-label this props :person/name "Full Name:" "Please enter your first and last name.")
+               (fh/field-with-label this props :person/age "Age:" "That isn't a real age!")
+               (fh/field-with-label this props :person/registered-to-vote? "Registered?" {:checkbox-style? true})
+               (when (f/current-value props :person/registered-to-vote?)
+                 (dom/div nil "Good on you!"))
+               (dom/div nil
+                        (mapv ui-vphone-form phone-numbers))
+               (when (f/valid? props)
+                 (dom/div nil "All fields have had been validated, and are valid"))
+               (dom/div #js {:className "button-group"}
+                        (dom/button #js {:className "btn btn-primary"
+                                         :onClick   #(om/transact! this
+                                                                   `[(cljs-ops/add-phone ~{:id     (om/tempid)
+                                                                                           :person (:db/id props)})])}
+                                    "Add Phone")
+                        (dom/button #js {:className "btn btn-default" :disabled (f/valid? props)
+                                         :onClick   #(f/validate-entire-form! this props)}
+                                    "Validate")
+                        (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
+                                         :onClick   #(f/reset-from-entity! this props)}
+                                    "UNDO")
+                        (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
+                                         :onClick   #(f/commit-to-entity! this)}
+                                    "Submit"))))))
+
+(def ui-person-form (om/factory PersonForm))
+
+(def first-person
+  (uc/initial-state PersonForm
+                    {:db/id                      1
+                     :person/name                "Tony Kay"
+                     :person/age                 43
+                     :person/registered-to-vote? false
+                     :person/phone-numbers       [(uc/initial-state ValidatedPhoneForm
+                                                                    {:db/id        22
+                                                                     :phone/type   :work
+                                                                     :phone/number "(123) 412-1212"})
+                                                  (uc/initial-state ValidatedPhoneForm
+                                                                    {:db/id        23
+                                                                     :phone/type   :home
+                                                                     :phone/number "(541) 555-1212"})]}))
+(defn banking-initial-state [id]
+  {:db/id                            id
+   :banking-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
+   :banking-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
+   :person                           first-person})
+
+(defui ^:once BankingForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
-    (f/build-form this {:db/id                         id
-                        :rule-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
-                        :rule-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})}))
+    (f/build-form this (banking-initial-state id)))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :ui/type help/type-options)
-                     (f/dropdown-input :rule-form/target-ledger
-                                       [(f/option :not-yet-2 "Not yet loaded 2")]
-                                       :default-value :not-yet-2)
-                     (f/dropdown-input :rule-form/logic-operator help/logic-options
+                     (f/dropdown-input :banking-form/target-ledger
+                                       [(f/option avant-type-selected "Not yet loaded 3")]
+                                       :default-value avant-type-selected)
+                     (f/dropdown-input :banking-form/logic-operator help/logic-options
                                        :default-value :single)])
   static om/Ident
-  (ident [_ props] [:rule-form/by-id (:db/id props)])
+  (ident [_ props] [:banking-form/by-id (:db/id props)])
   static om/IQuery
   (query [_] [:db/id
               :ui/type
-              :rule-form/logic-operator
-              {:rule-form/bank-statement-line (om/get-query BankStatementLine)}
-              :rule-form/target-ledger
+              :banking-form/logic-operator
+              {:banking-form/bank-statement-line (om/get-query BankStatementLine)}
+              :banking-form/target-ledger
               ;; Only when there's a target account will any of these come back
-              {:rule-form/existing-rules (om/get-query RulesList)}
-              {:rule-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key])
+              {:banking-form/existing-rules (om/get-query RulesList)}
+              {:banking-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key
+              {:person (om/get-query PersonForm)}])
   Object
   (render [this]
-    (let [{:keys [ui/type rule-form/config-data rule-form/logic-operator rule-form/bank-statement-line
-                  rule-form/target-ledger rule-form/existing-rules] :as form} (om/props this)
+    (let [{:keys [ui/type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
+                  banking-form/target-ledger banking-form/existing-rules person] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts]} config-data
           type-description (help/type->desc type)
           matching-rules-count (-> existing-rules :rules-list/items count)]
       (dom/div #js {:className "form-horizontal"}
                #_(dom/label nil (str "DEBUG - Target ledger is " target-ledger
-                                   ", and count of existing: " (-> existing-rules :rules-list/items count)))
+                                     ", and count of existing: " (-> existing-rules :rules-list/items count)))
                (fh/field-with-label this form :ui/type
                                     "Type"
                                     {:label-width-css "col-sm-2"
-                                     :onChange (fn [evt]
-                                                 (let [new-val (u/target-kw evt)]
-                                                   (when (help/type->desc new-val)
-                                                     (om/transact! this `[(cljs-ops/config-data-for-target-ledger-dropdown
-                                                                            {:acct-type ~new-val})]))))})
-               (when type-description (fh/field-with-label this form :rule-form/target-ledger
+                                     :onChange        (fn [evt]
+                                                        (let [new-val (u/target-kw evt)]
+                                                          (when (help/type->desc new-val)
+                                                            (om/transact! this `[(cljs-ops/config-data-for-target-ledger-dropdown
+                                                                                   {:acct-type ~new-val})]))))})
+               (when type-description (fh/field-with-label this form :banking-form/target-ledger
                                                            (str "Target " type-description)
                                                            {:label-width-css "col-sm-2"
-                                                            :onChange (fn [evt]
-                                                                        (let [new-target-ledger-val (u/target-kw evt)]
-                                                                          (u/log-on (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
-                                                                          (load-existing-rules this src-bank new-target-ledger-val)))}))
-               ;Remember that :rule-form is initially how are querying for a rule, that might become the new rule, or
+                                                            :onChange        (fn [evt]
+                                                                               (let [new-target-ledger-val (u/target-kw evt)]
+                                                                                 (u/log-on (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
+                                                                                 (load-existing-rules this src-bank new-target-ledger-val)))}))
+               ;Remember that :banking-form is initially how are querying for a rule, that might become the new rule, or
                ; might become editing one of the existing rules. [Select Existing]
                ;whereas :rule is one of many possibilities may want to start editing
-               ;(fh/field-with-label this form :rule-form/logic-operator "Selector")
-               (if (zero? matching-rules-count)
-                 (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger) ". Create new rule:"))
+               ;(fh/field-with-label this form :banking-form/logic-operator "Selector")
+               (if (and (zero? matching-rules-count) (not= target-ledger avant-type-selected))
+                 (dom/div nil
+                          (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
+                                              " from " (help/bank-kw->bank-name src-bank)
+                                              ". You need to create a new rule:"))
+                          (ui-person-form person))
                  (ui-rules-list existing-rules))))))
 
-(def ui-rule-form (om/factory RuleForm))
+(def ui-banking-form (om/factory BankingForm))
 
 (defui ^:once Banking
   static om/IQuery
   (query [this] [:page
                  {:banking/bank-line (om/get-query BankStatementLine)}
-                 {:banking/rule-form (om/get-query RuleForm)}])
+                 {:banking/banking-form (om/get-query BankingForm)}])
   static
   uc/InitialAppState
-  (initial-state [c params] {:page              :banking
-                             :banking/bank-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
-                             :banking/rule-form (uc/get-initial-state RuleForm {:id p/RULE_FORM})})
+  (initial-state [c params] {:page                 :banking
+                             :banking/bank-line    (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
+                             :banking/banking-form (uc/get-initial-state BankingForm {:id p/BANKING_FORM})})
   Object
   (render [this]
-    (let [{:keys [page banking/bank-line banking/rule-form]} (om/props this)]
+    (let [{:keys [page banking/bank-line banking/banking-form]} (om/props this)]
       (if (:bank-line/src-bank bank-line)
         (dom/div nil
                  (ui-bank-statement-line bank-line)
                  (dom/br nil) (dom/br nil)
-                 (ui-rule-form rule-form))
+                 (ui-banking-form banking-form))
         (dom/label nil "All imported bank statement lines have been reconciled against rules")))))

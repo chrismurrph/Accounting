@@ -77,6 +77,11 @@
    :type/liab (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
+(defmutation add-phone [{:keys [id person]}]
+  (action [{:keys [state]}]
+          (u/log-on (str "supposed be adding phone for: " person))
+          state))
+
 (defmutation selected-rule [{:keys [selected]}]
              (action [{:keys [state]}]
                      (swap! state assoc-in help/rules-list-selected-rule selected)))

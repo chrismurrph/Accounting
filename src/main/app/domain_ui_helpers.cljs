@@ -140,7 +140,7 @@
                                  #(f/option % (report-kw->report-name %))
                                  first))
 
-(def source-bank-options-generator (fh/options-generator
+#_(def source-bank-options-generator (fh/options-generator
                                      (fn [_ list] list)
                                      #(f/option % (bank-kw->bank-name %))
                                      first))
@@ -148,7 +148,7 @@
 (def target-account-options-generator (fh/options-generator
                                         (fn [_ list] list)
                                         #(f/option % (ledger-kw->account-name %))
-                                        first))
+                                        (comp first sort)))
 
 ;;
 ;; Useful for things like changing options in fields in panels
@@ -176,6 +176,7 @@
 
 (def rules-list-ident [:rules-list/by-id p/RULES_LIST])
 (def rules-list-items-whereabouts (conj rules-list-ident :rules-list/items))
+(def rules-list-selected-row (conj rules-list-ident :ui/selected-row))
 
 ;
 ;(def source-bank-field-whereabouts (conj rule-form-ident :rule-form/source-bank))

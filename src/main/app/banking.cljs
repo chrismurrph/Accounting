@@ -62,6 +62,7 @@
   Object
   (render [this]
     (let [{:keys [db/id rule/permanent? rule/source-bank rule/target-account rule/logic-operator rule/conditions]} (om/props this)
+          {:keys [rule-selected]} (om/get-computed this)
           _ (assert (some? permanent?))
           permanent-display (if permanent? "true" "false")
           source-bank-display (u/kw->string source-bank)
@@ -70,7 +71,7 @@
           num-conds (str (count conditions))
           conds (str conditions)
           ]
-      (dom/tr nil
+      (dom/tr #js {:onClick #(rule-selected id)}
               (dom/td #js {:className "col-md-2"} num-conds)
               (dom/td #js {:className "col-md-2"} permanent-display)
               (dom/td #js {:className "col-md-2"} source-bank-display)
@@ -105,7 +106,7 @@
   static om/Ident
   (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
-  (query [this] [:db/id :rules-list/label {:rules-list/items (om/get-query Rule)}])
+  (query [this] [:db/id :rules-list/label :ui/selected-row {:rules-list/items (om/get-query Rule)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id            id
@@ -113,11 +114,17 @@
      :rules-list/items []})
   Object
   (render [this]
-    (let [{:keys [db/id rules-list/label rules-list/items]} (om/props this)]
-      (if (= 1 (count items))
-        (let [conditions (map make-condition (:rule/conditions (first items)))]
-          (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                     (dom/tbody nil (map ui-condition conditions))))
+    (let [{:keys [db/id rules-list/label ui/selected-row rules-list/items]} (om/props this)
+          rule-selected (fn [id]
+                          (u/log (str "Clicked on " id))
+                          (om/transact! this `[(cljs-ops/selected-rule {:selected ~id})]))
+          rule-unselected #(om/transact! this `[(cljs-ops/un-select-rule)])]
+      (if (or selected-row (= 1 (count items)))
+        (let [conditions (map make-condition (:rule/conditions (nth items (or selected-row 0))))]
+          (dom/div nil
+                   (when selected-row (dom/button #js {:onClick rule-unselected} "Back"))
+                   (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                              (dom/tbody nil (map ui-condition conditions)))))
         (dom/div nil
                  (dom/label nil (str "Num rules: " (count items)))
                  (dom/div nil
@@ -125,7 +132,7 @@
                           ;; table-inverse did not work
                           ;; table-striped doesn't work well with hover as same colour
                           (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                                     (dom/tbody nil (map ui-rule items)))
+                                     (dom/tbody nil (map #(ui-rule (om/computed % {:rule-selected rule-selected})) items)))
                           #_(map ui-rule items)
                           ))))))
 (def ui-rules-list (om/factory RulesList))

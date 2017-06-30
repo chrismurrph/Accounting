@@ -71,6 +71,14 @@
    :type/liab (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
+(defmutation selected-rule [{:keys [selected]}]
+             (action [{:keys [state]}]
+                     (swap! state assoc-in help/rules-list-selected-row selected)))
+
+(defmutation un-select-rule [{:keys [selected]}]
+             (action [{:keys [state]}]
+                     (swap! state assoc-in help/rules-list-selected-row nil)))
+
 (defmutation config-data-for-target-dropdown [{:keys [acct-type]}]
              (action [{:keys [state]}]
                      (let [st @state
@@ -85,7 +93,7 @@
                        (u/log-on (str "see counts: " (count ledger-accounts)))
                        (assert (pos? (count ledger-accounts)))
                        (swap! state #(-> %
-                                         (help/target-account-dropdown-rebuilder selected-target-account target-account-options)
+                                         (help/target-account-dropdown-rebuilder selected-target-account (sort-by :option/label target-account-options))
                                          )))))
 
 (defmutation unruly-bank-statement-line [no-params]

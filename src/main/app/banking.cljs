@@ -54,7 +54,7 @@
               (dom/td #js {:className "col-md-2"} subject)))))
 (def ui-condition (om/factory Condition {:keyfn :condition/subject}))
 
-(defui ^:once Rule-1
+(defui ^:once Rule
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   static om/IQuery
@@ -72,30 +72,22 @@
           conds (str conditions)
           ]
       (dom/tr #js {:onClick #(rule-selected id)}
-              (dom/td #js {:className "col-md-2"} num-conds)
               (dom/td #js {:className "col-md-2"} permanent-display)
               (dom/td #js {:className "col-md-2"} source-bank-display)
               (dom/td #js {:className "col-md-2"} target-account-display)
               (dom/td #js {:className "col-md-2"} logic-operator-display)
+              (dom/td #js {:className "col-md-2"} num-conds)
               (dom/td #js {:className "col-md-2"} conds)))))
-
-(defui ^:once Rule-2
-  static om/Ident
-  (ident [this props] [:rule/by-id (:db/id props)])
-  static om/IQuery
-  (query [this] [:db/id :rule/source-bank :rule/target-account])
-  Object
-  (render [this]
-    (let [{:keys [db/id rule/source-bank rule/target-account rule/conditions]} (om/props this)
-          source-bank-display (and source-bank (subs (str source-bank) 1))
-          target-account-display (and target-account (subs (str target-account) 1))
-          num-conds (str (count conditions))
-          ]
-      (dom/label nil
-                 (str id " " source-bank-display " " target-account-display " NUM conditions: " num-conds)
-                 ))))
-(def Rule Rule-1)
 (def ui-rule (om/factory Rule {:keyfn :db/id}))
+
+(def rule-header
+  (dom/tr nil
+          (dom/th #js {:className "col-md-2"} "Num conditions")
+          (dom/th #js {:className "col-md-2"} "Permanent?")
+          (dom/th #js {:className "col-md-2"} "Source bank account")
+          (dom/th #js {:className "col-md-2"} "Target ledger account")
+          (dom/th #js {:className "col-md-2"} "Logic operator")
+          (dom/th #js {:className "col-md-2"} "Conditions")))
 
 (defn make-condition [[field predicate subject]]
   {:condition/field     field
@@ -106,7 +98,7 @@
   static om/Ident
   (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
-  (query [this] [:db/id :rules-list/label :ui/selected-row {:rules-list/items (om/get-query Rule)}])
+  (query [this] [:db/id :rules-list/label :ui/selected-rule {:rules-list/items (om/get-query Rule)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id            id
@@ -114,27 +106,34 @@
      :rules-list/items []})
   Object
   (render [this]
-    (let [{:keys [db/id rules-list/label ui/selected-row rules-list/items]} (om/props this)
+    (let [{:keys [db/id rules-list/label ui/selected-rule rules-list/items]} (om/props this)
           rule-selected (fn [id]
                           (u/log (str "Clicked on " id))
                           (om/transact! this `[(cljs-ops/selected-rule {:selected ~id})]))
           rule-unselected #(om/transact! this `[(cljs-ops/un-select-rule)])]
-      (if (or selected-row (= 1 (count items)))
-        (let [conditions (map make-condition (:rule/conditions (nth items (or selected-row 0))))]
-          (dom/div nil
-                   (when selected-row (dom/button #js {:onClick rule-unselected} "Back"))
-                   (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                              (dom/tbody nil (map ui-condition conditions)))))
-        (dom/div nil
-                 (dom/label nil (str "Num rules: " (count items)))
-                 (dom/div nil
-                          ;(dom/label nil (str "ID: " id ", <" label "> " (count items)))
-                          ;; table-inverse did not work
-                          ;; table-striped doesn't work well with hover as same colour
-                          (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                                     (dom/tbody nil (map #(ui-rule (om/computed % {:rule-selected rule-selected})) items)))
-                          #_(map ui-rule items)
-                          ))))))
+      (dom/div nil
+               ;For debugging, display s/be handling this aspect
+               #_(dom/label nil (str "DEBUG - Matching rules count: " (count items) (when selected-rule (str ", selected rule: " (inc selected-rule)))))
+               (if (or selected-rule (= 1 (count items)))
+                 (let [{:keys [rule/logic-operator] :as the-rule} (nth items (or selected-rule 0))
+                       conditions (map make-condition (:rule/conditions the-rule))]
+                   (dom/div nil
+                            (when selected-rule
+                              (dom/div nil
+                                       (dom/label nil (str "Selector: " logic-operator))
+                                       (dom/button #js {:onClick rule-unselected} "Back")
+                                       (dom/label nil (str "Selected rule: " (inc selected-rule) " of " (count items)))))
+                            (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                                       (dom/tbody nil (map ui-condition conditions)))))
+                 (when (pos? (count items))
+                   (dom/div nil
+                            (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
+                            ;(dom/label nil (str "ID: " id ", <" label "> " (count items)))
+                            ;; table-inverse did not work
+                            ;; table-striped doesn't work well with hover as same colour
+                            (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                                       (dom/thead nil rule-header)
+                                       (dom/tbody nil (map #(ui-rule (om/computed % {:rule-selected rule-selected})) items))))))))))
 (def ui-rules-list (om/factory RulesList))
 
 (def rule {:logic-operator          :or,
@@ -146,12 +145,11 @@
 ;; :logic-operator dropdown :and :or :single
 ;; :conditions can be a sub form that has list of existing above, and way of entering below.
 ;; Way of entering:
-;; :out/desc was selected from dropdown of everything in bank-line, but with :out namespace
-;; :starts-with was selected from dropdown also includes (only) :equals
-;; text comes from a text field
-;; :rule/source-bank and :rule/target-account are dropdowns - list values that must come in with config data:
+;; :out/desc was selected from dropdown of everything in bank-line, but with :out namespace (FIELD)
+;; :starts-with was selected from dropdown also includes (only) :equals (PREDICATE)
+;; text comes from a text field (SUBJECT)
+;; :rule/target-account is a dropdown - list of values that must come in with config data:
 ;; :config-data/ledger-accounts
-;; :config-data/bank-accounts
 
 ;;
 ;; More than a pun. Getting a bank statement line that is either not satisfied by a rule,
@@ -214,7 +212,9 @@
   static om/Ident
   (ident [_ props] [:rule-form/by-id (:db/id props)])
   static om/IQuery
-  (query [_] [:db/id :ui/type :rule-form/logic-operator
+  (query [_] [:db/id
+              :ui/type
+              :rule-form/logic-operator
               {:rule-form/bank-statement-line (om/get-query BankStatementLine)}
               :rule-form/target-ledger
               ;; Only when there's a target account will any of these come back
@@ -225,18 +225,9 @@
     (let [{:keys [ui/type rule-form/config-data rule-form/logic-operator rule-form/bank-statement-line
                   rule-form/target-ledger rule-form/existing-rules] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
-          {:keys [config-data/ledger-accounts config-data/bank-accounts]} config-data
-          ;period-label (condp = period-type
-          ;               :period-type/quarterly "Quarter"
-          ;               :period-type/monthly "Month"
-          ;               :period-type/unknown "Unknown"
-          ;               nil "Unknown")
-          ;at-className (if manually-executable? "btn btn-primary" "btn disabled")
-          ;at-disabled (if manually-executable? "" "true")
+          {:keys [config-data/ledger-accounts]} config-data
           type-description (type->desc type)
           ]
-      (u/log-off (str "the counts: " (count ledger-accounts) (count bank-accounts)))
-      (u/log-off type)
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :ui/type
                                     "Type"
@@ -251,6 +242,10 @@
                                                                         (let [new-val (u/target-kw evt)]
                                                                           (u/log-on (str "src bank: " src-bank ", target ledger: " new-val))
                                                                           (load-existing-rules this src-bank new-val)))}))
+               ;Remember that :rule-form is initially how are querying for a rule, that might become the new rule, or
+               ; might become editing one of the existing rules. [Select Existing]
+               ;whereas :rule is one of many possibilities may want to start editing
+               ;(fh/field-with-label this form :rule-form/logic-operator "Selector")
                (ui-rules-list existing-rules)))))
 
 (def ui-rule-form (om/factory RuleForm))

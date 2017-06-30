@@ -62,22 +62,27 @@
                                          (help/report-dropdown-rebuilder selected-report report-options)
                                          (dissoc :my-potential-data))))))
 
+;;
+;; We already know which bank account the money is coming from. User is picking the account
+;; the money is going to. But first picking the type of that account.
+;;
 (def always-remove #{"bank"})
 (def type->what-remove
   {:type/exp (set/union always-remove #{"income" "non-exp" "personal" "liab"})
    :type/non-exp (set/union always-remove #{"income" "exp" "personal" "liab"})
-   :type/personal (set/union always-remove #{"income" "non-exp" "exp" "liab"})
+   ;; The user has a checkbox for this. Personal/external.
+   ;;:type/personal (set/union always-remove #{"income" "non-exp" "exp" "liab"})
    :type/income (set/union always-remove #{"personal" "non-exp" "exp" "liab"})
    :type/liab (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
 (defmutation selected-rule [{:keys [selected]}]
              (action [{:keys [state]}]
-                     (swap! state assoc-in help/rules-list-selected-row selected)))
+                     (swap! state assoc-in help/rules-list-selected-rule selected)))
 
 (defmutation un-select-rule [{:keys [selected]}]
              (action [{:keys [state]}]
-                     (swap! state assoc-in help/rules-list-selected-row nil)))
+                     (swap! state assoc-in help/rules-list-selected-rule nil)))
 
 (defmutation config-data-for-target-dropdown [{:keys [acct-type]}]
              (action [{:keys [state]}]

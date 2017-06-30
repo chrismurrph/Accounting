@@ -176,7 +176,7 @@
 
 (def rules-list-ident [:rules-list/by-id p/RULES_LIST])
 (def rules-list-items-whereabouts (conj rules-list-ident :rules-list/items))
-(def rules-list-selected-row (conj rules-list-ident :ui/selected-row))
+(def rules-list-selected-rule (conj rules-list-ident :ui/selected-rule))
 
 ;
 ;(def source-bank-field-whereabouts (conj rule-form-ident :rule-form/source-bank))

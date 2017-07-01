@@ -216,7 +216,9 @@
 (def target-account-options-generator (fh/options-generator
                                         (fn [_ list] list)
                                         #(f/option % (ledger-kw->account-name %))
-                                        (comp first sort)))
+                                        #(->> %
+                                              (filter (fn [kw] (= :exp/petrol kw)))
+                                              first)))
 
 ;;
 ;; Useful for things like changing options in fields in panels

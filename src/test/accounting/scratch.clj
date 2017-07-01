@@ -111,3 +111,8 @@
   (->> (iterate transition [[] shifts genes])
        (drop (count shifts))
        ffirst))
+
+{:form/add-relations {[:people/by-id 1] {:person/phone-numbers [[:phone/by-id #om/id["ad127dff-873f-43f9-a178-53620bc7111f"]]]}},
+ :form/new-entities {[:phone/by-id #om/id["ad127dff-873f-43f9-a178-53620bc7111f"]]
+                     {:db/id #om/id["ad127dff-873f-43f9-a178-53620bc7111f"], :phone/number 555, :phone/type :home}}
+ }

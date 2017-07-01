@@ -152,16 +152,6 @@
   (df/load comp :my-unruly-bank-statement-line BankStatementLine
            {:post-mutation `cljs-ops/unruly-bank-statement-line}))
 
-(defn load-existing-rules [comp source-bank target-ledger]
-  (df/load comp :my-existing-rules Rule
-           {:target  help/rules-list-items-whereabouts
-            ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
-            ;; but the existing rules were not being displayed.
-            :refresh [[:banking-form/by-id p/BANKING_FORM]]
-            :params  {:source-bank source-bank :target-ledger target-ledger}}))
-
-(def avant-type-selected :not-yet-3)
-
 (defui ^:once ValidatedPhoneForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
@@ -259,6 +249,16 @@
    :banking-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
    :person                           first-person})
 
+(defn load-existing-rules [comp source-bank target-ledger]
+  (df/load comp :my-existing-rules Rule
+           {:target  help/rules-list-items-whereabouts
+            ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
+            ;; but the existing rules were not being displayed.
+            :refresh [[:banking-form/by-id p/BANKING_FORM]]
+            :params  {:source-bank source-bank :target-ledger target-ledger}}))
+
+(def before-type-selected :not-yet-3)
+
 (defui ^:once BankingForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
@@ -267,8 +267,8 @@
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :ui/type help/type-options)
                      (f/dropdown-input :banking-form/target-ledger
-                                       [(f/option avant-type-selected "Not yet loaded 3")]
-                                       :default-value avant-type-selected)
+                                       [(f/option before-type-selected "Not yet loaded 3")]
+                                       :default-value before-type-selected)
                      (f/dropdown-input :banking-form/logic-operator help/logic-options
                                        :default-value :single)])
   static om/Ident
@@ -313,7 +313,7 @@
                ; might become editing one of the existing rules. [Select Existing]
                ;whereas :rule is one of many possibilities may want to start editing
                ;(fh/field-with-label this form :banking-form/logic-operator "Selector")
-               (if (and (zero? matching-rules-count) (not= target-ledger avant-type-selected))
+               (if (and (zero? matching-rules-count) (not= target-ledger before-type-selected))
                  (dom/div nil
                           (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
                                               " from " (help/bank-kw->bank-name src-bank)

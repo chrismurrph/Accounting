@@ -21,13 +21,11 @@
 (defmutation add-phone
   [{:keys [id person phone-form]}]
   (action [{:keys [state]}]
-          (let [new-phone (f/build-form phone-form #_ValidatedPhoneForm {:db/id id :phone/type :home :phone/number ""})
+          (let [new-phone (f/build-form phone-form {:db/id id :phone/type :home :phone/number ""})
                 person-ident [:people/by-id person]
-                phone-ident (om/ident phone-form #_ValidatedPhoneForm new-phone)]
+                phone-ident (om/ident phone-form new-phone)]
             (swap! state assoc-in phone-ident new-phone)
-            (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers))))
-  #_(remote [env] true)
-  )
+            (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
 
 #_(defmutation create-person [{:keys [id]}]
     (action [{:keys [state]}]

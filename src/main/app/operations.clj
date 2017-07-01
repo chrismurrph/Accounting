@@ -4,7 +4,9 @@
     [untangled.server :as server :refer [defquery-root defquery-entity defmutation]]
     [taoensso.timbre :as timbre]
     [accounting.util :as u]
-    [accounting.api :as api]))
+    [accounting.api :as api]
+    [untangled.ui.forms :as f]
+    [untangled.server :as s]))
 
 (def people-db (atom {1  {:db/id 1 :ledger-item/name "Bert" :ledger-item/amount 55}
                       2  {:db/id 2 :ledger-item/name "Sally" :ledger-item/amount 22}
@@ -16,6 +18,15 @@
                "Queries for the current user returns it to the client"
                (value [env params]
                       (get @people-db 99)))
+
+#_(defmutation add-phone
+             [{:keys [id person #_phone-form]}]
+             (action [{:keys [state]}]
+                     (timbre/info "Server add-phone" id " " person)))
+
+(defmethod s/server-mutate `f/commit-to-entity [env k params]
+             {:action (fn []
+                        (timbre/info "Mutation for " params))})
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

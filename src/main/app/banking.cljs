@@ -13,7 +13,8 @@
             [untangled.ui.forms :as f]
             [app.forms-helpers :as fh]
             [app.config :as config]
-            [app.domain-ui-helpers :as help]))
+            [app.domain-ui-helpers :as help]
+            [app.operations :as ops]))
 
 ;;
 ;; Expect to only see one of these, the one that has no rule or too many rules.
@@ -216,9 +217,9 @@
                (dom/div #js {:className "button-group"}
                         (dom/button #js {:className "btn btn-primary"
                                          :onClick   #(om/transact! this
-                                                                   `[(cljs-ops/add-phone ~{:id         (om/tempid)
-                                                                                           :person     (:db/id props)
-                                                                                           :phone-form ValidatedPhoneForm})])}
+                                                                   `[(ops/add-phone ~{:id         (om/tempid)
+                                                                                      :person     (:db/id props)
+                                                                                      :phone-form ValidatedPhoneForm})])}
                                     "Add Phone")
                         (dom/button #js {:className "btn btn-default" :disabled (f/valid? props)
                                          :onClick   #(f/validate-entire-form! this props)}
@@ -227,7 +228,7 @@
                                          :onClick   #(f/reset-from-entity! this props)}
                                     "UNDO")
                         (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                         :onClick   #(f/commit-to-entity! this)}
+                                         :onClick   #(f/commit-to-entity! this :remote true)}
                                     "Submit"))))))
 
 (def ui-person-form (om/factory PersonForm))

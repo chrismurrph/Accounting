@@ -1,6 +1,10 @@
 (ns accounting.scratch
   (:require [accounting.util :as u]))
 
+;; Will need to do this on all computers
+;Please try to change your system settings:  System -> Preferences -> Keyboard -> Layout -> Options -> Alt/Win key behavior.
+;Choose there "Meta is mapped to left Win".
+
 (defn x-1 []
   (#(let [[lesser greater] (sort [%1 %2])]
       (loop [bigger greater
@@ -16,6 +20,8 @@
 
 (defn exp [x n]
   (reduce * (repeat n x)))
+
+(-> :b (:a))
 
 (defn primes
   ([] (primes 1 1))
@@ -91,3 +97,17 @@
                    [:person/by-id 3]
                    [:person/by-id 4]]},
  :friends {:person-list/people []}}
+
+(def shifts [5 5 5 5 5 2 2 5 5 5 5 5 2 2])
+(def total-shifts (apply + shifts))
+(def genes (vec (range total-shifts)))
+
+(defn transition [[answer shifts-remaining genes-remaining]]
+  (let [[num-shifts & more-shifts] shifts-remaining
+        [daily-genes rest-of-genes] (split-at num-shifts genes-remaining)]
+    [(conj answer daily-genes) more-shifts rest-of-genes]))
+
+(defn x-8 []
+  (->> (iterate transition [[] shifts genes])
+       (drop (count shifts))
+       ffirst))

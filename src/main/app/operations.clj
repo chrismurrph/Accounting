@@ -26,7 +26,11 @@
 
 (defmethod s/server-mutate `f/commit-to-entity [env k params]
              {:action (fn []
-                        (timbre/info "Mutation for " params))})
+                        (println "Mutation for " params))})
+
+;;
+;; For remotes to work you must implement `(f/commit-to-entity {:form-id [:id id] :value {...})`
+;;
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

@@ -167,7 +167,9 @@
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/text-input :phone/number :validator `help/us-phone?) ; Addition of validator
+                     (f/text-input :phone/number
+                                   ;:validator `help/us-phone?
+                                   )
                      (f/dropdown-input :phone/type [(f/option :home "Home") (f/option :work "Work")])])
   static om/IQuery
   (query [this] [:db/id :phone/type :phone/number f/form-key])
@@ -189,8 +191,11 @@
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/subform-element :person/phone-numbers ValidatedPhoneForm :many)
-                     (f/text-input :person/name :validator `help/name-valid?)
-                     (f/integer-input :person/age :validator `f/in-range?
+                     (f/text-input :person/name
+                                   ;:validator `help/name-valid?
+                                   )
+                     (f/integer-input :person/age
+                                      ;:validator `f/in-range?
                                       :validator-args {:min 1 :max 110})
                      (f/checkbox-input :person/registered-to-vote?)])
   static om/IQuery

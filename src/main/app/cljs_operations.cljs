@@ -87,28 +87,33 @@
   (action [{:keys [state]}]
           (swap! state assoc-in help/rules-list-selected-rule nil)))
 
-(defmutation load-existing-rules [{:keys [src-bank target-ledger]}]
+(defmutation config-data-for-target-ledger-dropdown [{:keys [sub-query-comp acct-type src-bank]}]
   (action [{:keys [state]}]
-          (let [st @state]
-            (df/load-data-action))))
-
-(defmutation config-data-for-target-ledger-dropdown [{:keys [acct-type src-bank]}]
-  (action [{:keys [state]}]
+          (assert sub-query-comp (u/assert-str "sub-query-comp" sub-query-comp))
+          (assert acct-type (u/assert-str "acct-type" acct-type))
+          (assert src-bank (u/assert-str "src-bank" src-bank))
           (let [st @state
                 ident [:config-data/by-id p/CONFIG_DATA]
                 {:keys [config-data/ledger-accounts]} (get-in st ident)
                 to-remove (type->what-remove acct-type)
                 _ (assert to-remove (str "No set found from <" acct-type ">"))
                 ledger-accounts (remove #(to-remove (namespace %)) ledger-accounts)
-                [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts nil)
+                [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts acct-type)
                 alphabetic-target-account-options (sort-by :option/label target-account-options)
                 ;; On this one we will need to do the same event as if the user had selected it
                 ;; Hmm - that involves a load which I don't want to do from a mutation
-                ;pre-selected (-> alphabetic-target-account-options first :option/key)
+                ;; See below for how to do the load - load-action does everything load can do
+                ;; Interestingly this whole mutation now becomes remote
+                ;; This is not 'chaining' because there is only one remote call
                 ]
             (assert (pos? (count ledger-accounts)))
             (swap! state #(-> %
-                              (help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options))))))
+                              (help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options)))
+            (df/load-action state :my-existing-rules sub-query-comp
+                            {:target  help/rules-list-items-whereabouts
+                             :refresh [[:banking-form/by-id p/BANKING_FORM]]
+                             :params  {:source-bank src-bank :target-ledger selected-target-account}})))
+  (remote [env] (df/remote-load env)))
 
 (defmutation unruly-bank-statement-line [no-params]
   (action [{:keys [state]}]

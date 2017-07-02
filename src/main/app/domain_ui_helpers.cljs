@@ -208,17 +208,21 @@
                                  #(f/option % (report-kw->report-name %))
                                  first))
 
-#_(def source-bank-options-generator (fh/options-generator
-                                       (fn [_ list] list)
-                                       #(f/option % (bank-kw->bank-name %))
-                                       first))
+(def ledger-type->first-selection
+  {:type/exp     :exp/office-expense
+   :type/non-exp :non-expense/ato-payment
+   :type/income  :income/bank-interest
+   :type/liab    :liab/drawings})
+
+(defn select-auto-selected [xs ledger-type]
+  (->> xs
+       (filter (fn [kw] (= (ledger-type->first-selection ledger-type) kw)))
+       first))
 
 (def target-account-options-generator (fh/options-generator
                                         (fn [_ list] list)
                                         #(f/option % (ledger-kw->account-name %))
-                                        #(->> %
-                                              (filter (fn [kw] (= :exp/petrol kw)))
-                                              first)))
+                                        select-auto-selected))
 
 ;;
 ;; Useful for things like changing options in fields in panels

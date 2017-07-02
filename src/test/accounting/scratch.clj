@@ -112,7 +112,14 @@
        (drop (count shifts))
        ffirst))
 
-{:form/add-relations {[:people/by-id 1] {:person/phone-numbers [[:phone/by-id #om/id["ad127dff-873f-43f9-a178-53620bc7111f"]]]}},
- :form/new-entities {[:phone/by-id #om/id["ad127dff-873f-43f9-a178-53620bc7111f"]]
-                     {:db/id #om/id["ad127dff-873f-43f9-a178-53620bc7111f"], :phone/number 555, :phone/type :home}}
- }
+(defn insert-mean-between [xs]
+  (let [f (fn [x y]
+            [(* (+ x y) 0.5) y])]
+    (->> xs
+         (partition 2 1)
+         (mapcat (partial apply f))
+         (cons (first xs))
+         vec)))
+
+(defn x-9 []
+  (insert-mean-between [1 10 15]))

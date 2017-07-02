@@ -249,13 +249,19 @@
    :banking-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
    :person                           first-person})
 
+;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
+;; but the existing rules were not being displayed.
 (defn load-existing-rules [comp source-bank target-ledger]
   (df/load comp :my-existing-rules Rule
            {:target  help/rules-list-items-whereabouts
-            ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
-            ;; but the existing rules were not being displayed.
             :refresh [[:banking-form/by-id p/BANKING_FORM]]
             :params  {:source-bank source-bank :target-ledger target-ledger}}))
+
+#_(defn load-existing-rules-bad [comp source-bank target-ledger]
+  (om/transact! comp `[(cljs-ops/load-existing-rules
+                           {:sub-query-comp ~Rule
+                            :source-bank ~source-bank
+                            :target-ledger ~target-ledger})]))
 
 (def before-type-selected :not-yet-3)
 
@@ -301,7 +307,9 @@
                                                         (let [new-val (u/target-kw evt)]
                                                           (when (help/type->desc new-val)
                                                             (om/transact! this `[(cljs-ops/config-data-for-target-ledger-dropdown
-                                                                                   {:acct-type ~new-val})]))))})
+                                                                                   {:acct-type ~new-val
+                                                                                    :sub-query-comp ~Rule
+                                                                                    :src-bank ~src-bank})]))))})
                (when type-description (fh/field-with-label this form :banking-form/target-ledger
                                                            (str "Target " type-description)
                                                            {:label-width-css "col-sm-2"

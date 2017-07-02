@@ -14,7 +14,7 @@
   (fn [data parent-selection]
     (let [list (data->list-fn parent-selection data)
           options (mapv item->option-fn list)
-          selected (list->selected-fn list)]
+          selected (list->selected-fn list parent-selection)]
       [selected options])))
 
 (defn field-with-label

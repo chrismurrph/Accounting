@@ -3,6 +3,13 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+;;
+;; name - of the thing we are asserting on
+;; value - of the thing we are asserting on
+;;
+(defn assert-str [name value]
+  (str name " (nil?, type, value-of): [" (nil? value) ", " (type value) ", " value "]"))
+
 (defn write-edn [filename x]
   (assert (clojure.string/ends-with? filename ".edn"))
   (assert (or (map? x) (vector? x)))

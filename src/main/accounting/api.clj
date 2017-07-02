@@ -175,7 +175,7 @@
    :rule/logic-operator          logic-operator})
 
 (defn rules-from-bank-ledger [kws source-bank target-ledger]
-  (assert (keyword? source-bank))
+  (assert (keyword? source-bank) (u/assert-str "source-bank" source-bank))
   (assert (keyword? target-ledger))
   (println "Choosing on " source-bank " and " target-ledger)
   (let [to-send (m/filter-rules #{source-bank} #{target-ledger} (mapv t/civilize-joda @seasoft-con/current-rules))]

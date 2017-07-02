@@ -69,7 +69,7 @@
                  :potential-data/latest-period :potential-data/possible-reports]))
 
 (defn execute-report [comp organisation year period report]
-  #((om/transact! comp `[(cljs-ops/touch-report)])
+  #((om/transact! comp `[(cljs-ops/touch-report nil)])
      (df/load comp
               :my-selected-items LedgerItem
               {:target        help/report-items-whereabouts
@@ -133,20 +133,20 @@
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :request/organisation "Organisation"
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report)])
+                                                 (om/transact! this `[(cljs-ops/touch-report nil)])
                                                  (let [new-org-value (u/target-kw evt)]
                                                    (load-potential-data this new-org-value))
-                                                 (om/transact! this `[(cljs-ops/enable-report-execution)]))})
+                                                 (om/transact! this `[(cljs-ops/enable-report-execution nil)]))})
                (fh/field-with-label this form :request/year "Year"
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report) (cljs-ops/year-changed) (cljs-ops/enable-report-execution)]))})
+                                                 (om/transact! this `[(cljs-ops/touch-report nil) (cljs-ops/year-changed nil) (cljs-ops/enable-report-execution nil)]))})
                (fh/field-with-label this form :request/period period-label
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report)])
+                                                 (om/transact! this `[(cljs-ops/touch-report nil)])
                                                  ((execute-report this organisation year (u/target-kw evt) report)))})
                (fh/field-with-label this form :request/report "Report"
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report)])
+                                                 (om/transact! this `[(cljs-ops/touch-report nil)])
                                                  ((execute-report this organisation year period (u/target-kw evt))))})
                (dom/button #js {:className at-className
                                 :disabled  at-disabled

@@ -15,20 +15,23 @@
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
 ;;
-(defmutation post-report [no-params]
+(defmutation post-report
+  [no-params]
   (action [{:keys [state]}]
           (swap! state #(-> %
                             help/set-report-title
                             (assoc-in help/executable-field-whereabouts false)))))
 
-(defmutation enable-report-execution [no-params]
+(defmutation enable-report-execution
+  [no-params]
   (action [{:keys [state]}]
           (swap! state assoc-in help/executable-field-whereabouts true)))
 
 ;;
 ;; Touch any of the inputs and the report is no longer valid, so remove it from the screen
 ;;
-(defmutation touch-report [no-params]
+(defmutation touch-report
+  [no-params]
   (action [{:keys [state]}]
           (swap! state help/blank-out-report)))
 
@@ -36,7 +39,8 @@
 ;; Assumes that state has already been changed, so that year-field-whereabouts has what the user has just chosen
 ;; Changes the period options to those that are possible ... to those that reflect the data available
 ;;
-(defmutation year-changed [no-params]
+(defmutation year-changed
+  [no-params]
   (action [{:keys [state]}]
           (let [st @state
                 ident [:potential-data/by-id p/POTENTIAL_DATA]
@@ -47,7 +51,8 @@
             (swap! state #(-> %
                               (help/period-dropdown-rebuilder selected-period period-options))))))
 
-(defmutation post-potential-data [no-params]
+(defmutation post-potential-data
+  [no-params]
   (action [{:keys [state]}]
           (let [st @state
                 ident (:my-potential-data st)
@@ -79,15 +84,49 @@
    :type/liab    (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
-(defmutation selected-rule [{:keys [selected]}]
+(defmutation selected-rule
+  [{:keys [selected]}]
   (action [{:keys [state]}]
           (swap! state assoc-in help/rules-list-selected-rule selected)))
 
-(defmutation un-select-rule [{:keys [selected]}]
+(defmutation un-select-rule
+  [{:keys [selected]}]
   (action [{:keys [state]}]
           (swap! state assoc-in help/rules-list-selected-rule nil)))
 
-(defmutation config-data-for-target-ledger-dropdown [{:keys [sub-query-comp acct-type src-bank]}]
+(defn make-person [name age]
+  {:db/id                      (om/tempid)
+   :person/name                name
+   :person/age                 age
+   :person/registered-to-vote? false
+   :person/phone-numbers       []})
+
+(defmutation add-phone
+  [{:keys [id person phone-form]}]
+  (action [{:keys [state]}]
+          (let [new-phone (f/build-form phone-form {:db/id id :phone/type :home :phone/number ""})
+                person-ident [:people/by-id person]
+                phone-ident (om/ident phone-form new-phone)]
+            (swap! state assoc-in phone-ident new-phone)
+            (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
+
+;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :temp/person-form
+(defmutation post-load-rules
+  [{:keys [no-params]}]
+  (action [{:keys [state]}]
+          (when (-> (get-in @state help/rules-list-items-whereabouts) count zero?)
+            (let [st @state
+                  person-form (get st :temp/person-form)
+                  new-person (f/build-form person-form (make-person "Chris Murphy" 50))
+                  person-ident (om/ident person-form new-person)
+                  target help/banking-form-person-whereabouts]
+              (swap! state #(-> %
+                                (dissoc :temp/person-form)
+                                (assoc-in person-ident new-person)
+                                (assoc-in target person-ident)))))))
+
+(defmutation config-data-for-target-ledger-dropdown
+  [{:keys [sub-query-comp acct-type src-bank person-form]}]
   (action [{:keys [state]}]
           (assert sub-query-comp (u/assert-str "sub-query-comp" sub-query-comp))
           (assert acct-type (u/assert-str "acct-type" acct-type))
@@ -108,11 +147,18 @@
                 ]
             (assert (pos? (count ledger-accounts)))
             (swap! state #(-> %
+                              ;; 'post-load-rules doesn't take a parameter so have to put one in here
+                              (assoc :temp/person-form person-form)
                               (help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options)))
+            ;; If no rules have been loaded from the server then we need to create one for the
+            ;; user to fill out. Hence the post mutation here:
             (df/load-action state :my-existing-rules sub-query-comp
-                            {:target  help/rules-list-items-whereabouts
-                             :refresh [[:banking-form/by-id p/BANKING_FORM]]
-                             :params  {:source-bank src-bank :target-ledger selected-target-account}})))
+                            {:target        help/rules-list-items-whereabouts
+                             :refresh       [[:banking-form/by-id p/BANKING_FORM]]
+                             :params        {:source-bank src-bank :target-ledger selected-target-account}
+                             :post-mutation 'app.cljs-operations/post-load-rules
+                             })
+            ))
   (remote [env] (df/remote-load env)))
 
 (defmutation unruly-bank-statement-line [no-params]

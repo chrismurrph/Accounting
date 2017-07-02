@@ -26,7 +26,7 @@
 
 (defmethod s/server-mutate `f/commit-to-entity [env k params]
   {:action (fn []
-             (timbre/info "Mutation for " (u/pp params)))})
+             (println (str "<" params ">")))})
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

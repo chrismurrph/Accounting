@@ -142,7 +142,6 @@
 ;; The id doesn't seem to matter, nor for potential data above
 ;;
 (defn next-unruly-line [kws]
-  (println kws)
   (merge {:db/id 'BANK-STATEMENT-LINE
           ;:bank-line/src-bank :bank/anz-visa
           ;:bank-line/date     "24/08/2016"
@@ -158,7 +157,7 @@
                         :out/src-bank :bank-line/src-bank}
                         k) v]))
               (into {})
-              u/probe-on)))
+              u/probe-off)))
 
 (defn rule->outgoing [idx {:keys [logic-operator conditions rule/source-bank
                                   rule/permanent? rule/period
@@ -177,10 +176,10 @@
 (defn rules-from-bank-ledger [kws source-bank target-ledger]
   (assert (keyword? source-bank) (u/assert-str "source-bank" source-bank))
   (assert (keyword? target-ledger))
-  (println "Choosing on " source-bank " and " target-ledger)
+  ;(println "Choosing on " source-bank " and " target-ledger)
   (let [to-send (m/filter-rules #{source-bank} #{target-ledger} (mapv t/civilize-joda @seasoft-con/current-rules))]
     (->> to-send
          (map-indexed rule->outgoing)
          vec
-         u/probe-on)))
+         u/probe-off)))
 

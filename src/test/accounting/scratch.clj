@@ -69,10 +69,10 @@
   (= [0 1 :same 1 2 3 :same 5 8 13 :same 21]
      (take 12 (->> [0 1]
                    (iterate (fn [[a b]] [b (+ a b)]))
-                   (map first) ; fibonacci numbers
-                   (f (fn [a b] ; both even or both odd
-                         (= (mod a 2) (mod b 2)))
-                       :same)))))
+                   (map first)                              ; fibonacci numbers
+                   (f (fn [a b]                             ; both even or both odd
+                        (= (mod a 2) (mod b 2)))
+                      :same)))))
 
 (def recorded-income 31725)
 (def recorded-expenses 30856)
@@ -121,5 +121,17 @@
          (cons (first xs))
          vec)))
 
+(defn insert-between [g xs]
+  (->> xs
+       (partition 2 1)
+       (mapcat (partial apply (fn [x y]
+                                [(g x y) y])))
+       (cons (first xs))))
+
 (defn x-9 []
   (insert-mean-between [1 10 15]))
+
+(defn x-10 []
+  (insert-between
+    (fn [x y] (* (+ x y) 0.5))
+    [1 10 15]))

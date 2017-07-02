@@ -141,14 +141,14 @@
    :condition/predicate predicate
    :condition/subject   subject})
 
-(def type->desc
+(def ledger-type->desc
   {:type/exp       "Expense"
    :type/non-exp   "Non-Expense"
    :type/income    "Income"
    :type/personal  "Personal"
    :type/liability "Liability"})
 
-(def type-options
+(def ledger-type-options
   [(f/option :type/exp "Expense")
    (f/option :type/non-exp "Non-Expense")
    (f/option :type/income "Income")
@@ -245,6 +245,7 @@
 
 (def banking-form-ident [:banking-form/by-id p/BANKING_FORM])
 (def banking-form-config-data-whereabouts (conj banking-form-ident :banking-form/config-data))
+(def banking-form-person-whereabouts (conj banking-form-ident :person))
 ; Not where they go:
 ;(def banking-form-existing-rules-whereabouts (conj banking-form-ident :banking-form/existing-rules))
 

@@ -212,9 +212,9 @@
                (dom/div #js {:className "button-group"}
                         (dom/button #js {:className "btn btn-primary"
                                          :onClick   #(om/transact! this
-                                                                   `[(ops/add-phone ~{:id         (om/tempid)
-                                                                                      :person     (:db/id props)
-                                                                                      :phone-form ValidatedPhoneForm})])}
+                                                                   `[(cljs-ops/add-phone ~{:id         (om/tempid)
+                                                                                           :person     (:db/id props)
+                                                                                           :phone-form ValidatedPhoneForm})])}
                                     "Add Phone")
                         (dom/button #js {:className "btn btn-default" :disabled (f/valid? props)
                                          :onClick   #(f/validate-entire-form! this props)}
@@ -223,7 +223,15 @@
                                          :onClick   #(f/reset-from-entity! this props)}
                                     "UNDO")
                         (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                         :onClick   #(f/commit-to-entity! this :remote true)}
+                                         :onClick   (fn [_]
+                                                      (om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
+                                                                            (f/commit-to-entity {:form ~(om/props this) :remote true})])
+                                                      #_(do
+                                                        ;
+                                                        ; If don't validate then nothing arrives at other end
+                                                        ;
+                                                        (f/validate-entire-form! this props)
+                                                        (f/commit-to-entity! this :remote true)))}
                                     "Submit"))))))
 
 (def ui-person-form (om/factory PersonForm))
@@ -247,7 +255,7 @@
   {:db/id                            id
    :banking-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
    :banking-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
-   :person                           first-person})
+   :person                           nil})
 
 ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
 ;; but the existing rules were not being displayed.
@@ -258,12 +266,13 @@
             :params  {:source-bank source-bank :target-ledger target-ledger}}))
 
 #_(defn load-existing-rules-bad [comp source-bank target-ledger]
-  (om/transact! comp `[(cljs-ops/load-existing-rules
+    (om/transact! comp `[(cljs-ops/load-existing-rules
                            {:sub-query-comp ~Rule
-                            :source-bank ~source-bank
-                            :target-ledger ~target-ledger})]))
+                            :source-bank    ~source-bank
+                            :target-ledger  ~target-ledger})]))
 
-(def before-type-selected :not-yet-3)
+(def yet-to-be-selected-ledger-type :not-yet-3)
+(def no-pick :untangled.ui.forms/none)
 
 (defui ^:once BankingForm
   static uc/InitialAppState
@@ -271,17 +280,17 @@
     (f/build-form this (banking-initial-state id)))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/dropdown-input :ui/type help/type-options)
+                     (f/dropdown-input :ui/ledger-type help/ledger-type-options)
                      (f/dropdown-input :banking-form/target-ledger
-                                       [(f/option before-type-selected "Not yet loaded 3")]
-                                       :default-value before-type-selected)
+                                       [(f/option yet-to-be-selected-ledger-type "Not yet loaded 3")]
+                                       :default-value yet-to-be-selected-ledger-type)
                      (f/dropdown-input :banking-form/logic-operator help/logic-options
                                        :default-value :single)])
   static om/Ident
   (ident [_ props] [:banking-form/by-id (:db/id props)])
   static om/IQuery
   (query [_] [:db/id
-              :ui/type
+              :ui/ledger-type
               :banking-form/logic-operator
               {:banking-form/bank-statement-line (om/get-query BankStatementLine)}
               :banking-form/target-ledger
@@ -291,43 +300,46 @@
               {:person (om/get-query PersonForm)}])
   Object
   (render [this]
-    (let [{:keys [ui/type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
+    (let [{:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
                   banking-form/target-ledger banking-form/existing-rules person] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts]} config-data
-          type-description (help/type->desc type)
+          type-description (help/ledger-type->desc ledger-type)
           matching-rules-count (-> existing-rules :rules-list/items count)]
       (dom/div #js {:className "form-horizontal"}
                #_(dom/label nil (str "DEBUG - Target ledger is " target-ledger
                                      ", and count of existing: " (-> existing-rules :rules-list/items count)))
-               (fh/field-with-label this form :ui/type
+               (fh/field-with-label this form :ui/ledger-type
                                     "Type"
                                     {:label-width-css "col-sm-2"
                                      :onChange        (fn [evt]
                                                         (let [new-val (u/target-kw evt)]
-                                                          (when (help/type->desc new-val)
+                                                          (when (help/ledger-type->desc new-val)
                                                             (om/transact! this `[(cljs-ops/config-data-for-target-ledger-dropdown
-                                                                                   {:acct-type ~new-val
+                                                                                   {:acct-type      ~new-val
                                                                                     :sub-query-comp ~Rule
-                                                                                    :src-bank ~src-bank})]))))})
+                                                                                    :src-bank       ~src-bank
+                                                                                    :person-form    ~PersonForm})]))))})
                (when type-description (fh/field-with-label this form :banking-form/target-ledger
                                                            (str "Target " type-description)
                                                            {:label-width-css "col-sm-2"
                                                             :onChange        (fn [evt]
                                                                                (let [new-target-ledger-val (u/target-kw evt)]
-                                                                                 (u/log-on (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
+                                                                                 (u/log-off (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
                                                                                  (load-existing-rules this src-bank new-target-ledger-val)))}))
                ;Remember that :banking-form is initially how are querying for a rule, that might become the new rule, or
                ; might become editing one of the existing rules. [Select Existing]
                ;whereas :rule is one of many possibilities may want to start editing
                ;(fh/field-with-label this form :banking-form/logic-operator "Selector")
-               (if (and (zero? matching-rules-count) (not= target-ledger before-type-selected))
+               (if (and (zero? matching-rules-count) (not= ledger-type no-pick) #_(not= target-ledger yet-to-be-selected-ledger-type))
                  (dom/div nil
                           (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
                                               " from " (help/bank-kw->bank-name src-bank)
                                               ". You need to create a new rule:"))
                           (if person
-                            (ui-person-form person)
+                            (dom/div nil
+                                     (dom/label nil (str "ledger type: " ledger-type))
+                                     (ui-person-form person))
                             (u/log "Better create new person")))
                  (ui-rules-list existing-rules))))))
 

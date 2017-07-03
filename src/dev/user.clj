@@ -60,7 +60,7 @@
      (letfn [(start []
                (swap! system component/start))
              (init [path]
-               (when-let [new-system (app.server/make-system "config/dev.edn")]
+               (when-let [new-system (app.server/make-system "/usr/local/etc/districts.edn")]
                  (reset! system new-system)))]
        (init path)
        (start)))))

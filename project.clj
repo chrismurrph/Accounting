@@ -5,11 +5,19 @@
                  [org.clojure/clojurescript "1.9.562"]
                  [org.omcljs/om "1.0.0-beta1"]
                  [awkay/untangled "1.0.0-SNAPSHOT"]
+                 [navis/untangled-datomic "0.4.11"]
                  [clj-time "0.13.0"]
-                 [com.andrewmcveigh/cljs-time "0.5.0"]]
+                 [com.andrewmcveigh/cljs-time "0.5.0"]
+                 ;; Putting in this version of guava fixes datomic dependency issues
+                 [com.google.guava/guava "21.0"]
+                 [com.datomic/datomic-pro "0.9.5385"]
+                 ]
   :source-paths ["src/main"]
   :resource-paths ["resources"]
   :clean-targets ^{:protect false} ["resources/public/js" "target" "out"]
+
+  :repositories {"my.datomic.com" {:url "https://my.datomic.com/repo"
+                                   :creds :gpg}}
 
   :plugins [[lein-cljsbuild "1.1.6"]]
 

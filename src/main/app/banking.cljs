@@ -152,6 +152,19 @@
   (df/load comp :my-unruly-bank-statement-line BankStatementLine
            {:post-mutation `cljs-ops/unruly-bank-statement-line}))
 
+(defui ^:once ValidatedConditionForm
+  static uc/InitialAppState
+  (initial-state [this params] (f/build-form this (or params {})))
+  Object
+  (render [this]
+    (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
+          field-display (and field (subs (str field) 1))
+          predicate-display (and predicate (subs (str predicate) 1))]
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} field-display)
+              (dom/td #js {:className "col-md-2"} predicate-display)
+              (dom/td #js {:className "col-md-2"} subject)))))
+
 (defui ^:once ValidatedPhoneForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
@@ -223,15 +236,8 @@
                                          :onClick   #(f/reset-from-entity! this props)}
                                     "UNDO")
                         (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                         :onClick   (fn [_]
-                                                      (om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
-                                                                            (f/commit-to-entity {:form ~(om/props this) :remote true})])
-                                                      #_(do
-                                                        ;
-                                                        ; If don't validate then nothing arrives at other end
-                                                        ;
-                                                        (f/validate-entire-form! this props)
-                                                        (f/commit-to-entity! this :remote true)))}
+                                         :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
+                                                                          (f/commit-to-entity {:form ~(om/props this) :remote true})])}
                                     "Submit"))))))
 
 (def ui-person-form (om/factory PersonForm))

@@ -124,8 +124,7 @@
 (defn insert-between [g xs]
   (->> xs
        (partition 2 1)
-       (mapcat (partial apply (fn [x y]
-                                [(g x y) y])))
+       (mapcat (fn [[x y]] [(g x y) y]))
        (cons (first xs))))
 
 (defn x-9 []

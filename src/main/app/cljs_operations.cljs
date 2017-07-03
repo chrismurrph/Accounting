@@ -10,7 +10,8 @@
     [clojure.set :as set]
     [untangled.client.data-fetch :as df]
     [untangled.client.core :as uc]
-    [app.uis-used-by-mutations :as uubms]))
+    ;[app.norm-sub-table :as nst]
+    ))
 
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
@@ -119,11 +120,15 @@
                   person-form (get st :temp/person-form)
                   new-person (f/build-form person-form (make-person "Chris Murphy" 50))
                   person-ident (om/ident person-form new-person)
-                  target help/banking-form-person-whereabouts]
+                  target help/banking-form-person-whereabouts
+                  ;conditions-integrator (nst/normalizer :rule/by-id :rule/conditions :condition/by-id nst/v->condition 1000)
+                  ]
               (swap! state #(-> %
                                 (dissoc :temp/person-form)
                                 (assoc-in person-ident new-person)
-                                (assoc-in target person-ident)))))))
+                                (assoc-in target person-ident)
+                                ;conditions-integrator
+                                ))))))
 
 (defmutation config-data-for-target-ledger-dropdown
   [{:keys [sub-query-comp acct-type src-bank person-form]}]

@@ -35,10 +35,11 @@
                      (timbre/info "Server deleting ledger-item" ledger-item-id)
                      (swap! people-db dissoc ledger-item-id)))
 
-(defquery-entity :ledger-item/by-id
-                 "Server query for allowing the client to pull an individual ledger-item from the database"
-                 (value [env id params]
-                        (update (get @people-db id) :ledger-item/name str " (refreshed)")))
+(comment "Not yet using defquery-entity"
+         (defquery-entity :ledger-item/by-id
+                          "Server query for allowing the client to pull an individual ledger-item from the database"
+                          (value [env id params]
+                                 (update (get @people-db id) :ledger-item/name str " (refreshed)"))))
 
 (defquery-root :my-selected-items
                "Queries for selected-items and returns them to the client"

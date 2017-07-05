@@ -87,7 +87,7 @@
         rv (d/pull db query list-id)]
     rv))
 
-(defquery-root :district/by-id
+(defquery-root :district-query
                "Datomic query"
                (value [{:keys [query districts-database] :as env} {:keys [district-name]}]
                       (println "DATOMIC query: " query " using: <" district-name ">")

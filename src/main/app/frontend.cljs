@@ -72,9 +72,9 @@
   (query [this] [:db/id :neighborhood/name])
   Object
   (render [this]
-    (let [{:keys [name]} (om/props this)])
-    (dom/tr nil
-            (dom/td #js {:className "col-md-2"} name))))
+    (let [{:keys [neighborhood/name]} (om/props this)]
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} name)))))
 
 (def ui-neighborhood (om/factory Neighborhood {:keyfn :db/id}))
 
@@ -85,13 +85,13 @@
 ;;
 (defui ^:once District
   static om/Ident
-  (ident [_ props] [:district/by-id (:db/id props)])
+  (ident [_ props] [:district-query (:db/id props)])
   static om/IQuery
   (query [this] [:db/id :district/name {:neighborhood/_district (om/get-query Neighborhood)}]))
 
 (defn load-neighborhoods [comp name]
   (assert name (str "Need a district name to load"))
-  (df/load comp :district/by-id District
+  (df/load comp :district-query District
            {
             :params        {:district-name name}
             :post-mutation `cljs-ops/target-neighborhoods

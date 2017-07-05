@@ -179,5 +179,5 @@
   [no-params]
   (action [{:keys [state]}]
           (let [st @state
-                to-transfer (-> st :district/by-id vals first :neighborhood/_district)]
+                to-transfer (-> st :district-query vals first :neighborhood/_district)]
             (swap! state assoc-in [:results-list/by-id 'RESULTS_LIST_PANEL :neighborhoods] to-transfer))))

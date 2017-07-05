@@ -69,47 +69,68 @@
   static om/Ident
   (ident [_ props] [:neighborhood/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :name])
+  (query [this] [:db/id :neighborhood/name])
   Object
   (render [this]
     (let [{:keys [name]} (om/props this)])
     (dom/tr nil
             (dom/td #js {:className "col-md-2"} name))))
 
-(def ui-neighborhood (om/factory Neighborhood))
+(def ui-neighborhood (om/factory Neighborhood {:keyfn :db/id}))
 
+;;
+;; Only used for fetching data. The ident not really needed for that as we loading directly into
+;; :district/by-id.
+;; Notice the reverse query needed by Datomic
+;;
 (defui ^:once District
   static om/Ident
   (ident [_ props] [:district/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :name {:neighborhoods (om/get-query Neighborhood)}])
+  (query [this] [:db/id :district/name {:neighborhood/_district (om/get-query Neighborhood)}]))
+
+(defn load-neighborhoods [comp name]
+  (assert name (str "Need a district name to load"))
+  (df/load comp :district/by-id District
+           {
+            :params        {:district-name name}
+            :post-mutation `cljs-ops/target-neighborhoods
+            :refresh       [[:results-list/by-id 'RESULTS_LIST_PANEL]]
+            }))
+
+(defui ^:once TestingResultsList
+  static om/Ident
+  (ident [_ props] [:results-list/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id :district/name {:neighborhoods (om/get-query Neighborhood)}])
   static
   uc/InitialAppState
-  (initial-state [c params] (merge params {:neighborhoods []}))
+  (initial-state [c {:keys [id]}] {:db/id id :neighborhoods []})
   Object
   (render [this]
-    (let [{:keys [name neighborhoods]} (om/props this)]
+    (let [{:keys [district/name neighborhoods]} (om/props this)]
       (dom/div nil
-               (dom/label nil name)
+               ;(dom/label nil (str "District: " name ", " (count _district)))
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map ui-neighborhood neighborhoods)))))))
 
-(def ui-district (om/factory District))
+(def ui-results-list (om/factory TestingResultsList))
 
 (defui ^:once TestingRoot
   static om/IQuery
   (query [this] [:ui/react-key
-                 {:district (om/get-query District)}])
+                 {:root/results-list (om/get-query TestingResultsList)}])
   static
   uc/InitialAppState
   (initial-state [c params]
-    {:district (uc/get-initial-state District {:name "Northwest" :db/id 1})})
+    {:root/results-list (uc/get-initial-state TestingResultsList {:id 'RESULTS_LIST_PANEL})})
   Object
   (render [this]
-    (let [{:keys [ui/react-key district]} (om/props this)]
+    (let [{:keys [ui/react-key root/results-list]} (om/props this)]
       (dom/div #js {:key react-key}
-               (dom/label nil "At Root")
-               (ui-district district)))))
+               (dom/button #js {:onClick #(load-neighborhoods this "Northwest")} (str "Query"))
+               #_(dom/label nil "At Root")
+               (ui-results-list results-list)))))
 
 (defonce app-2 (atom (uc/new-untangled-client
                        :networking {:remote (net/make-untangled-network

@@ -122,6 +122,13 @@
                       [?r :db/ident ?r_name]]
                     (db conn))))
 
+(comment
+  [:find (pull ?n [:neighborhood/name])
+   :where
+   [?n :neighborhood/district ?d]
+   [?d :district/name "Northwest"]
+   ])
+
 ;; find all communities that are twitter feeds and facebook pages
 ;; using the same query and passing in type as a parameter
 (def query-by-type '[:find [?n ...]

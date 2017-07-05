@@ -10,7 +10,6 @@
     [clojure.set :as set]
     [untangled.client.data-fetch :as df]
     [untangled.client.core :as uc]
-    ;[app.norm-sub-table :as nst]
     ))
 
 ;;
@@ -166,6 +165,19 @@
             ))
   (remote [env] (df/remote-load env)))
 
-(defmutation unruly-bank-statement-line [no-params]
+(defmutation unruly-bank-statement-line
+  [no-params]
   (action [{:keys [state]}]
           (swap! state dissoc :my-unruly-bank-statement-line)))
+
+;;
+;; Use when have done a big query from Datomic, and all results normalised. However there
+;; are intended edges that are empty that need to be filled. (If not empty then need to be
+;; overwritten).
+;;
+(defmutation target-neighborhoods
+  [no-params]
+  (action [{:keys [state]}]
+          (let [st @state
+                to-transfer (-> st :district/by-id vals first :neighborhood/_district)]
+            (swap! state assoc-in [:results-list/by-id 'RESULTS_LIST_PANEL :neighborhoods] to-transfer))))

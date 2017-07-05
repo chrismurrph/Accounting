@@ -6,7 +6,8 @@
     [accounting.util :as u]
     [accounting.api :as api]
     [untangled.ui.forms :as f]
-    [untangled.server :as s]))
+    [datomic.api :as d]
+    [untangled.datomic.protocols :as db]))
 
 (def people-db (atom {1  {:db/id 1 :ledger-item/name "Bert" :ledger-item/amount 55}
                       2  {:db/id 2 :ledger-item/name "Sally" :ledger-item/amount 22}
@@ -24,7 +25,7 @@
              (action [{:keys [state]}]
                      (timbre/info "Server add-phone" id " " person)))
 
-(defmethod s/server-mutate `f/commit-to-entity [env k params]
+(defmethod server/server-mutate `f/commit-to-entity [env k params]
   {:action (fn []
              (println (str "<" params ">")))})
 
@@ -65,3 +66,29 @@
                "Queries for existing rules"
                (value [{:keys [query]} {:keys [source-bank target-ledger]}]
                       (api/rules-from-bank-ledger query source-bank target-ledger)))
+
+(defn make-district [connection list-name]
+  (let [id (d/tempid :db.part/user)
+        tx [{:db/id id :district/name list-name}]
+        idmap (:tempids @(d/transact connection tx))
+        real-id (d/resolve-tempid (d/db connection) idmap id)]
+    real-id))
+
+(defn find-district
+  "Find or create a district with the given name. Always returns a valid district ID."
+  [conn district-name]
+  (if-let [eid (d/q '[:find ?e . :in $ ?n :where [?e :district/name ?n]] (d/db conn) district-name)]
+    eid
+    (make-district conn district-name)))
+
+(defn read-district [connection query nm]
+  (let [list-id (find-district connection nm)
+        db (d/db connection)
+        rv (d/pull db query list-id)]
+    rv))
+
+(defquery-root :district/by-id
+               "Datomic query"
+               (value [{:keys [query districts-database] :as env} {:keys [district-name]}]
+                      (println "DATOMIC query: " query " using: <" district-name ">")
+                      (u/probe-on (read-district (:connection districts-database) query district-name))))

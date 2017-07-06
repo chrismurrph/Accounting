@@ -32,7 +32,7 @@
                             :exp/asic-payment
                             :exp/freight-courier
                             :exp/accounting-expense})
-(def non-tax-expense-accounts #{:non-expense/ato-payment :non-exp/private-health})
+(def non-tax-expense-accounts #{:non-exp/ato-payment :non-exp/private-health})
 (def liab-accounts #{:liab/drawings})
 (def personal-accounts #{:personal/amp
                          :personal/anz-visa})

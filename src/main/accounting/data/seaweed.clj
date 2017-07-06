@@ -308,8 +308,8 @@
 
 ;;
 ;; Bank balances at beginning of periods are factual, can never be different once the time has passed.
-;; Hence we will keeping them in the database. Here we manually calculated them from ye-2016 by generating
-;; trial balances. But they will be the same as the real thing if you look.
+;; Hence we will keeping them in the database. Here we manually calculated them from ye-2016 by
+;; generating trial balances. But they will be the same as the real thing if you look.
 ;; Theoretically assets, liabs and equity are just as solid. Later we will include them.
 ;; One difference is that bank balances cannot be affected by rules.
 ;; Here 2017 :q1 has the balances at the start of :q1

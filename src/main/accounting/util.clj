@@ -33,6 +33,9 @@
 (defn kw->number [kw]
   (-> kw name Integer/parseInt))
 
+(defn kw->string [kw]
+  (and kw (subs (str kw) 1)))
+
 (defn index-of [needle haystack]
   (->> haystack
        (keep-indexed #(when (= %2 needle) %1))

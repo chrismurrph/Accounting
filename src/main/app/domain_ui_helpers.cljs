@@ -210,7 +210,7 @@
 
 (def ledger-type->first-selection
   {:type/exp     :exp/office-expense
-   :type/non-exp :non-expense/ato-payment
+   :type/non-exp :non-exp/ato-payment
    :type/income  :income/bank-interest
    :type/liab    :liab/drawings})
 

@@ -65,11 +65,26 @@
                (dom/br nil)
                (ui-top top-router)))))
 
+;;
+;; Just having this means that what comes back from Datomic includes communities
+;;
+(defui ^:once Community
+  static om/Ident
+  (ident [_ props] [:community/by-id (:db/id props)])
+  static om/IQuery
+  (query [this] [:db/id :community/name :community/url])
+  Object
+  (render [this]
+    (let [{:keys [community/name community/url]} (om/props this)]
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} name)
+              (dom/td #js {:className "col-md-2"} url)))))
+
 (defui ^:once Neighborhood
   static om/Ident
   (ident [_ props] [:neighborhood/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :neighborhood/name])
+  (query [this] [:db/id :neighborhood/name {:community/_neighborhood (om/get-query Community)}])
   Object
   (render [this]
     (let [{:keys [neighborhood/name]} (om/props this)]
@@ -80,10 +95,11 @@
 
 ;;
 ;; Only used for fetching data. The ident not really needed for that as we loading directly into
-;; :district/by-id.
+;; :district-query.
 ;; Notice the reverse query needed by Datomic
+;; Note there is nothing tacky about this as District is not in the UI.
 ;;
-(defui ^:once District
+(defui ^:once DistrictFetcher
   static om/Ident
   (ident [_ props] [:district-query (:db/id props)])
   static om/IQuery
@@ -91,13 +107,18 @@
 
 (defn load-neighborhoods [comp name]
   (assert name (str "Need a district name to load"))
-  (df/load comp :district-query District
+  (df/load comp :district-query DistrictFetcher
            {
             :params        {:district-name name}
             :post-mutation `cljs-ops/target-neighborhoods
             :refresh       [[:results-list/by-id 'RESULTS_LIST_PANEL]]
             }))
 
+(def hard-coded-district "Northwest")
+
+;;
+;; table of all the Neighborhoods of a particular District
+;;
 (defui ^:once TestingResultsList
   static om/Ident
   (ident [_ props] [:results-list/by-id (:db/id props)])
@@ -128,7 +149,7 @@
   (render [this]
     (let [{:keys [ui/react-key root/results-list]} (om/props this)]
       (dom/div #js {:key react-key}
-               (dom/button #js {:onClick #(load-neighborhoods this "Northwest")} (str "Query"))
+               (dom/button #js {:onClick #(load-neighborhoods this hard-coded-district)} (str "Query"))
                #_(dom/label nil "At Root")
                (ui-results-list results-list)))))
 

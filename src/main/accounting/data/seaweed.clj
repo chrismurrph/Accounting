@@ -7,7 +7,7 @@
 (def coy :bank/anz-coy)
 (def visa :bank/anz-visa)
 
-(def splits {:agl-gas {:exp/light-power-heating 0.2M :personal/anz-visa 0.8M}})
+(def splits {"AGL Gas" {:exp/light-power-heating 0.2M :personal/anz-visa 0.8M}})
 
 ;;
 ;; For every transaction date that comes thru that is :office-expense we will require a

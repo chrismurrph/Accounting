@@ -11,24 +11,36 @@
                [uuid :uuid :unique-identity]
                [type :keyword]
                [date :instant]
-               [proportion :bigint]))
+               ;[year :long]
+               ))
    (s/schema length-of-time
              (s/fields
                [start-at :instant]
                ;; end-at will often be optional
                [end-at :instant]))
+   (s/schema tax-year
+             (s/fields
+               [year :long]))
    (s/schema account
              (s/fields
                [category :enum [:exp :liab :non-exp :personal
                                 :bank :income :equity]]
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
-               [organisation :ref :one]
+               ;[organisation :ref :one]
                [length-of-time :ref :one]))
+   (s/schema account-balance
+             (s/fields
+               [account :ref :one]
+               [amount :ref :one]))
+   (s/schema account-proportion
+             (s/fields
+               [account :ref :one]
+               [proportion :ref :one]))
    (s/schema split
              (s/fields
                [name :string]
-               [proportion :ref :many]))
+               [account-proportions :ref :many]))
    (s/schema period
              (s/fields
                [type :enum [:quarterly :monthly]]
@@ -38,10 +50,6 @@
              (s/fields
                [year :long]
                [period :ref :one]))
-   (s/schema account-balance
-             (s/fields
-               [account :ref :one]
-               [amount :ref :one]))
    (s/schema start-bank-balances
              (s/fields
                [actual-period :ref :one]
@@ -75,9 +83,12 @@
                [org-type :enum [:charity :tax]]
                [import-templates :ref :many]
                [import-data-root :string]
+               [tax-years :ref :many]
                [on-gst :ref :many]
                [bank-accounts :ref :many]
-               [ledger-accounts :ref :many]))
+               [ledger-accounts :ref :many]
+               [splits :ref :many]
+               ))
 
    (s/schema auth
              (s/fields

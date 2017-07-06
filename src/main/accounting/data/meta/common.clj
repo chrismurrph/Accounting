@@ -40,15 +40,15 @@
                   file-path))))
 
 (def human-meta
-  {:seaweed {:file-names seasoft/file-names
-             :splits seasoft/splits
-             :tax-years seasoft/tax-years
-             :data-root seasoft/data-root
+  {:seaweed {:file-names    seasoft/import-templates
+             :splits        seasoft/splits
+             :tax-years     seasoft/tax-years
+             :data-root     seasoft/import-data-root
              :bank-accounts seasoft/bank-accounts
-             :period-type :period-type/quarterly}
-   :croquet {:file-names croquet/file-names
-             :splits croquet/splits
-             :years croquet/years
-             :data-root croquet/data-root
+             :period-type   :period-type/quarterly}
+   :croquet {:file-names    croquet/file-names
+             :splits        croquet/splits
+             :years         croquet/years
+             :data-root     croquet/data-root
              :bank-accounts croquet/bank-accounts
-             :period-type :period-type/monthly}})
+             :period-type   :period-type/monthly}})

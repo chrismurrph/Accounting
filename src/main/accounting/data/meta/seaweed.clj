@@ -37,7 +37,7 @@
 (def personal-accounts #{:personal/amp
                          :personal/anz-visa})
 
-(def all-accounts (set/union (set bank-accounts)
+(def ledger-accounts (set/union
                              other-asset-accounts
                              income-accounts
                              tax-expense-accounts
@@ -45,15 +45,17 @@
                              liab-accounts
                              personal-accounts))
 
+(def all-accounts (set/union (set bank-accounts) ledger-accounts))
+
 (def splits data/splits)
 
 ;; Always start with quarter even thou in that directory
 ;; "Q3_AMP_TransactionHistory.csv"
-(def file-names
+(def import-templates
   {:bank/amp      "_AMP_TransactionHistory.csv"
    :bank/anz-coy  "_ANZ_coy.csv"
    :bank/anz-visa "_ANZ_credit_card.csv"})
 
 ;; tax-year is year ending i.e. 30th June of the second calendar year in the financial year
 (def tax-years #{2017})
-(def data-root "/home/chris/state/Google Drive/data/ATO/")
+(def import-data-root "/home/chris/state/Google Drive/data/ATO/")

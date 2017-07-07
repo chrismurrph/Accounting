@@ -146,7 +146,7 @@
    :type/non-exp   "Non-Expense"
    :type/income    "Income"
    :type/personal  "Personal"
-   :type/liability "Liability"})
+   :type/liab      "Liability"})
 
 (def ledger-type-options
   [(f/option :type/exp "Expense")

@@ -9,6 +9,7 @@
             [accounting.data.meta.periods :as periods]
             [accounting.data.meta.common :as common-meta]
             [accounting.match :as m]
+            [accounting.data.common :as dc]
             [accounting.data.meta.seaweed :as seasoft-meta]
             [accounting.data.meta.croquet :as croquet-meta]
             [accounting.time :as t]))
@@ -50,7 +51,7 @@
     (let [period (make-period year quarter)
           initial-rules (merge-with (comp vec concat) permanent-rules (apply concat (map period->rules [period])))]
       (->> initial-rules
-           m/canonicalise-rules
+           dc/canonicalise-rules
            u/probe-off))))
 
 (def seaweed-rules-of-period (rules-of-period periods/make-quarter seaweed-data/permanent-rules seasoft-con/quarter->rules))

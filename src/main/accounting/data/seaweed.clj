@@ -1,13 +1,14 @@
 (ns accounting.data.seaweed
   (:require [accounting.util :as u]
             [accounting.time :as t]
-            [accounting.common :as c]))
+            [accounting.common :as c]
+            [accounting.data.common :as dc]))
 
 (def amp :bank/amp)
 (def coy :bank/anz-coy)
 (def visa :bank/anz-visa)
 
-(def splits {"AGL Gas" {:exp/light-power-heating 0.2M :personal/anz-visa 0.8M}})
+(def splits {:split/agl-gas {:exp/light-power-heating 0.2M :personal/anz-visa 0.8M}})
 
 ;;
 ;; For every transaction date that comes thru that is :office-expense we will require a
@@ -305,6 +306,29 @@
                                        :logic-operator :single
                                        :conditions     [[:equals "ANZ ATM CASULA BP EXPRESS        CASULA       NS"]]}
                                       ]})
+
+(def quarter->rules
+  {:q1 q1-2017-rules
+   :q2 q2-2017-rules
+   :q3 q3-2017-rules})
+
+(def all-rules
+  (let [initial-rules (merge-with (comp vec concat) permanent-rules (apply concat (map quarter->rules [:q1 :q2 :q3])))]
+    (->> initial-rules
+         dc/canonicalise-rules
+         (mapv t/civilize-joda))))
+
+(def rules-keys (->> all-rules
+                     (map keys)
+                     (apply concat)
+                     distinct))
+
+(defn example-rule-field [field]
+  (->> all-rules
+       (apply concat)
+       (filter (fn [[k v]] (and (some? v) (= k field))))
+       first
+       val))
 
 ;;
 ;; Bank balances at beginning of periods are factual, can never be different once the time has passed.

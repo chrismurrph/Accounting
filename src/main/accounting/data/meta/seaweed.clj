@@ -8,9 +8,10 @@
 ;; Intention is to make all-accounts accurate when needed. Not yet used...
 ;;
 (def bank-accounts [:bank/amp :bank/anz-coy :bank/anz-visa])
-(def other-asset-accounts #{})
+(def equity-accounts #{})
+(def asset-accounts #{})
 (def income-accounts #{:income/bank-interest :income/mining-sales :income/poker-parse-sales})
-(def tax-expense-accounts #{:exp/office-expense
+(def exp-accounts #{:exp/office-expense
                             :exp/motor-vehicle
                             :exp/cloud-expense
                             :exp/niim-trip
@@ -32,18 +33,18 @@
                             :exp/asic-payment
                             :exp/freight-courier
                             :exp/accounting-expense})
-(def non-tax-expense-accounts #{:non-exp/ato-payment :non-exp/private-health})
+(def non-exp-accounts #{:non-exp/ato-payment :non-exp/private-health})
 (def liab-accounts #{:liab/drawings})
 (def personal-accounts #{:personal/amp
                          :personal/anz-visa})
 
 (def ledger-accounts (set/union
-                             other-asset-accounts
-                             income-accounts
-                             tax-expense-accounts
-                             non-tax-expense-accounts
-                             liab-accounts
-                             personal-accounts))
+                       equity-accounts
+                       income-accounts
+                       exp-accounts
+                       non-exp-accounts
+                       liab-accounts
+                       personal-accounts))
 
 (def all-accounts (set/union (set bank-accounts) ledger-accounts))
 

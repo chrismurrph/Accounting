@@ -3,7 +3,8 @@
             [accounting.match :as m]
             [accounting.data.seaweed :as seasoft-d]
             [accounting.util :as u]
-            [accounting.data.meta.common :as common-meta]))
+            [accounting.data.meta.common :as common-meta]
+            [accounting.data.common :as c]))
 
 (def quarter->rules
   {:q1 seasoft-d/q1-2017-rules
@@ -23,4 +24,4 @@
 (def current-rules
   (let [initial-rules (merge-with (comp vec concat) seasoft-d/permanent-rules (apply concat (map quarter->rules [:q1 :q2 :q3])))]
     (->> initial-rules
-         m/canonicalise-rules)))
+         c/canonicalise-rules)))

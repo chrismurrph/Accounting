@@ -4,7 +4,8 @@
             [accounting.data.croquet :as croquet-d]
             [accounting.util :as u]
             [accounting.core :as c]
-            [accounting.data.meta.periods :as periods]))
+            [accounting.data.meta.periods :as periods]
+            [accounting.data.common :as dc]))
 
 (def month->rules
   {{:period/year  2017
@@ -22,7 +23,7 @@
 (def current-rules
   (let [initial-rules (merge-with (comp vec concat) croquet-d/permanent-rules (apply concat (map month->rules total-range)))]
     (->> initial-rules
-         m/canonicalise-rules
+         dc/canonicalise-rules
          u/probe-off)))
 
 (def croquet-current-range total-range)

@@ -24,10 +24,10 @@
    (s/schema account
              (s/fields
                [category :enum [:exp :liab :non-exp :personal
-                                :bank :income :equity]]
+                                :bank :income :equity :asset
+                                :split]]
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
-               ;[organisation :ref :one]
                [length-of-time :ref :one]))
    (s/schema account-balance
              (s/fields
@@ -36,10 +36,10 @@
    (s/schema account-proportion
              (s/fields
                [account :ref :one]
-               [proportion :ref :one]))
+               [proportion :bigdec]))
    (s/schema split
              (s/fields
-               [name :string]
+               [key :keyword]
                [account-proportions :ref :many]))
    (s/schema period
              (s/fields
@@ -61,12 +61,12 @@
 
    (s/schema condition
              (s/fields
-               [predicate :enum [:starts-with :equals :ends-with]]
+               [field :enum [:desc]]
+               [predicate :enum [:starts-with :equals :ends-with :contains]]
                [subject :string]))
 
    (s/schema rule
              (s/fields
-               [field :enum [:desc]]
                [logic-operator :enum [:or :and :single]]
                [dominates :ref :many]
                [between-dates-inclusive :ref :one]
@@ -74,7 +74,7 @@
                [source-bank :ref :one]
                [target-account :ref :one]
                [period :ref :one]
-               [on-dates :ref :many]))
+               [on-dates :instant :many]))
 
    (s/schema organisation
              (s/fields
@@ -85,8 +85,16 @@
                [import-data-root :string]
                [tax-years :ref :many]
                [on-gst :ref :many]
+               [exp-accounts :ref :many]
+               [non-exp-accounts :ref :many]
+               [income-accounts :ref :many]
+               [personal-accounts :ref :many]
+               [liab-accounts :ref :many]
+               [equity-accounts :ref :many]
+               [asset-accounts :ref :many]
+               [liab-accounts :ref :many]
                [bank-accounts :ref :many]
-               [ledger-accounts :ref :many]
+               [split-accounts :ref :many]
                [splits :ref :many]
                ))
 

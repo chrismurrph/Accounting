@@ -5,7 +5,8 @@
             [accounting.util :as u]
             [accounting.core :as c]
             [accounting.data.meta.periods :as periods]
-            [accounting.time :as t]))
+            [accounting.time :as t]
+            [accounting.data.common :as dc]))
 
 (def quarter->rules
   {{:period/tax-year 2017
@@ -54,7 +55,7 @@
     (->> (merge-with (comp vec concat)
                      (mark-permanents-permanent seasoft-d/permanent-rules)
                      (mapcat quarter->rules total-range))
-         m/canonicalise-rules)))
+         dc/canonicalise-rules)))
 
 ;;
 ;; As used/read by the program every rule object is a hash-map.

@@ -34,6 +34,7 @@
   (-> kw name Integer/parseInt))
 
 (defn kw->string [kw]
+  (when kw (assert (keyword? kw)))
   (and kw (subs (str kw) 1)))
 
 (defn index-of [needle haystack]

@@ -3,13 +3,6 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
-;;
-;; name - of the thing we are asserting on
-;; value - of the thing we are asserting on
-;;
-(defn assert-str [name value]
-  (str name " (nil?, type, value-of): [" (nil? value) ", " (type value) ", " value "]"))
-
 (defn write-edn [filename x]
   (assert (clojure.string/ends-with? filename ".edn"))
   (assert (or (map? x) (vector? x)))
@@ -25,13 +18,6 @@
                       (vector? y) (concat x y)
                       :else y))
               a b))
-
-;;
-;; Only having to do this b/c I suspect that Untangled always wants to see
-;; keywords in :option/key. I'm probably wrong and will test properly later
-;;
-(defn kw->number [kw]
-  (-> kw name Integer/parseInt))
 
 (defn kw->string [kw]
   (when kw (assert (keyword? kw)))

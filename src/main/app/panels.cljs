@@ -7,6 +7,7 @@
 ;; They can still be put here, we just feed in the value with initial data.
 ;;
 (def POTENTIAL_DATA 'POTENTIAL-DATA)
+(def ORGANISATION 'ORGANISATION)
 (def CONFIG_DATA 'CONFIG-DATA)
 (def LEDGER_ITEMS_LIST 'LEDGER-ITEMS-LIST)
 (def RULES_LIST 'RULES-LIST)

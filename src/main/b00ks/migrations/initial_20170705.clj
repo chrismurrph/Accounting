@@ -8,12 +8,12 @@
 (def db-schema
   [(s/schema base
              (s/fields
-               [uuid :uuid :unique-identity]
+               ;[uuid :uuid :unique-identity]
                [type :keyword]
-               [date :instant]
+               ;[date :instant]
                ;[year :long]
                ))
-   (s/schema length-of-time
+   (s/schema time-slot
              (s/fields
                [start-at :instant]
                ;; end-at will often be optional
@@ -28,11 +28,15 @@
                                 :split]]
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
-               [length-of-time :ref :one]))
+               [time-slot :ref :one]))
    (s/schema account-balance
              (s/fields
                [account :ref :one]
-               [amount :ref :one]))
+               [amount :bigdec]))
+   (s/schema line-item
+             (s/fields
+               [date :instant]
+               [amount :bigdec]))
    (s/schema account-proportion
              (s/fields
                [account :ref :one]
@@ -50,6 +54,12 @@
              (s/fields
                [year :long]
                [period :ref :one]))
+   (s/schema statement
+             (s/fields
+               [bank-account :ref :one]
+               [actual-period :ref :one]
+               [line-items :ref :many]
+               ))
    (s/schema start-bank-balances
              (s/fields
                [actual-period :ref :one]
@@ -69,17 +79,26 @@
              (s/fields
                [logic-operator :enum [:or :and :single]]
                [dominates :ref :many]
-               [between-dates-inclusive :ref :one]
+               [time-slot :ref :one]
                [conditions :ref :many]
                [source-bank :ref :one]
                [target-account :ref :one]
                [period :ref :one]
                [on-dates :instant :many]))
 
+   (s/schema timespan
+             (s/fields
+               [commencing-period :ref :actual-period]
+               [latest-period :ref :actual-period]))
+
    (s/schema organisation
              (s/fields
                [name :string "Name of the organisation"]
+               [key :keyword "Keyword of the organisation"]
                [period-type :enum [:quarterly :monthly]]
+               ;; Not so much over-engineered as a de-normalization for
+               ;; when the front end wants to show all you have
+               [timespan :ref :one]
                [org-type :enum [:charity :tax]]
                [import-templates :ref :many]
                [import-data-root :string]
@@ -96,6 +115,7 @@
                [bank-accounts :ref :many]
                [split-accounts :ref :many]
                [splits :ref :many]
+               [possible-reports :keyword :many]
                ))
 
    (s/schema auth

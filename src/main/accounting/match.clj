@@ -26,14 +26,14 @@
 
 ;;   Only matches if they were chosen
 ;;   :on-dates
-;;   :between-dates-inclusive
+;;   :time-slot
 ;;   :amount
 ;;   - already has :period
-(defn matches-chosen-specifics? [record {:keys [period on-dates between-dates-inclusive amount] :as rule}]
+(defn matches-chosen-specifics? [record {:keys [period on-dates time-slot amount] :as rule}]
   (and (or (nil? period) (t/within-period? period (:out/date record)))
        (or (nil? on-dates) (t/in-set? on-dates (:out/date record)))
-       (or (nil? between-dates-inclusive)
-           (let [[start end] between-dates-inclusive]
+       (or (nil? time-slot)
+           (let [[start end] time-slot]
              ((t/within-range-hof? start end) (:out/date record))))
        (or (nil? amount) (= amount (:out/amount record)))))
 

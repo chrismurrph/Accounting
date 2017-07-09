@@ -9,15 +9,15 @@
 
 (def month->rules
   {{:period/year  2017
-    :period/month :feb} croquet-d/feb-rules
+    :period/month :period.month/feb} croquet-d/feb-rules
    {:period/year  2017
-    :period/month :mar} croquet-d/mar-rules
+    :period/month :period.month/mar} croquet-d/mar-rules
    })
 
 (def total-range [{:period/year  2017
-                   :period/month :feb}
+                   :period/month :period.month/feb}
                   {:period/year  2017
-                   :period/month :mar}
+                   :period/month :period.month/mar}
                   ])
 
 (def current-rules

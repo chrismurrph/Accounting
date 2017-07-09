@@ -4,10 +4,18 @@
             [b00ks.migrations.initial-20170705 :as current]
             [accounting.data.meta.seaweed :as seasoft]
             [accounting.data.seaweed :as seasoft-data]
-            [accounting.util :as u])
+            [accounting.seasoft-context :as seasoft-context]
+            [accounting.util :as u]
+            [accounting.time :as t]
+            [clj-time.coerce :as c])
   (:import (java.security MessageDigest)))
 
+(defn err-nil [x]
+  (assert x "Can't assign nil (or false)")
+  x)
+
 (defn find-account [accounts kw]
+  (assert (seq accounts))
   (let [[in-ns in-name] ((juxt namespace name) kw)
         res (->> accounts
                  (filter
@@ -17,7 +25,7 @@
                              category)
                           (= in-name name))))
                  first)]
-    (assert res (str "No account: " kw))
+    (assert res (str "No account: " kw ", ALL: " (u/pp-str accounts)))
     res))
 
 (def db-uri "datomic:dev://localhost:4334/b00ks")
@@ -38,17 +46,47 @@
       (apply str (map (partial format "%02x") (.digest digest))))))
 
 (defn make-import-template [accounts [k v]]
+  (assert (seq accounts))
   {:db/id                        (d/tempid :db.part/user)
    :base/type                    :import-template
    :import-template/template-str v
    :import-template/account      (find-account accounts k)})
 
+;;
+;; Unlikely to be importing monthly, asserting here so know to change this function
+;;
+(defn make-period [quarter]
+  {:db/id          (d/tempid :db.part/user)
+   :base/type      :period
+   :period/type    :period.type/quarterly
+   :period/quarter (keyword (str "period.quarter/" (u/kw->string quarter)))})
+
+(defn make-actual-period [{:keys [period/tax-year period/quarter] :as period}]
+  (assert tax-year (str "Unlikely to be importing monthly: <" period ">"))
+  (assert quarter)
+  {:db/id                (d/tempid :db.part/user)
+   :base/type            :actual-period
+   :actual-period/year   tax-year
+   :actual-period/period (make-period quarter)})
+
+(defn make-timespan [start-period end-period]
+  {:db/id                      (d/tempid :db.part/user)
+   :base/type                  :timespan
+   :timespan/commencing-period (make-actual-period start-period)
+   :timespan/latest-period     (make-actual-period end-period)})
+
 (def seaweed-software-org
-  {:db/id                         (d/tempid :db.part/user)
-   :base/type                     :organisation
-   :organisation/name             "Seaweed Software Pty Ltd"
-   :organisation/org-type         :organisation.org-type/tax
-   :organisation/import-data-root seasoft/import-data-root})
+  {:db/id                          (d/tempid :db.part/user)
+   :base/type                      :organisation
+   :organisation/key               :seaweed
+   :organisation/period-type       :organisation.period-type/quarterly
+   :organisation/timespan          (make-timespan (first seasoft-context/total-range)
+                                                  (last seasoft-context/total-range))
+   :organisation/name              "Seaweed Software Pty Ltd"
+   :organisation/org-type          :organisation.org-type/tax
+   :organisation/possible-reports  [:report/trial-balance :report/big-items-first
+                                    :report/profit-and-loss :report/balance-sheet]
+   :organisation/import-data-root  seasoft/import-data-root})
 
 (defn make-account-proportion [accounts [k v]]
   (assert v)
@@ -70,6 +108,16 @@
    :base/type     :tax-year
    :tax-year/year year})
 
+(defn make-time-slot [time-slot]
+  (assert time-slot)
+  (let [[begin-date end-date] time-slot]
+    (assert begin-date)
+    (cond->
+      {:db/id              (d/tempid :db.part/user)
+       :base/type          :time-slot
+       :time-slot/start-at (err-nil (c/to-date begin-date))}
+      end-date (assoc :time-slot/end-at (err-nil (c/to-date end-date))))))
+
 (defn make-account [kw]
   (let [[ns name] ((juxt namespace name) kw)
         category (keyword (str "account.category/" ns))]
@@ -81,6 +129,8 @@
      :account/category category
      :account/desc     name
      :account/name     name
+     ; No reason to repeat when the organisation began
+     ;:account/time-slot (make-time-slot [beginning-period nil])
      ;; Do reverse if need this, an organisation has many accounts
      ;:account/organisation (assoc seaweed-software-org :organisation/splits
      ;                                                  (mapv make-split seasoft/splits))
@@ -96,49 +146,21 @@
      :condition/predicate predicate-kw
      :condition/subject   subject}))
 
-(defn make-length-of-time [between-dates-inclusive]
-  (assert between-dates-inclusive)
-  (let [[begin-date end-date] between-dates-inclusive]
-    (assert begin-date)
-    (assert end-date)
-    {:db/id                   (d/tempid :db.part/user)
-     :base/type               :length-of-time
-     :length-of-time/start-at begin-date
-     :length-of-time/end-at   end-date}))
-
-;;
-;; Unlikely to be importing monthly, asserting here so know to change this function
-;;
-(defn make-period [quarter]
-  {:db/id          (d/tempid :db.part/user)
-   :base/type      :period
-   :period/type    (keyword (str "period.type/" "quarterly"))
-   :period/quarter (keyword (str "period.quarter/" (u/kw->string quarter)))})
-
-(defn make-actual-period [{:keys [period/tax-year period/quarter] :as period}]
-  (assert tax-year (str "Unlikely to be importing monthly: <" period ">"))
-  (assert quarter)
-  {:db/id                (d/tempid :db.part/user)
-   :base/type            :actual-period
-   :actual-period/year   tax-year
-   :actual-period/period (make-period quarter)})
-
 (defn make-rule
   [accounts {:keys [logic-operator conditions rule/source-bank rule/target-account
-                    dominates between-dates-inclusive rule/period on-dates]}]
+                    dominates time-slot rule/period on-dates]}]
   (let [logic-operator-kw (keyword (str "rule.logic-operator/" (u/kw->string logic-operator)))]
     (cond->
-      {:db/id                        (d/tempid :db.part/user)
-       :base/type                    :rule
-       :rule/logic-operator          logic-operator-kw
-       :rule/dominates               (mapv (partial find-account accounts) dominates)
-       :rule/conditions              (mapv make-condition conditions)
-       :rule/source-bank             (find-account accounts source-bank)
-       :rule/target-account          (find-account accounts target-account)
-       :rule/on-dates                (if on-dates (vec on-dates) [])
-       }
-      between-dates-inclusive
-      (assoc :rule/between-dates-inclusive (make-length-of-time between-dates-inclusive))
+      {:db/id               (d/tempid :db.part/user)
+       :base/type           :rule
+       :rule/logic-operator logic-operator-kw
+       :rule/dominates      (mapv (partial find-account accounts) dominates)
+       :rule/conditions     (mapv make-condition conditions)
+       :rule/source-bank    (find-account accounts source-bank)
+       :rule/target-account (find-account accounts target-account)
+       :rule/on-dates       (if on-dates (vec on-dates) [])}
+      time-slot
+      (assoc :rule/time-slot (make-time-slot time-slot))
       period
       (assoc :rule/period (make-actual-period period)))))
 
@@ -155,7 +177,8 @@
    })
 
 (defn amend-org-with-individual-accounts [org]
-  (let [{:keys [exp non-exp income personal liab equity asset bank split]} to-import-accounts]
+  (let [commencing (:organisation/commencing-period org)
+        {:keys [exp non-exp income personal liab equity asset bank split]} to-import-accounts]
     (-> org
         (assoc :organisation/exp-accounts exp)
         (assoc :organisation/non-exp-accounts non-exp)
@@ -167,7 +190,7 @@
         (assoc :organisation/bank-accounts bank)
         (assoc :organisation/split-accounts split))))
 
-(defn amend-org [all-accounts org]
+(defn amend-org-misc [all-accounts org]
   (-> org
       (assoc :organisation/splits
              (mapv (partial make-split all-accounts) seasoft/splits)
@@ -176,13 +199,20 @@
              :organisation/tax-years
              (mapv make-tax-year seasoft/tax-years))))
 
+(defn delete-all []
+  (d/delete-database db-uri))
+
 (defn datomic-import []
-  (d/delete-database db-uri)
+  ;Doesn't seem to work, use delete-all above
+  ;(d/delete-database db-uri)
   (d/create-database db-uri)
-  (let [all-accounts (->> to-import-accounts vals (apply concat))
+  (let [commencing (-> seaweed-software-org :organisation/timespan :timespan/commencing-period)
+        _ (assert commencing)
+        _ (println commencing)
+        all-accounts (->> to-import-accounts vals (apply concat))
         rule-make (partial make-rule all-accounts)
         rules (mapv rule-make seasoft-data/all-rules)
-        org-amend (partial amend-org all-accounts)
+        org-amend (partial amend-org-misc all-accounts)
         organisation (-> seaweed-software-org
                          amend-org-with-individual-accounts
                          org-amend)

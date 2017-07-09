@@ -28,9 +28,12 @@
           name-display (clojure.string/replace name #"-" " ")
           ]
       (dom/tr nil
-              (dom/td #js {:className "col-md-2"} name-display)
-              (dom/td #js {:style #js {:color (if negative? "red" "")} :className "text-right col-md-1"} amount-display)
-              (dom/td #js {:className "col-md-2"} type-display)))))
+              (dom/td #js {:className "col-md-2"}
+                      name-display)
+              (dom/td #js {:style #js {:color (if negative? "red" "")} :className "text-right col-md-1"}
+                      amount-display)
+              (dom/td #js {:className "col-md-2"}
+                      type-display)))))
 (def ui-ledger-item (om/factory LedgerItem {:keyfn :db/id}))
 
 (defui ^:once LedgerItemList
@@ -57,6 +60,20 @@
                           (dom/tbody nil (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items)))))))
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
+(defui ^:once Enum
+  static om/IQuery
+  (query [this] [:db/ident]))
+
+(defui ^:once Period
+  static om/IQuery
+  (query [this] [:db/ident {:period/type (om/get-query Enum)}
+                 {:period/quarter (om/get-query Enum)}]))
+
+(defui ^:once ActualPeriod
+  static om/IQuery
+  (query [this] [:actual-period/year {:actual-period/period (om/get-query Period)}])
+  )
+
 ;;
 ;; Important for data fetching the meta-data for a user/orgs from the server.
 ;; Note that on login the full list of organisations for that individual will come
@@ -69,10 +86,19 @@
   (query [this] [:potential-data/period-type :potential-data/commencing-period
                  :potential-data/latest-period :potential-data/possible-reports]))
 
+(defui ^:once Organisation
+  static om/Ident
+  (ident [this props] [:organisation/by-id p/ORGANISATION])
+  static om/IQuery
+  (query [this] [{:organisation/period-type (om/get-query Enum)}
+                 {:organisation/commencing-period (om/get-query ActualPeriod)}
+                 {:organisation/latest-period (om/get-query ActualPeriod)}
+                 :organisation/possible-reports]))
+
 (defn execute-report [comp organisation year period report]
   #((om/transact! comp `[(cljs-ops/touch-report nil)])
      (df/load comp
-              :my-selected-items LedgerItem
+              :my-selected-items-new LedgerItem
               {:target        help/report-items-whereabouts
                :params        {:request/organisation organisation
                                :request/year         year
@@ -83,18 +109,26 @@
 
 (defn load-potential-data [comp new-org-value]
   (assert (keyword? new-org-value))
-  (df/load comp :my-potential-data PotentialData
+  (df/load comp :my-potential-data-new PotentialData
+           {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
+            :params        {:request/organisation new-org-value}
+            :post-mutation `cljs-ops/post-potential-data
+            }))
+
+(defn load-organisation-data [comp new-org-value]
+  (assert (keyword? new-org-value))
+  (df/load comp :my-potential-data-new Organisation
            {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
             :params        {:request/organisation new-org-value}
             :post-mutation `cljs-ops/post-potential-data
             }))
 
 ;; Hopefully there will be a decent error message rather than user seeing this
-(def initial-potential-data {:potential-data/period-type       :period-type/unknown
-                             :potential-data/latest-period     {:period/quarter  :q1
-                                                                :period/tax-year 2000}
-                             :potential-data/commencing-period {:period/quarter  :q1
-                                                                :period/tax-year 2000}})
+(def initial-potential-data {:organisation/period-type       :period-type/unknown
+                             :organisation/latest-period     {:period/quarter  :q1
+                                                              :period/tax-year 2000}
+                             :organisation/commencing-period {:period/quarter  :q1
+                                                              :period/tax-year 2000}})
 (defui ^:once UserRequestForm
   static uc/InitialAppState
   (initial-state [this {:keys [id]}]
@@ -118,16 +152,17 @@
   static om/IQuery
   (query [_] [:db/id :request/organisation :request/year :request/period :request/report
               :request/manually-executable?
-              {:potential-data (om/get-query PotentialData)} f/form-root-key f/form-key])
+              {:potential-data (om/get-query Organisation)} f/form-root-key f/form-key])
   Object
   (render [this]
     (let [{:keys [potential-data request/organisation request/year request/period
                   request/report request/manually-executable?] :as form} (om/props this)
-          {:keys [potential-data/period-type]} potential-data
-          period-label (condp = period-type
-                         :period-type/quarterly "Quarter"
-                         :period-type/monthly "Month"
-                         :period-type/unknown "Unknown"
+          _ (assert report)
+          {:keys [organisation/period-type]} potential-data
+          period-label (condp = (:db/ident period-type)
+                         :organisation.period-type/quarterly "Quarter"
+                         :organisation.period-type/monthly "Month"
+                         :organisation.period-type/unknown "Unknown"
                          nil "Unknown")
           at-className (if manually-executable? "btn btn-primary" "btn disabled")
           at-disabled (if manually-executable? "" "true")]
@@ -136,7 +171,7 @@
                                     {:onChange (fn [evt]
                                                  (om/transact! this `[(cljs-ops/touch-report nil)])
                                                  (let [new-org-value (u/target-kw evt)]
-                                                   (load-potential-data this new-org-value))
+                                                   (load-organisation-data this new-org-value))
                                                  (om/transact! this `[(cljs-ops/enable-report-execution nil)]))})
                (fh/field-with-label this form :request/year "Year"
                                     {:onChange (fn [evt]

@@ -52,7 +52,14 @@
         make-record (record-maker bank-account heading-objs)]
     (map make-record lines)))
 
-(defn -slurp-raw-data->csv! [customer-kw bank]
+(defn -slurp-raw-data->csv-old! [customer-kw bank]
+  (fn [period]
+    (let [file-path ((common-meta/bank-period->file-name (common-meta/human-meta customer-kw)) bank period)]
+      (->> (slurp file-path)
+           s/split-lines
+           (map u/line->csv)))))
+
+(defn -slurp-raw-data->csv-datomic! [customer-kw bank]
   (fn [period]
     (let [file-path ((common-meta/bank-period->file-name (common-meta/human-meta customer-kw)) bank period)]
       (->> (slurp file-path)
@@ -60,7 +67,7 @@
            (map u/line->csv)))))
 
 (defn slurp-raw-data->csv! [customer-kw bank periods]
-  (let [converter (-slurp-raw-data->csv! customer-kw bank)]
+  (let [converter (-slurp-raw-data->csv-datomic! customer-kw bank)]
     (mapcat converter periods)))
 
 (defn -import-bank-records! [customer-kw periods bank-account]
@@ -68,6 +75,10 @@
        (parse-csv bank-account)))
 
 (defn import-bank-records! [customer-kw periods bank-accounts]
+  (let [importer (partial -import-bank-records! customer-kw periods)]
+    (mapcat importer bank-accounts)))
+
+(defn import-bank-records-datomic! [customer-kw periods bank-accounts]
   (let [importer (partial -import-bank-records! customer-kw periods)]
     (mapcat importer bank-accounts)))
 

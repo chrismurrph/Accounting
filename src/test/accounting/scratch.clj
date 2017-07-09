@@ -134,3 +134,34 @@
   (insert-between
     (fn [x y] (* (+ x y) 0.5))
     [1 10 15]))
+
+["anz-visa"
+ "_ANZ_credit_card.csv"
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q1}}}
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q3}}}
+ ]
+
+["amp"
+ "_AMP_TransactionHistory.csv"
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q1}}}
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q3}}}]
+
+["anz-coy"
+ "_ANZ_coy.csv"
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q1}}}
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q3}}}]
+
+["anz-coy"
+ "_ANZ_coy.csv"
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q1}}}
+ #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+                                              :quarter #:db{:ident :period.quarter/q3}}}]
+
+["anz-visa" "_ANZ_credit_card.csv" #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q1}}} #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q3}}}] ["amp" "_AMP_TransactionHistory.csv" #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q1}}} #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q3}}}]

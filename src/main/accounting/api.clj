@@ -12,11 +12,15 @@
             [accounting.data.common :as dc]
             [accounting.data.meta.seaweed :as seasoft-meta]
             [accounting.data.meta.croquet :as croquet-meta]
-            [accounting.time :as t]))
+            [accounting.time :as t]
+            [cljc.utils :as us]))
 
 (defn make-ledger-item [idx [kw amount]]
   (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
-  {:db/id idx :ledger-item/name (name kw) :ledger-item/type ((comp keyword namespace) kw) :ledger-item/amount amount})
+  {:db/id idx
+   :ledger-item/name (name kw)
+   :ledger-item/type ((comp keyword namespace) kw)
+   :ledger-item/amount amount})
 
 (defn map->ledger-items [m]
   (assert (map? m) (str "Expected a map but got: " (type m)))
@@ -39,7 +43,7 @@
   (fn [year period]
     (assert (number? year))
     (assert (keyword? period))
-    (assert (period all-periods) period)
+    (assert (period all-periods) all-periods)
     (let [period (make-period year period)
           bank-records (c/import-bank-records! organisation [period] bank-accounts)]
       {:bank-records bank-records :bank-accounts bank-accounts})))
@@ -82,7 +86,7 @@
 
 (defn trial-balance-report [organisation year period]
   (let [{:keys [splits rules-fn bank-statements-fn starting-balances-fn] :as for-org} (organisation by-org)
-        year (u/kw->number year)
+        year (us/kw->number year)
         bank-statements (bank-statements-fn year period)
         current-rules (rules-fn year period)
         starting-balances (starting-balances-fn year period)]
@@ -91,7 +95,7 @@
 
 (defn biggest-items-report [organisation year period]
   (let [{:keys [rules-fn bank-statements-fn] :as for-org} (organisation by-org)
-        year (u/kw->number year)
+        year (us/kw->number year)
         bank-statements (bank-statements-fn year period)
         current-rules (rules-fn year period)]
     (->> (c/account-grouped-transactions bank-statements current-rules)
@@ -162,20 +166,20 @@
 
 (defn rule->outgoing [idx {:keys [logic-operator conditions rule/source-bank
                                   rule/permanent? rule/period
-                                  rule/target-account between-dates-inclusive
+                                  rule/target-account time-slot
                                   on-dates]}]
   {:db/id                        idx
    :rule/period                  period
    :rule/permanent?              permanent?
    :rule/source-bank             source-bank
    :rule/target-account          target-account
-   :rule/between-dates-inclusive between-dates-inclusive
+   :rule/time-slot time-slot
    :rule/on-dates                on-dates
    :rule/conditions              conditions
    :rule/logic-operator          logic-operator})
 
 (defn rules-from-bank-ledger [kws source-bank target-ledger]
-  (assert (keyword? source-bank) (u/assert-str "source-bank" source-bank))
+  (assert (keyword? source-bank) (us/assert-str "source-bank" source-bank))
   (assert (keyword? target-ledger))
   ;(println "Choosing on " source-bank " and " target-ledger)
   (let [to-send (m/filter-rules #{source-bank} #{target-ledger} (mapv t/civilize-joda @seasoft-con/current-rules))]

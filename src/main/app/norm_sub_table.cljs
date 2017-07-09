@@ -22,7 +22,7 @@
                                     [:out/desc :starts-with "DRAKE SUPERMARKETS"]
                                     [:out/desc :starts-with "Z & Y BEYOND INTL PL"]],
      :db/id                        0,
-     :rule/between-dates-inclusive nil,
+     :rule/time-slot nil,
      :rule/period                  {:period/tax-year 2017, :period/quarter :q3},
      :rule/logic-operator          :or,
      :rule/target-account          :exp/office-expense}}})
@@ -35,7 +35,7 @@
               :rule/conditions [[:out/desc :equals "TARGET 5009               ADELAIDE"]
                                 [:out/desc :starts-with "DRAKE SUPERMARKETS"]
                                 [:out/desc :starts-with "Z & Y BEYOND INTL PL"]],
-              :db/id 0, :rule/between-dates-inclusive nil,
+              :db/id 0, :rule/time-slot nil,
               :rule/period {:period/tax-year 2017, :period/quarter :q3},
               :rule/logic-operator :or, :rule/target-account :exp/office-expense}}})
 

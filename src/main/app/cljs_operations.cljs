@@ -55,12 +55,12 @@
   [no-params]
   (action [{:keys [state]}]
           (let [st @state
-                ident (:my-potential-data st)
+                ident (:my-potential-data-new st)
                 potential-data (get-in st ident)
                 [selected-year year-options] (help/years-options-generator potential-data nil)
                 [selected-period period-options] (help/periods-options-generator potential-data selected-year)
                 [selected-report report-options] (help/reports-options-generator potential-data nil)]
-            (u/log-off (str "year: " selected-year))
+            (u/log-on (str "year: " selected-report))
             (u/log-off (str "year options: " year-options))
             (u/log-off (str "period options: " period-options))
             (swap! state #(-> %
@@ -68,7 +68,7 @@
                               (help/year-dropdown-rebuilder selected-year year-options)
                               (help/period-dropdown-rebuilder selected-period period-options)
                               (help/report-dropdown-rebuilder selected-report report-options)
-                              (dissoc :my-potential-data))))))
+                              (dissoc :my-potential-data-new))))))
 
 ;;
 ;; We already know which bank account the money is coming from. User is picking the account

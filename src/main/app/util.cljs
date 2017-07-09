@@ -3,21 +3,6 @@
 
 (enable-console-print!)
 
-;;
-;; name - of the thing we are asserting on
-;; value - of the thing we are asserting on
-;;
-(defn assert-str [name value]
-  (str name " (nil?, type, value-of): [" (nil? value) ", " (type value) ", " value "]"))
-
-(defn string->kw [s]
-  (-> s
-      (subs 1)
-      keyword))
-
-(defn kw->string [kw]
-  (and kw (subs (str kw) 1)))
-
 (defn kw-like-str? [x]
   (and (string? x) (= \: (first x)) (not= \: (second x))))
 
@@ -29,21 +14,6 @@
 
 (defn abs [n]
   (if (neg? n) (- n) n))
-
-;;
-;; Only having to do this b/c I suspect that Untangled always wants to see
-;; keywords in :option/key. I'm probably wrong and will test properly later
-;;
-(defn kw->number [kw]
-  (-> kw name js/parseInt))
-
-;;
-;; Up to and including, inclusive of both from and to
-;;
-(defn numerical-range [from to]
-  (->> from
-       (iterate inc)
-       (take-while #(<= % to))))
 
 (defn probe-off
   ([x]
@@ -84,10 +54,3 @@
 (defn warn [want? txt]
   (when-not want?
     (println (str "WARN: " txt #_" -> >" #_want? #_"<"))))
-
-(defn log [txt]
-  (println (str "LOG: " txt)))
-
-(def log-on log)
-
-(defn log-off [txt])

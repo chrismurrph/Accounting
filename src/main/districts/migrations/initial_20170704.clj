@@ -2,7 +2,7 @@
   (:require [datomic.api :as d]
             [untangled.datomic.schema :as s]))
 
-(defn transactions []
+(defn -transactions []
   [(s/generate-schema
      [(s/schema district
                 (s/fields

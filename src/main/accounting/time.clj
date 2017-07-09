@@ -24,13 +24,13 @@
 (defn civilize-joda [m]
   (assert (map? m))
   (-> m
-      (update :between-dates-inclusive joda-vector->java)
+      (update :time-slot joda-vector->java)
       (update :on-dates joda-set->java)))
 
 (defn wildify-java [m]
   (assert (map? m))
   (-> m
-      (update :between-dates-inclusive java-vector->joda)
+      (update :time-slot java-vector->joda)
       (update :on-dates java-set->joda)))
 
 
@@ -49,47 +49,47 @@
    "Dec" 12})
 
 (def month-kw->month
-  {:jan 1
-   :feb 2
-   :mar 3
-   :apr 4
-   :may 5
-   :jun 6
-   :jul 7
-   :aug 8
-   :sep 9
-   :oct 10
-   :nov 11
-   :dec 12})
+  {:period.month/jan 1
+   :period.month/feb 2
+   :period.month/mar 3
+   :period.month/apr 4
+   :period.month/may 5
+   :period.month/jun 6
+   :period.month/jul 7
+   :period.month/aug 8
+   :period.month/sep 9
+   :period.month/oct 10
+   :period.month/nov 11
+   :period.month/dec 12})
 
 (def quarter->begin-month
-  {:q1 7
-   :q2 10
-   :q3 1
-   :q4 4})
+  {:period.quarter/q1 7
+   :period.quarter/q2 10
+   :period.quarter/q3 1
+   :period.quarter/q4 4})
 
 (def quarter->end-month
-  {:q1 9
-   :q2 12
-   :q3 3
-   :q4 6})
+  {:period.quarter/q1 9
+   :period.quarter/q2 12
+   :period.quarter/q3 3
+   :period.quarter/q4 6})
 
 (defn prior-quarter [{:keys [period/tax-year period/quarter]}]
   (assert tax-year)
   (assert (number? tax-year))
   (assert quarter)
-  (let [at-yr-start? (= quarter :q1)
+  (let [at-yr-start? (= quarter :period.quarter/q1)
         new-year (cond-> tax-year at-yr-start? dec)
-        new-quarter (if at-yr-start? :q4 (nth periods/quarters (dec (u/index-of quarter periods/quarters))))]
+        new-quarter (if at-yr-start? :period.quarter/q4 (nth periods/quarters (dec (u/index-of quarter periods/quarters))))]
     {:period/tax-year new-year :period/quarter new-quarter}))
 
 (defn prior-month [{:keys [period/year period/month]}]
   (assert year)
   (assert (number? year))
   (assert month)
-  (let [at-yr-start? (= month :jan)
+  (let [at-yr-start? (= month :period.month/jan)
         new-year (cond-> year at-yr-start? dec)
-        new-month (if at-yr-start? :dec (nth periods/months (dec (u/index-of month periods/months))))]
+        new-month (if at-yr-start? :period.month/dec (nth periods/months (dec (u/index-of month periods/months))))]
     {:period/year new-year :period/month new-month}))
 
 (defn long-date-str->date [x]
@@ -134,10 +134,10 @@
         (assoc :when f-ed-when-date))))
 
 (def change-year-for-quarter
-  {:q1 dec
-   :q2 dec
-   :q3 identity
-   :q4 identity})
+  {:period.quarter/q1 dec
+   :period.quarter/q2 dec
+   :period.quarter/q3 identity
+   :period.quarter/q4 identity})
 
 (defn -start-quarter-moment [tax-year quarter]
   (assert tax-year)
@@ -153,6 +153,7 @@
          (t/last-day-of-the-month year))))
 
 (defn -start-month-moment [month-kw year]
+  (assert month-kw)
   (->> month-kw
        month-kw->month
        (t/first-day-of-the-month year)))
@@ -162,11 +163,20 @@
        month-kw->month
        (t/last-day-of-the-month year)))
 
-(defn start-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
+(defn start-period-moment-orig [{:keys [period/tax-year period/quarter period/year period/month] :as in}]
   ;(println "==" tax-year (nil? tax-year) year (nil? year))
+  (assert (or tax-year year) in)
+  (assert (or quarter month))
   (if (nil? tax-year)
     (-start-month-moment month year)
     (-start-quarter-moment tax-year quarter)))
+
+(defn start-period-moment-datomic [{:keys [actual-period/year actual-period/period] :as in}]
+  (let [{:keys [period/type period/quarter]} period]
+    (if (= :period.type/quarterly type)
+      (-start-quarter-moment year quarter)
+      (assert false "Not yet doing monthly here")
+      #_(-start-month-moment month year))))
 
 (defn end-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
   (if (nil? tax-year)
@@ -219,11 +229,11 @@
   ;(println (str "See if " (format-date date) " is in " (mapv format-date dates)))
   (dates date))
 
-(defn within-period? [period date]
-  (assert period)
+(defn within-period? [actual-period date]
+  (assert actual-period)
   (assert date)
-  (let [start-moment (start-period-moment period)
-        end-moment (end-period-moment period)
+  (let [start-moment (start-period-moment-datomic actual-period)
+        end-moment (end-period-moment actual-period)
         res ((within-range-hof? start-moment end-moment) date)]
     res))
 

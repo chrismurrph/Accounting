@@ -50,6 +50,9 @@
     (swap! system component/stop))
   (reset! system nil))
 
+(def experiments-db-config "/usr/local/etc/districts.edn")
+(def books-db-config "/usr/local/etc/b00ks.edn")
+
 (defn go
   "Start the server. Optionally supply a path to your desired config. Relative paths will scan classpath. Absolute
   paths will come from the filesystem. The default is config/dev.edn."
@@ -60,7 +63,7 @@
      (letfn [(start []
                (swap! system component/start))
              (init [path]
-               (when-let [new-system (app.server/make-system "/usr/local/etc/districts.edn")]
+               (when-let [new-system (app.server/make-b00ks-system books-db-config)]
                  (reset! system new-system)))]
        (init path)
        (start)))))

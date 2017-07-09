@@ -17,7 +17,7 @@
 ;;
 ;; Have introduce more specificity to these rules, that will be used if not nil:
 ;;   :on-date
-;;   :between-dates-inclusive
+;;   :time-slot
 ;;   :amount
 ;;   - already has :period
 ;; Here the PayPal can be :on-date, and the niim-trip between dates
@@ -38,7 +38,7 @@
                                                   :conditions     [[:starts-with "QANTAS AIRWAYS"]]}
                                                  ]
                      [visa :exp/niim-trip]      [{:field                   :out/desc
-                                                  :between-dates-inclusive (t/inclusive-range "25 Jan 2017" "08 Feb 2017")
+                                                  :time-slot (t/inclusive-range "25 Jan 2017" "08 Feb 2017")
                                                   :logic-operator          :or
                                                   :conditions              [[:starts-with "SKYBUS COACH SERVICE"]
                                                                             [:equals "RE & TK WILSDON PTY       KEITH"]

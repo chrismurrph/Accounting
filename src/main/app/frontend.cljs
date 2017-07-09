@@ -39,7 +39,7 @@
   (fn [kw]
     (if (= kw selected-kw) "red" "")))
 
-(defui ^:once Root
+(defui ^:once OrigRoot
   static om/IQuery
   (query [this] [:ui/react-key
                  {:top-router (om/get-query TopRouter)}])
@@ -165,6 +165,9 @@
                                               "/api"
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
-                                           (bookkeeping/load-potential-data app :seaweed)
+                                           (bookkeeping/load-organisation-data app :seaweed)
                                            (banking/load-unruly-bank-statement-line app)
                                            (config/load-config-data app :seaweed)))))
+
+(defonce app app-1)
+(def Root OrigRoot)

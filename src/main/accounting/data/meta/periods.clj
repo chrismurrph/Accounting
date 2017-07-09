@@ -1,7 +1,8 @@
 (ns accounting.data.meta.periods
   (:require [clojure.string :as s]))
 
-(def months [:jan :feb :mar :apr :may :jun :jul :aug :sep :oct :nov :dec])
+(def months [:period.month/jan :period.month/feb :period.month/mar :period.month/apr :period.month/may :period.month/jun
+             :period.month/jul :period.month/aug :period.month/sep :period.month/oct :period.month/nov :period.month/dec])
 (def months-set (set months))
 (def quarters [:q1 :q2 :q3 :q4])
 (def quarters-set (set quarters))

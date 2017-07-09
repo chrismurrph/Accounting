@@ -149,22 +149,22 @@
 (defn year-taker [f]
   (fn [year]
     (let [periods (f year)]
+      (println "periods:" periods)
       (map (fn [period] {:period/year year :period/quarter period}) periods))))
 
 (defn import-statements []
   (let [c (d/connect db-uri)
         customer-kw :seaweed
         [{:keys [root-dir
-                 organisation/commencing-period
-                 organisation/latest-period] :as meta} & tail] (find-importing-meta c customer-kw)
+                 organisation/timespan] :as meta} & tail] (find-importing-meta c customer-kw)
         _ (println (inc (count tail)))
         years (dhs/range-of-years nil meta)
         f (us/flip dhs/range-of-periods)
-        range-of-periods (year-taker (partial f meta))
-        periods (mapcat range-of-periods years)
+        range-of-periods-f (year-taker (partial f meta))
+        periods (mapcat range-of-periods-f years)
         ;records (c/import-bank-records-datomic! customer-kw periods)
         ]
-    (distinct periods)))
+    periods))
 
 (defn general-query []
   (let [c (d/connect db-uri)

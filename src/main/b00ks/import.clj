@@ -58,8 +58,8 @@
 (defn make-period [quarter]
   {:db/id          (d/tempid :db.part/user)
    :base/type      :period
-   :period/type    :period.type/quarterly
-   :period/quarter (keyword (str "period.quarter/" (u/kw->string quarter)))})
+   :period/type    :quarterly
+   :period/quarter quarter})
 
 (defn make-actual-period [{:keys [period/tax-year period/quarter] :as period}]
   (assert tax-year (str "Unlikely to be importing monthly: <" period ">"))
@@ -79,11 +79,11 @@
   {:db/id                          (d/tempid :db.part/user)
    :base/type                      :organisation
    :organisation/key               :seaweed
-   :organisation/period-type       :organisation.period-type/quarterly
+   :organisation/period-type       :quarterly
    :organisation/timespan          (make-timespan (first seasoft-context/total-range)
                                                   (last seasoft-context/total-range))
    :organisation/name              "Seaweed Software Pty Ltd"
-   :organisation/org-type          :organisation.org-type/tax
+   :organisation/org-type          :tax
    :organisation/possible-reports  [:report/trial-balance :report/big-items-first
                                     :report/profit-and-loss :report/balance-sheet]
    :organisation/import-data-root  seasoft/import-data-root})
@@ -149,20 +149,19 @@
 (defn make-rule
   [accounts {:keys [logic-operator conditions rule/source-bank rule/target-account
                     dominates time-slot rule/period on-dates]}]
-  (let [logic-operator-kw (keyword (str "rule.logic-operator/" (u/kw->string logic-operator)))]
-    (cond->
-      {:db/id               (d/tempid :db.part/user)
-       :base/type           :rule
-       :rule/logic-operator logic-operator-kw
-       :rule/dominates      (mapv (partial find-account accounts) dominates)
-       :rule/conditions     (mapv make-condition conditions)
-       :rule/source-bank    (find-account accounts source-bank)
-       :rule/target-account (find-account accounts target-account)
-       :rule/on-dates       (if on-dates (vec on-dates) [])}
-      time-slot
-      (assoc :rule/time-slot (make-time-slot time-slot))
-      period
-      (assoc :rule/period (make-actual-period period)))))
+  (cond->
+    {:db/id               (d/tempid :db.part/user)
+     :base/type           :rule
+     :rule/logic-operator logic-operator
+     :rule/dominates      (mapv (partial find-account accounts) dominates)
+     :rule/conditions     (mapv make-condition conditions)
+     :rule/source-bank    (find-account accounts source-bank)
+     :rule/target-account (find-account accounts target-account)
+     :rule/on-dates       (if on-dates (vec on-dates) [])}
+    time-slot
+    (assoc :rule/time-slot (make-time-slot time-slot))
+    period
+    (assoc :rule/period (make-actual-period period))))
 
 (def to-import-accounts
   {:exp      (mapv make-account seasoft/exp-accounts)
@@ -177,8 +176,7 @@
    })
 
 (defn amend-org-with-individual-accounts [org]
-  (let [commencing (:organisation/commencing-period org)
-        {:keys [exp non-exp income personal liab equity asset bank split]} to-import-accounts]
+  (let [{:keys [exp non-exp income personal liab equity asset bank split]} to-import-accounts]
     (-> org
         (assoc :organisation/exp-accounts exp)
         (assoc :organisation/non-exp-accounts non-exp)

@@ -23,9 +23,7 @@
                [year :long]))
    (s/schema account
              (s/fields
-               [category :enum [:exp :liab :non-exp :personal
-                                :bank :income :equity :asset
-                                :split]]
+               [category :keyword #_[:exp :liab :non-exp :personal :bank :income :equity :asset :split]]
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
                [time-slot :ref :one]))
@@ -47,9 +45,9 @@
                [account-proportions :ref :many]))
    (s/schema period
              (s/fields
-               [type :enum [:quarterly :monthly]]
-               [month :enum [:jan :feb :mar :apr :may :jun :jul :aug :sep :oct :nov :dec]]
-               [quarter :enum [:q1 :q2 :q3 :q4]]))
+               [type :keyword #_[:quarterly :monthly]]
+               [month :keyword #_[:jan :feb :mar :apr :may :jun :jul :aug :sep :oct :nov :dec]]
+               [quarter :keyword #_[:q1 :q2 :q3 :q4]]))
    (s/schema actual-period
              (s/fields
                [year :long]
@@ -71,13 +69,13 @@
 
    (s/schema condition
              (s/fields
-               [field :enum [:desc]]
-               [predicate :enum [:starts-with :equals :ends-with :contains]]
+               [field :keyword #_[:desc]]
+               [predicate :keyword #_[:starts-with :equals :ends-with :contains]]
                [subject :string]))
 
    (s/schema rule
              (s/fields
-               [logic-operator :enum [:or :and :single]]
+               [logic-operator :keyword #_[:or :and :single]]
                [dominates :ref :many]
                [time-slot :ref :one]
                [conditions :ref :many]
@@ -95,11 +93,11 @@
              (s/fields
                [name :string "Name of the organisation"]
                [key :keyword "Keyword of the organisation"]
-               [period-type :enum [:quarterly :monthly]]
+               [period-type :keyword #_[:quarterly :monthly]]
                ;; Not so much over-engineered as a de-normalization for
                ;; when the front end wants to show all you have
                [timespan :ref :one]
-               [org-type :enum [:charity :tax]]
+               [org-type :keyword #_[:charity :tax]]
                [import-templates :ref :many]
                [import-data-root :string]
                [tax-years :ref :many]

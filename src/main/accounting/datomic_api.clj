@@ -39,24 +39,23 @@
     {:period/type period-type :period/year year :period/quarter ident}))
 
 (def -actual-period-pull [:actual-period/year
-                          {:actual-period/period [{:period/type [:db/ident]}
+                          {:actual-period/period [:period/type
                                                   :period/month
-                                                  {:period/quarter [:db/ident]}]}])
+                                                  :period/quarter]}])
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}
                     {:timespan/latest-period -actual-period-pull}])
-(def period-type-pull [:db/ident])
 
 (defn read-statement-importing-meta [conn org-key]
   (assert org-key)
   (let [db (d/db conn)]
-    (d/q '[:find ?dr ?an ?ts ?pt
+    (d/q '[:find ?dr ?an ?ts ?pt ?tis
            :in $ ?o
            :where
            [?e :organisation/key ?o]
            [?e :organisation/import-data-root ?dr]
            [?e :organisation/import-templates ?t]
            [?e :organisation/period-type ?pt]
-           ;[?e :organisation/timespan ?ts]
+           [?e :organisation/timespan ?tis]
            [?t :import-template/account ?a]
            [?t :import-template/template-str ?ts]
            [?a :account/name ?an]
@@ -69,7 +68,7 @@
       {:root-dir                 root-dir
        :bank-acct-name           bank-acct-name
        :template-str             template-str
-       :organisation/period-type (d/pull db period-type-pull period-type)
+       :organisation/period-type period-type
        :organisation/timespan    (d/pull db timespan-pull timespan)
        })))
 
@@ -173,5 +172,5 @@
     (map (juxt :bank-acct-name
                :template-str
                :organisation/period-type
-               :organisation/latest-period
+               :organisation/timespan
                ) (find-importing-meta c customer-kw))))

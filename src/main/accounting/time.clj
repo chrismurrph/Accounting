@@ -109,6 +109,10 @@
 
 (defn short-date-str->date [x]
   (let [[_ d m y] (re-matches #"(\d+)/(\d+)/(\d+)" x)]
+    ;Validate does
+    ;(assert d (str "No day from: <" x ">"))
+    ;(assert m (str "No month from: <" x ">"))
+    ;(assert y (str "No year from: <" y ">"))
     (t/date-time (u/to-int y) (u/to-int m) (u/to-int d))))
 
 (def -date-formatter (f/formatter "dd/MM/yyyy"))

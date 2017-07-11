@@ -9,8 +9,9 @@
 ;; Filter so only get the rules of certain bank accounts
 ;;
 (defn bank-rules [bank-accounts in-rules]
-  (assert (set? bank-accounts))
-  (let [rules (filter #(bank-accounts (:rule/source-bank %)) in-rules)]
+  (assert (seq bank-accounts))
+  (let [bank-accounts (set bank-accounts)
+        rules (filter #(bank-accounts (:rule/source-bank %)) in-rules)]
     rules))
 
 ;;

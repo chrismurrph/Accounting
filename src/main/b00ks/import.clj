@@ -76,17 +76,17 @@
    :timespan/latest-period     (make-actual-period end-period)})
 
 (def seaweed-software-org
-  {:db/id                          (d/tempid :db.part/user)
-   :base/type                      :organisation
-   :organisation/key               :seaweed
-   :organisation/period-type       :quarterly
-   :organisation/timespan          (make-timespan (first seasoft-context/total-range)
-                                                  (last seasoft-context/total-range))
-   :organisation/name              "Seaweed Software Pty Ltd"
-   :organisation/org-type          :tax
-   :organisation/possible-reports  [:report/trial-balance :report/big-items-first
-                                    :report/profit-and-loss :report/balance-sheet]
-   :organisation/import-data-root  seasoft/import-data-root})
+  {:db/id                         (d/tempid :db.part/user)
+   :base/type                     :organisation
+   :organisation/key              :seaweed
+   :organisation/period-type      :quarterly
+   :organisation/timespan         (make-timespan (first seasoft-context/total-range)
+                                                 (last seasoft-context/total-range))
+   :organisation/name             "Seaweed Software Pty Ltd"
+   :organisation/org-type         :tax
+   :organisation/possible-reports [:report/trial-balance :report/big-items-first
+                                   :report/profit-and-loss :report/balance-sheet]
+   :organisation/import-data-root seasoft/import-data-root})
 
 (defn make-account-proportion [accounts [k v]]
   (assert v)
@@ -136,6 +136,19 @@
      ;                                                  (mapv make-split seasoft/splits))
      }))
 
+(defn make-heading [n kw]
+  {:db/id           (d/tempid :db.part/user)
+   :base/type       :heading
+   :heading/key     kw
+   :heading/ordinal n
+   ;; don't need any more
+   })
+
+(defn make-bank-account [[heading structure]]
+  (assert (vector? structure))
+  (let [account (make-account heading)]
+    (assoc account :account/headings (vec (map-indexed make-heading structure)))))
+
 (defn make-condition [[field predicate subject]]
   (assert subject)
   (let [field-kw (keyword (str "condition.field/" (name field)))
@@ -171,7 +184,10 @@
    :liab     (mapv make-account seasoft/liab-accounts)
    :equity   (mapv make-account seasoft/equity-accounts)
    :asset    (mapv make-account seasoft/asset-accounts)
-   :bank     (mapv make-account seasoft/bank-accounts)
+   :bank     (mapv make-bank-account
+                   (->> accounting.convert/bank-account-headings
+                        ;; there are 4 and last is for croquet
+                        (take 3)))
    :split    (mapv make-account (keys seasoft/splits))
    })
 

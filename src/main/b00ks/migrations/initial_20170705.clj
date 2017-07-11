@@ -21,12 +21,18 @@
    (s/schema tax-year
              (s/fields
                [year :long]))
+   (s/schema heading
+             (s/fields
+               ;; Don't need anything but key. Use heading->parse-obj
+               [key :keyword "Examples :in/long-date, :in/dollar-amount"]
+               [ordinal :long]))
    (s/schema account
              (s/fields
                [category :keyword #_[:exp :liab :non-exp :personal :bank :income :equity :asset :split]]
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
-               [time-slot :ref :one]))
+               [time-slot :ref :one]
+               [headings :ref :many]))
    (s/schema account-balance
              (s/fields
                [account :ref :one]

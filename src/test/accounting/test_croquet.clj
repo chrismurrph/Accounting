@@ -14,25 +14,25 @@
 
 (def croquet-current-rules croquet-con/current-rules)
 
-(defn unmatched-croquet-records []
+#_(defn unmatched-croquet-records []
   (let [unmatched-records (c/records-without-single-rule-match croquet-con/croquet-bank-statements croquet-current-rules)]
     (->> unmatched-records
          (take 10)
          (cons (count unmatched-records)))))
 
-(defn show-unmatched-croquet-records []
+#_(defn show-unmatched-croquet-records []
   (->> (unmatched-croquet-records)
        reverse
        u/pp))
 
-(test/deftest croquet-unmatches
+#_(test/deftest croquet-unmatches
   (test/is (= (unmatched-croquet-records) '(0))))
 
-(test/deftest croquet-trial-balance
+#_(test/deftest croquet-trial-balance
   (let [{:keys [exp/insurance exp/alcohol] :as tb} (c/trial-balance croquet-con/croquet-bank-statements croquet-current-rules api/croquet-splits d/data)]
     (test/is (= (count tb) 30))
     (test/is (= insurance 106.71M))
     (test/is (= alcohol 355.78M))))
 
-(defn show-trial-balance []
+#_(defn show-trial-balance []
   (u/pp (c/trial-balance croquet-con/croquet-bank-statements croquet-current-rules api/croquet-splits d/data)))

@@ -45,29 +45,63 @@
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}
                     {:timespan/latest-period -actual-period-pull}])
 
-(defn read-statement-importing-meta [conn org-key]
+(def heading-key-pull [:heading/ordinal :heading/key])
+
+(defn -read-statement-importing-meta [conn org-key]
   (assert org-key)
   (let [db (d/db conn)]
-    (d/q '[:find ?dr ?an ?ts ?pt ?tis
+    (d/q '[:find ?an ?ts
            :in $ ?o
            :where
            [?e :organisation/key ?o]
-           [?e :organisation/import-data-root ?dr]
            [?e :organisation/import-templates ?t]
-           [?e :organisation/period-type ?pt]
-           [?e :organisation/timespan ?tis]
            [?t :import-template/account ?a]
            [?t :import-template/template-str ?ts]
            [?a :account/name ?an]
            ] db org-key)))
 
+(defn -read-headings [conn account-name]
+  (assert account-name)
+  (let [db (d/db conn)]
+    (d/q '[:find ?ahs
+           :in $ ?an
+           :where
+           [?a :account/name ?an]
+           [?a :account/headings ?ahs]
+           ] db account-name)))
+
+(defn -read-organisation-meta [conn org-key]
+  (assert org-key)
+  (let [db (d/db conn)]
+    (d/q '[:find ?dr ?pt ?tis
+           :in $ ?o
+           :where
+           [?e :organisation/key ?o]
+           [?e :organisation/import-data-root ?dr]
+           [?e :organisation/period-type ?pt]
+           [?e :organisation/timespan ?tis]
+           ] db org-key)))
+
 (defn find-importing-meta [conn org-key]
   (let [db (d/db conn)]
-    (for [[root-dir bank-acct-name template-str period-type timespan]
-          (us/count-probe (read-statement-importing-meta conn org-key))]
+    (for [[bank-acct-name template-str]
+          (us/count-probe-off (-read-statement-importing-meta conn org-key))]
+      {:bank-acct-name bank-acct-name
+       :template-str   template-str
+       })))
+
+(defn find-headings [conn account-name]
+  (let [db (d/db conn)]
+    (->> (for [[heading-eid]
+               (us/count-probe-off (-read-headings conn account-name))]
+           (d/pull db heading-key-pull heading-eid))
+         (sort-by :heading/ordinal)
+         (map :heading/key))))
+
+(defn find-org-meta [conn org-key]
+  (let [db (d/db conn)]
+    (let [[[root-dir period-type timespan]] (seq (-read-organisation-meta conn org-key))]
       {:root-dir                 root-dir
-       :bank-acct-name           bank-acct-name
-       :template-str             template-str
        :organisation/period-type period-type
        :organisation/timespan    (d/pull db timespan-pull timespan)
        })))
@@ -83,7 +117,7 @@
   (assert (= org-key :seaweed))
   ;(println kws)
   (let [res (read-organisation conn kws org-key)]
-    (println (-> res :organisation/possible-reports))
+    ;(println (-> res :organisation/possible-reports))
     res))
 
 
@@ -149,28 +183,52 @@
 (defn year-taker [f]
   (fn [year]
     (let [periods (f year)]
-      (println "periods:" periods)
+      ;(println "periods:" periods)
       (map (fn [period] {:period/year year :period/quarter period}) periods))))
 
 (defn import-statements []
   (let [c (d/connect db-uri)
         customer-kw :seaweed
-        [{:keys [root-dir
-                 organisation/timespan] :as meta} & tail] (find-importing-meta c customer-kw)
-        _ (println (inc (count tail)))
-        years (dhs/range-of-years nil meta)
+        {:keys [organisation/period-type] :as org-meta} (find-org-meta c customer-kw)
+        importing-meta (find-importing-meta c customer-kw)
+        years (dhs/range-of-years nil org-meta)
         f (us/flip dhs/range-of-periods)
-        range-of-periods-f (year-taker (partial f meta))
+        range-of-periods-f (year-taker (partial f org-meta))
         periods (mapcat range-of-periods-f years)
-        ;records (c/import-bank-records-datomic! customer-kw periods)
         ]
-    periods))
+    (for [{:keys [bank-acct-name template-str]} importing-meta
+          period periods]
+      (let [headings (find-headings c bank-acct-name)]
+        (->> (c/slurp-raw-data->csv-datomic! org-meta period-type template-str period)
+             ;(take 1)
+             u/probe-off
+             (c/parse-csv headings bank-acct-name)
+             )))))
 
-(defn general-query []
+(defn general-query-1 []
   (let [c (d/connect db-uri)
         customer-kw :seaweed]
     (map (juxt :bank-acct-name
                :template-str
+               ) (find-importing-meta c customer-kw))))
+
+(defn general-query-1 []
+  (let [c (d/connect db-uri)
+        customer-kw :seaweed]
+    (map (juxt :root-dir
                :organisation/period-type
                :organisation/timespan
-               ) (find-importing-meta c customer-kw))))
+               ) (find-org-meta c customer-kw))))
+
+(defn general-query-2 []
+  (let [c (d/connect db-uri)
+        customer-kw :seaweed]
+    ((juxt :root-dir
+           :organisation/period-type
+           :organisation/timespan
+           ) (find-org-meta c customer-kw))))
+
+(defn general-query-3 []
+  (let [c (d/connect db-uri)
+        account-name "anz-visa"]
+    (find-headings c account-name)))

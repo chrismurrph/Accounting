@@ -102,15 +102,37 @@
 (def total-shifts (apply + shifts))
 (def genes (vec (range total-shifts)))
 
-(defn transition [[answer shifts-remaining genes-remaining]]
+(defn transition-1 [[answer shifts-remaining genes-remaining]]
   (let [[num-shifts & more-shifts] shifts-remaining
         [daily-genes rest-of-genes] (split-at num-shifts genes-remaining)]
     [(conj answer daily-genes) more-shifts rest-of-genes]))
 
 (defn x-8 []
-  (->> (iterate transition [[] shifts genes])
+  (->> (iterate transition-1 [[] shifts genes])
        (drop (count shifts))
        ffirst))
+
+(defn transition [[text n]]
+  (let [c (nth text n)
+        nxt (if (= c \z) \z (-> c int inc char))
+        nxt-str (str (subs text 0 n) nxt (subs text (inc n) (count text)))]
+    (if (= \z nxt)
+      [nxt-str (inc n)]
+      [nxt-str n])))
+
+(defn ongoing-1? [[text n]]
+  (not (every? #(= \z %) text)))
+
+(defn ongoing-2? [[text n]]
+  (and (not= n (count text))
+       (not= \z (nth text n))))
+
+(defn x-11 []
+  (->> (iterate transition ["dzs" 0])
+       (take-while ongoing-1?)
+       (map first)
+       ;(take 5)
+       ))
 
 (defn insert-mean-between [xs]
   (let [f (fn [x y]
@@ -137,31 +159,31 @@
 
 ["anz-visa"
  "_ANZ_credit_card.csv"
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q3}}}
  ]
 
 ["amp"
  "_AMP_TransactionHistory.csv"
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q3}}}]
 
 ["anz-coy"
  "_ANZ_coy.csv"
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q3}}}]
 
 ["anz-coy"
  "_ANZ_coy.csv"
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly},
+ #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
                                               :quarter #:db{:ident :period.quarter/q3}}}]
 
 ["anz-visa" "_ANZ_credit_card.csv" #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q1}}} #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q3}}}] ["amp" "_AMP_TransactionHistory.csv" #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q1}}} #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q3}}}]

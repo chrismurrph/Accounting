@@ -36,7 +36,7 @@
        (map-indexed make-ledger-item)
        vec))
 
-(defn bank-statements-of-period [all-periods bank-accounts make-period organisation]
+#_(defn bank-statements-of-period [all-periods bank-accounts make-period organisation]
   (assert (set? all-periods))
   (assert (set? bank-accounts))
   (assert (keyword? organisation))
@@ -61,13 +61,13 @@
 (def seaweed-rules-of-period (rules-of-period periods/make-quarter seaweed-data/permanent-rules seasoft-con/quarter->rules))
 (def croquet-rules-of-period (rules-of-period periods/make-month croquet-data/permanent-rules croquet-con/month->rules))
 
-(def seaweed-bank-statements (bank-statements-of-period
+#_(def seaweed-bank-statements (bank-statements-of-period
                                periods/quarters-set
                                (set seasoft-con/seasoft-bank-accounts)
                                periods/make-quarter
                                :seaweed))
 
-(def croquet-bank-statements (bank-statements-of-period
+#_(def croquet-bank-statements (bank-statements-of-period
                                periods/months-set
                                (set croquet-con/croquet-bank-accounts)
                                periods/make-month
@@ -77,11 +77,11 @@
 (def croquet-splits (-> meta/human-meta :croquet :splits))
 (def by-org {:seaweed {:splits               seasoft-splits
                        :rules-fn             seaweed-rules-of-period
-                       :bank-statements-fn   seaweed-bank-statements
+                       ;:bank-statements-fn   seaweed-bank-statements
                        :starting-balances-fn (partial seaweed-data/starting-gl periods/make-quarter)}
              :croquet {:splits               croquet-splits
                        :rules-fn             croquet-rules-of-period
-                       :bank-statements-fn   croquet-bank-statements
+                       ;:bank-statements-fn   croquet-bank-statements
                        :starting-balances-fn (partial croquet-data/starting-gl periods/make-month)}})
 
 (defn trial-balance-report [organisation year period]
@@ -153,7 +153,7 @@
           ;:bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
           ;:bank-line/amount   71.01M
           }
-         (->> (c/records-without-single-rule-match seasoft-con/seasoft-bank-statements @seasoft-con/current-rules)
+         (->> (c/records-without-single-rule-match nil #_seasoft-con/seasoft-bank-statements @seasoft-con/current-rules)
               ffirst
               (map (fn [[k v]]
                      [({:out/date     :bank-line/date
@@ -173,7 +173,7 @@
    :rule/permanent?              permanent?
    :rule/source-bank             source-bank
    :rule/target-account          target-account
-   :rule/time-slot time-slot
+   :rule/time-slot               time-slot
    :rule/on-dates                on-dates
    :rule/conditions              conditions
    :rule/logic-operator          logic-operator})

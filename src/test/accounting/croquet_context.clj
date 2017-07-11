@@ -28,7 +28,7 @@
 
 (def croquet-current-range total-range)
 (def croquet-bank-accounts (-> meta/human-meta :croquet :bank-accounts))
-(def croquet-bank-statements (let [bank-accounts (set croquet-bank-accounts)
+#_(def croquet-bank-statements (let [bank-accounts (set croquet-bank-accounts)
                                    bank-records (c/import-bank-records! :croquet croquet-current-range bank-accounts)]
                                {:bank-records bank-records :bank-accounts bank-accounts}))
 

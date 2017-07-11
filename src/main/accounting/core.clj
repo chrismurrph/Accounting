@@ -18,7 +18,7 @@
     (assert convert-fn (str "No :convert-fn for: <" field-kw "> to convert: <" field-value ">"))
     (let [err-msg (validate-fn field-value)]
       (if err-msg
-        (assert false err-msg)
+        (assert false (str "ERR: " err-msg ", FIELD: " field-value))
         (do
           ;; Doesn't accept commas. Note we won't be using read-string forever
           ;(println "CONV: " field-value)
@@ -32,6 +32,8 @@
   (chk-seq objs)
   (fn [line]
     (chk-seq line)
+    (assert (= (count objs) (count line))
+            (str "Incompatible lengths: " (mapv :field-kw objs) ", line:" line))
     (as-> line $
           (u/probe-off $)
           (map convert objs $)
@@ -44,43 +46,44 @@
 ;; we can create a hash with right keys where vals have correct types.
 ;; Not hof because intention is that concat lines together from many periods
 ;;
-(defn parse-csv [bank-account lines]
-  (let [headings (c/bank-account-headings bank-account)
-        _ (assert (every? c/all-headings headings) (str "New heading introduced: " headings ", expected: " c/all-headings))
+(defn parse-csv [headings bank-account lines]
+  (assert (not (keyword? headings)) headings)
+  (let [
+        ;_ (println "headings" headings)
+        ;headings (c/bank-account-headings bank-account)
+        ;_ (assert (every? c/all-headings headings) (str "New heading introduced: " headings ", expected: " c/all-headings))
         heading-objs (map c/heading->parse-obj headings)
         _ (assert (seq heading-objs) (str "No headings yet for " bank-account))
         make-record (record-maker bank-account heading-objs)]
     (map make-record lines)))
 
-(defn -slurp-raw-data->csv-old! [customer-kw bank]
+#_(defn -slurp-raw-data->csv-old! [customer-kw bank]
   (fn [period]
     (let [file-path ((common-meta/bank-period->file-name (common-meta/human-meta customer-kw)) bank period)]
       (->> (slurp file-path)
            s/split-lines
            (map u/line->csv)))))
 
-(defn -slurp-raw-data->csv-datomic! [customer-kw bank]
-  (fn [period]
-    (let [file-path ((common-meta/bank-period->file-name (common-meta/human-meta customer-kw)) bank period)]
-      (->> (slurp file-path)
-           s/split-lines
-           (map u/line->csv)))))
+(defn slurp-raw-data->csv-datomic! [org-meta period-type bank-file-name period]
+  (let [file-path (common-meta/bank-period->file-name org-meta period-type bank-file-name period)]
+    (->> (slurp file-path)
+         s/split-lines
+         (map u/line->csv))))
 
-(defn slurp-raw-data->csv! [customer-kw bank periods]
+#_(defn slurp-raw-data->csv! [customer-kw bank periods]
   (let [converter (-slurp-raw-data->csv-datomic! customer-kw bank)]
     (mapcat converter periods)))
 
-(defn -import-bank-records! [customer-kw periods bank-account]
+#_(defn import-bank-records! [customer-kw periods bank-account]
   (->> (slurp-raw-data->csv! customer-kw bank-account periods)
        (parse-csv bank-account)))
 
-(defn import-bank-records! [customer-kw periods bank-accounts]
-  (let [importer (partial -import-bank-records! customer-kw periods)]
-    (mapcat importer bank-accounts)))
-
-(defn import-bank-records-datomic! [customer-kw periods bank-accounts]
-  (let [importer (partial -import-bank-records! customer-kw periods)]
-    (mapcat importer bank-accounts)))
+;(defn import-bank-records! [customer-kw periods bank-accounts]
+;  (let [importer (partial -import-bank-records! customer-kw periods)]
+;    (mapcat importer bank-accounts)))
+;(defn import-bank-records-datomic! [customer-kw periods bank-accounts]
+;  (let [importer (partial -import-bank-records! customer-kw periods)]
+;    (mapcat importer bank-accounts)))
 
 (defn records-without-single-rule-match [{:keys [bank-accounts bank-records]} rules-in]
   (let [rules (m/bank-rules bank-accounts rules-in)

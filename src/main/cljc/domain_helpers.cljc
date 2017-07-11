@@ -61,7 +61,7 @@
 (defn range-of-periods [yr potential-data]
   (assert (map? potential-data) (u/assert-str "potential-data" potential-data))
   (let [period-type (-> potential-data :organisation/period-type)
-        _ (println "period-type:" period-type)
+        ;_ (println "period-type:" period-type)
         periods (condp = period-type
                   :quarterly quarters
                   :monthly months
@@ -90,11 +90,11 @@
 ;; Create the full range given the ends, then returning the most recent years first
 ;;
 (defn range-of-years [_ potential-data]
-  (u/log-on (str "POT: " potential-data))
+  (u/log-off (str "POT: " potential-data))
   (assert potential-data (str "No potential data"))
   (let [starting (commencing-year potential-data)
         finishing (latest-year potential-data)]
-    (println starting finishing)
+    ;(println starting finishing)
     (->> (u/numerical-range starting finishing)
          reverse
          vec)))

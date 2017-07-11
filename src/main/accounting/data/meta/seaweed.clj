@@ -12,27 +12,27 @@
 (def asset-accounts #{})
 (def income-accounts #{:income/bank-interest :income/mining-sales :income/poker-parse-sales})
 (def exp-accounts #{:exp/office-expense
-                            :exp/motor-vehicle
-                            :exp/cloud-expense
-                            :exp/niim-trip
-                            :exp/accounting-software
-                            :exp/mobile-expense
-                            :exp/bank-fee
-                            :exp/bank-interest
-                            :exp/petrol
-                            :exp/computer-expense
-                            :exp/national-travel
-                            :exp/donations
-                            :exp/isp
-                            :exp/storage
-                            :exp/light-power-heating
-                            :exp/rent
-                            :exp/food
-                            :exp/advertising
-                            :exp/meeting-entertainment
-                            :exp/asic-payment
-                            :exp/freight-courier
-                            :exp/accounting-expense})
+                    :exp/motor-vehicle
+                    :exp/cloud-expense
+                    :exp/niim-trip
+                    :exp/accounting-software
+                    :exp/mobile-expense
+                    :exp/bank-fee
+                    :exp/bank-interest
+                    :exp/petrol
+                    :exp/computer-expense
+                    :exp/national-travel
+                    :exp/donations
+                    :exp/isp
+                    :exp/storage
+                    :exp/light-power-heating
+                    :exp/rent
+                    :exp/food
+                    :exp/advertising
+                    :exp/meeting-entertainment
+                    :exp/asic-payment
+                    :exp/freight-courier
+                    :exp/accounting-expense})
 (def non-exp-accounts #{:non-exp/ato-payment :non-exp/private-health})
 (def liab-accounts #{:liab/drawings})
 (def personal-accounts #{:personal/amp

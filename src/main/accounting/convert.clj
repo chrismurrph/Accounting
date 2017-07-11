@@ -29,6 +29,14 @@
     (and (= \- (first x)) (= \$ (second x))) nil
     :default (str ":dollar-amount value needs to start with $ or - but is: " x)))
 
+(defn short-date-validate [x]
+  (let [[_ d m y] (re-matches #"(\d+)/(\d+)/(\d+)" x)]
+    (cond
+      (nil? d) (str "No day from: <" x ">")
+      (nil? m) (str "No month from: <" x ">")
+      (nil? y) (str "No year from: <" x ">")
+      :default nil)))
+
 (defn quoted-amount-validate [x]
   ;(println (str x "," (u/str-number? x) "," (type (-> x read-string))))
   (cond
@@ -44,7 +52,7 @@
 
 (def heading->parse-obj
   {:in/long-date     {:field-kw :in/long-date :validate-fn default-validate :convert-fn t/long-date-str->date}
-   :in/short-date    {:field-kw :in/short-date :validate-fn default-validate :convert-fn t/short-date-str->date}
+   :in/short-date    {:field-kw :in/short-date :validate-fn short-date-validate :convert-fn t/short-date-str->date}
    :in/desc          {:field-kw :in/desc :validate-fn default-validate :convert-fn identity}
    :in/quoted-desc   {:field-kw :in/desc :validate-fn default-validate :convert-fn u/remove-outer-quotes}
    :in/dollar-amount {:field-kw :in/dollar-amount :validate-fn dollar-amount-validate :convert-fn dollar-amount-convert}

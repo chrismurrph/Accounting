@@ -80,7 +80,7 @@
 
 (def seasoft-current-range total-range)
 (def seasoft-bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
-(def seasoft-bank-statements (let [bank-accounts (set seasoft-bank-accounts)
+#_(def seasoft-bank-statements (let [bank-accounts (set seasoft-bank-accounts)
                                    bank-records (c/import-bank-records! :seaweed seasoft-current-range bank-accounts)]
                                {:bank-records bank-records :bank-accounts bank-accounts}))
 

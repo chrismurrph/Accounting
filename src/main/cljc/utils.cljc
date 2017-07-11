@@ -22,8 +22,11 @@
     kw
     (-> kw name Integer/parseInt)))
 
-(defn count-probe [xs]
+(defn count-probe-on [xs]
   (println "COUNT" (count xs))
+  xs)
+
+(defn count-probe-off [xs]
   xs)
 
 ;;

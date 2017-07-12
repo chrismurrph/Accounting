@@ -64,8 +64,8 @@
            s/split-lines
            (map u/line->csv)))))
 
-(defn slurp-raw-data->csv-datomic! [org-meta period-type bank-file-name period]
-  (let [file-path (common-meta/bank-period->file-name org-meta period-type bank-file-name period)]
+(defn slurp-raw-data->csv-datomic! [org-meta period-type bank-file-name actual-period]
+  (let [file-path (common-meta/bank-period->file-name org-meta period-type bank-file-name actual-period)]
     (->> (slurp file-path)
          s/split-lines
          (map u/line->csv))))

@@ -31,8 +31,11 @@
                [category :keyword #_[:exp :liab :non-exp :personal :bank :income :equity :asset :split]]
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
-               [time-slot :ref :one]
-               [headings :ref :many]))
+               [time-slot :ref :one]))
+   (s/schema bank-account
+             (s/fields
+               [headings :ref :many]
+               [statements :ref :many]))
    (s/schema account-balance
              (s/fields
                [account :ref :one]
@@ -40,7 +43,8 @@
    (s/schema line-item
              (s/fields
                [date :instant]
-               [amount :bigdec]))
+               [amount :bigdec]
+               [desc :string]))
    (s/schema account-proportion
              (s/fields
                [account :ref :one]
@@ -56,11 +60,13 @@
                [quarter :keyword #_[:q1 :q2 :q3 :q4]]))
    (s/schema actual-period
              (s/fields
+               [type :keyword]
                [year :long]
-               [period :ref :one]))
+               [month :keyword]
+               [quarter :keyword]))
    (s/schema statement
              (s/fields
-               [bank-account :ref :one]
+               #_[bank-account :ref :one]
                [actual-period :ref :one]
                [line-items :ref :many]
                ))

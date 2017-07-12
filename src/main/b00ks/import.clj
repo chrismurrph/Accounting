@@ -5,14 +5,11 @@
             [accounting.data.meta.seaweed :as seasoft]
             [accounting.data.seaweed :as seasoft-data]
             [accounting.seasoft-context :as seasoft-context]
+            [accounting.entities :as e]
             [accounting.util :as u]
             [accounting.time :as t]
             [clj-time.coerce :as c])
   (:import (java.security MessageDigest)))
-
-(defn err-nil [x]
-  (assert x "Can't assign nil (or false)")
-  x)
 
 (defn find-account [accounts kw]
   (assert (seq accounts))
@@ -21,11 +18,11 @@
                  (filter
                    (fn [{:keys [account/category
                                 account/name]}]
-                     (and (= (keyword (str "account.category/" in-ns))
+                     (and (= (keyword in-ns)
                              category)
                           (= in-name name))))
                  first)]
-    (assert res (str "No account: " kw ", ALL: " (u/pp-str accounts)))
+    (assert res (str "No account: " kw #_", ALL: " #_(u/pp-str accounts)))
     res))
 
 (def db-uri "datomic:dev://localhost:4334/b00ks")
@@ -52,28 +49,11 @@
    :import-template/template-str v
    :import-template/account      (find-account accounts k)})
 
-;;
-;; Unlikely to be importing monthly, asserting here so know to change this function
-;;
-(defn make-period [quarter]
-  {:db/id          (d/tempid :db.part/user)
-   :base/type      :period
-   :period/type    :quarterly
-   :period/quarter quarter})
-
-(defn make-actual-period [{:keys [period/tax-year period/quarter] :as period}]
-  (assert tax-year (str "Unlikely to be importing monthly: <" period ">"))
-  (assert quarter)
-  {:db/id                (d/tempid :db.part/user)
-   :base/type            :actual-period
-   :actual-period/year   tax-year
-   :actual-period/period (make-period quarter)})
-
 (defn make-timespan [start-period end-period]
   {:db/id                      (d/tempid :db.part/user)
    :base/type                  :timespan
-   :timespan/commencing-period (make-actual-period start-period)
-   :timespan/latest-period     (make-actual-period end-period)})
+   :timespan/commencing-period (e/make-actual-period start-period)
+   :timespan/latest-period     (e/make-actual-period end-period)})
 
 (def seaweed-software-org
   {:db/id                         (d/tempid :db.part/user)
@@ -115,39 +95,8 @@
     (cond->
       {:db/id              (d/tempid :db.part/user)
        :base/type          :time-slot
-       :time-slot/start-at (err-nil (c/to-date begin-date))}
-      end-date (assoc :time-slot/end-at (err-nil (c/to-date end-date))))))
-
-(defn make-account [kw]
-  (let [[ns name] ((juxt namespace name) kw)
-        category (keyword (str "account.category/" ns))]
-    (assert name)
-    (assert category)
-    ;(println category (type category))
-    {:db/id            (d/tempid :db.part/user)
-     :base/type        :account
-     :account/category category
-     :account/desc     name
-     :account/name     name
-     ; No reason to repeat when the organisation began
-     ;:account/time-slot (make-time-slot [beginning-period nil])
-     ;; Do reverse if need this, an organisation has many accounts
-     ;:account/organisation (assoc seaweed-software-org :organisation/splits
-     ;                                                  (mapv make-split seasoft/splits))
-     }))
-
-(defn make-heading [n kw]
-  {:db/id           (d/tempid :db.part/user)
-   :base/type       :heading
-   :heading/key     kw
-   :heading/ordinal n
-   ;; don't need any more
-   })
-
-(defn make-bank-account [[heading structure]]
-  (assert (vector? structure))
-  (let [account (make-account heading)]
-    (assoc account :account/headings (vec (map-indexed make-heading structure)))))
+       :time-slot/start-at (u/err-nil (c/to-date begin-date))}
+      end-date (assoc :time-slot/end-at (u/err-nil (c/to-date end-date))))))
 
 (defn make-condition [[field predicate subject]]
   (assert subject)
@@ -174,21 +123,21 @@
     time-slot
     (assoc :rule/time-slot (make-time-slot time-slot))
     period
-    (assoc :rule/period (make-actual-period period))))
+    (assoc :rule/period (e/make-actual-period period))))
 
 (def to-import-accounts
-  {:exp      (mapv make-account seasoft/exp-accounts)
-   :non-exp  (mapv make-account seasoft/non-exp-accounts)
-   :income   (mapv make-account seasoft/income-accounts)
-   :personal (mapv make-account seasoft/personal-accounts)
-   :liab     (mapv make-account seasoft/liab-accounts)
-   :equity   (mapv make-account seasoft/equity-accounts)
-   :asset    (mapv make-account seasoft/asset-accounts)
-   :bank     (mapv make-bank-account
+  {:exp      (mapv e/make-account seasoft/exp-accounts)
+   :non-exp  (mapv e/make-account seasoft/non-exp-accounts)
+   :income   (mapv e/make-account seasoft/income-accounts)
+   :personal (mapv e/make-account seasoft/personal-accounts)
+   :liab     (mapv e/make-account seasoft/liab-accounts)
+   :equity   (mapv e/make-account seasoft/equity-accounts)
+   :asset    (mapv e/make-account seasoft/asset-accounts)
+   :bank     (mapv e/make-bank-account
                    (->> accounting.convert/bank-account-headings
                         ;; there are 4 and last is for croquet
                         (take 3)))
-   :split    (mapv make-account (keys seasoft/splits))
+   :split    (mapv e/make-account (keys seasoft/splits))
    })
 
 (defn amend-org-with-individual-accounts [org]
@@ -230,18 +179,20 @@
         organisation (-> seaweed-software-org
                          amend-org-with-individual-accounts
                          org-amend)
-        c (d/connect db-uri)]
-    @(d/transact c (s/generate-schema current/db-schema))
+        conn (d/connect db-uri)]
+    @(d/transact conn (s/generate-schema current/db-schema))
     (doseq [a (attrs current/db-schema)]
-      (assert (seq (d/entity (d/db c) a))))
+      (assert (seq (d/entity (d/db conn) a))))
     (let [groups
           [{:db/id (d/tempid :db.part/user) :base/type :group :group/name "Admin"}]
           owner
           {:db/id       (d/tempid :db.part/user)
            :base/type   :user
            :person/name "Bob"
-           :auth/pwd    (sha "bobby2015")                   ;; use bcrypt for real please:
-           ;; https://github.com/xsc/pandect or https://github.com/weavejester/crypto-password
+           ;; use bcrypt for real please:
+           :auth/pwd    (sha "bobby2015")
+           ;; https://github.com/xsc/pandect or
+           ;; https://github.com/weavejester/crypto-password
            :auth/login  "bob@example.com"}
           ]
-      @(d/transact c (concat groups [owner organisation] all-accounts rules)))))
+      @(d/transact conn (concat groups [owner organisation] all-accounts rules)))))

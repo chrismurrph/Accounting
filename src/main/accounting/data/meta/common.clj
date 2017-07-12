@@ -4,7 +4,7 @@
             [accounting.data.meta.croquet :as croquet]
             [accounting.data.meta.periods :as periods]))
 
-(defn -financial-dir-for [{:keys [root-dir]} {:keys [period/year period/quarter] :as period}]
+(defn -financial-dir-for [{:keys [root-dir]} {:keys [actual-period/year actual-period/quarter] :as actual-period}]
   (assert root-dir)
   ;(assert tax-years)
   (assert (periods/quarters-set quarter) (str quarter " is not considered a quarter"))
@@ -13,7 +13,7 @@
         qtr (periods/quarter->str quarter)]
     (str root-dir tax-year "/" qtr)))
 
-(defn -charity-dir-for [{:keys [data-root]} {:keys [period/year period/month] :as period}]
+(defn -charity-dir-for [{:keys [data-root]} {:keys [actual-period/year actual-period/month] :as actual-period}]
   ;(assert years)
   (assert data-root)
   (assert (periods/months-set month) (str month " is not considered a month"))
@@ -39,16 +39,17 @@
                       file-path (str (-financial-dir-for meta period) "/" file-name)]
                   file-path))))
 
-(defn bank-period->file-name [org-meta period-type bank-file-name period]
+(defn bank-period->file-name [org-meta period-type bank-file-name actual-period]
+  (assert actual-period)
   (condp = period-type
-        :yearly (let [{:keys [period/year period/month]} period
+        :yearly (let [{:keys [actual-period/year actual-period/month]} actual-period
                       mnth (periods/month->str month)
-                      file-path (str (-charity-dir-for org-meta period) "/" bank-file-name)]
+                      file-path (str (-charity-dir-for org-meta actual-period) "/" bank-file-name)]
                   file-path)
-        :quarterly (let [{:keys [period/tax-year period/quarter]} period
+        :quarterly (let [{:keys [actual-period/tax-year actual-period/quarter]} actual-period
                          qtr (periods/quarter->str quarter)
                          file-name (str qtr bank-file-name)
-                         file-path (str (-financial-dir-for org-meta period) "/" file-name)]
+                         file-path (str (-financial-dir-for org-meta actual-period) "/" file-name)]
                      file-path)))
 
 (def human-meta

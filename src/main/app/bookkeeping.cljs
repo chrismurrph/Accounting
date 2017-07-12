@@ -71,8 +71,7 @@
 
 (defui ^:once ActualPeriod
   static om/IQuery
-  (query [this] [:actual-period/year {:actual-period/period (om/get-query Period)}])
-  )
+  (query [this] [:actual-period/year :actual-period/quarter :actual-period/month :actual-period/type]))
 
 ;;
 ;; Important for data fetching the meta-data for a user/orgs from the server.

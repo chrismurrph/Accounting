@@ -3,6 +3,10 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+(defn err-nil [x]
+  (assert x "Can't assign nil (or false)")
+  x)
+
 (defn write-edn [filename x]
   (assert (clojure.string/ends-with? filename ".edn"))
   (assert (or (map? x) (vector? x)))

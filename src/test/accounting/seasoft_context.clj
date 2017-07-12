@@ -9,19 +9,19 @@
             [accounting.data.common :as dc]))
 
 (def quarter->rules
-  {{:period/tax-year 2017
-    :period/quarter  :q1} seasoft-d/q1-2017-rules
-   {:period/tax-year 2017
-    :period/quarter  :q2} seasoft-d/q2-2017-rules
-   {:period/tax-year 2017
-    :period/quarter  :q3} seasoft-d/q3-2017-rules})
+  {{:actual-period/tax-year 2017
+    :actual-period/quarter  :q1} seasoft-d/q1-2017-rules
+   {:actual-period/tax-year 2017
+    :actual-period/quarter  :q2} seasoft-d/q2-2017-rules
+   {:actual-period/tax-year 2017
+    :actual-period/quarter  :q3} seasoft-d/q3-2017-rules})
 
-(def -all-three-quarters [{:period/tax-year 2017
-                           :period/quarter  :q1}
-                          {:period/tax-year 2017
-                           :period/quarter  :q2}
-                          {:period/tax-year 2017
-                           :period/quarter  :q3}])
+(def -all-three-quarters [{:actual-period/tax-year 2017
+                           :actual-period/quarter  :q1}
+                          {:actual-period/tax-year 2017
+                           :actual-period/quarter  :q2}
+                          {:actual-period/tax-year 2017
+                           :actual-period/quarter  :q3}])
 
 (def total-range (take 3 -all-three-quarters))
 

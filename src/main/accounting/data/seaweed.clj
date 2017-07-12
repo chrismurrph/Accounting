@@ -93,14 +93,14 @@
                                                    :conditions     [[:equals "AMAZON AUST SERVICES      MELBOURNE"]]}]
                      })
 
-(def q3-2017-rules (c/attach-period {:period/tax-year 2017
-                                     :period/quarter  :q3} -q3-2017-rules))
+(def q3-2017-rules (c/attach-period {:actual-period/tax-year 2017
+                                     :actual-period/quarter  :q3} -q3-2017-rules))
 
-(def q2-2017-rules (c/attach-period {:period/tax-year 2017
-                                     :period/quarter  :q2} -q2-2017-rules))
+(def q2-2017-rules (c/attach-period {:actual-period/tax-year 2017
+                                     :actual-period/quarter  :q2} -q2-2017-rules))
 
-(def q1-2017-rules (c/attach-period {:period/tax-year 2017
-                                     :period/quarter  :q1} -q1-2017-rules))
+(def q1-2017-rules (c/attach-period {:actual-period/tax-year 2017
+                                     :actual-period/quarter  :q1} -q1-2017-rules))
 
 ;;
 ;; From which bank account tells you which account to put the transaction to

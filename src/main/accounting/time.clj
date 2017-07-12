@@ -175,12 +175,12 @@
     (-start-month-moment month year)
     (-start-quarter-moment tax-year quarter)))
 
-(defn start-period-moment-datomic [{:keys [actual-period/year actual-period/period] :as in}]
-  (let [{:keys [period/type period/quarter]} period]
-    (if (= :period.type/quarterly type)
-      (-start-quarter-moment year quarter)
-      (assert false "Not yet doing monthly here")
-      #_(-start-month-moment month year))))
+(defn start-period-moment-datomic [{:keys [actual-period/year actual-period/month
+                                           actual-period/quarter actual-period/type] :as in}]
+  (if (= :quarterly type)
+    (-start-quarter-moment year quarter)
+    (assert false "Not yet doing monthly here")
+    #_(-start-month-moment month year)))
 
 (defn end-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
   (if (nil? tax-year)

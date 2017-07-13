@@ -1,5 +1,6 @@
 (ns b00ks.import
   (:require [datomic.api :as d]
+            [accounting.datomic-api :as ada]
             [untangled.datomic.schema :as s]
             [b00ks.migrations.initial-20170705 :as current]
             [accounting.data.meta.seaweed :as seasoft]
@@ -154,13 +155,17 @@
         (assoc :organisation/split-accounts split))))
 
 (defn amend-org-misc [all-accounts org]
-  (-> org
-      (assoc :organisation/splits
-             (mapv (partial make-split all-accounts) seasoft/splits)
-             :organisation/import-templates
-             (mapv (partial make-import-template all-accounts) seasoft/import-templates)
-             :organisation/tax-years
-             (mapv make-tax-year seasoft/tax-years))))
+  (let [rule-make (partial make-rule all-accounts)]
+    (-> org
+        (assoc :organisation/splits
+               (mapv (partial make-split all-accounts) seasoft/splits)
+               :organisation/import-templates
+               (mapv (partial make-import-template all-accounts) seasoft/import-templates)
+               :organisation/tax-years
+               (mapv make-tax-year seasoft/tax-years)
+               :organisation/rules
+               (mapv rule-make seasoft-data/all-rules)
+               ))))
 
 (defn delete-all []
   (d/delete-database db-uri))
@@ -173,8 +178,7 @@
         _ (assert commencing)
         _ (println commencing)
         all-accounts (->> to-import-accounts vals (apply concat))
-        rule-make (partial make-rule all-accounts)
-        rules (mapv rule-make seasoft-data/all-rules)
+        ;rules (mapv rule-make seasoft-data/all-rules)
         org-amend (partial amend-org-misc all-accounts)
         organisation (-> seaweed-software-org
                          amend-org-with-individual-accounts
@@ -195,4 +199,5 @@
            ;; https://github.com/weavejester/crypto-password
            :auth/login  "bob@example.com"}
           ]
-      @(d/transact conn (concat groups [owner organisation] all-accounts rules)))))
+      @(d/transact conn (concat groups [owner organisation] all-accounts)))
+    (ada/import-bank-statements)))

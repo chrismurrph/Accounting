@@ -3,13 +3,14 @@
             [accounting.util :as u]
             [accounting.data.seaweed :as d]
             [accounting.time :as t]
-            [accounting.data.common :as c]))
+            [accounting.data.common :as c]
+            [cljc.utils :as us]))
 
 ;;
 ;; Filter so only get the rules of certain bank accounts
 ;;
 (defn bank-rules [bank-accounts in-rules]
-  (assert (seq bank-accounts))
+  (assert (seq bank-accounts) (us/assert-str "bank-accounts" bank-accounts))
   (let [bank-accounts (set bank-accounts)
         rules (filter #(bank-accounts (:rule/source-bank %)) in-rules)]
     rules))

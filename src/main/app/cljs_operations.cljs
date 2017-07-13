@@ -5,6 +5,7 @@
     [app.panels :as p]
     [app.domain-ui-helpers :as help]
     [app.util :as u]
+    [cljc.utils :as us]
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]
     [clojure.set :as set]
@@ -60,9 +61,9 @@
                 [selected-year year-options] (help/years-options-generator potential-data nil)
                 [selected-period period-options] (help/periods-options-generator potential-data selected-year)
                 [selected-report report-options] (help/reports-options-generator potential-data nil)]
-            (u/log-on (str "year: " selected-report))
-            (u/log-off (str "year options: " year-options))
-            (u/log-off (str "period options: " period-options))
+            (us/log-on (str "year: " selected-report))
+            (us/log-off (str "year options: " year-options))
+            (us/log-off (str "period options: " period-options))
             (swap! state #(-> %
                               help/blank-out-report
                               (help/year-dropdown-rebuilder selected-year year-options)
@@ -132,9 +133,9 @@
 (defmutation config-data-for-target-ledger-dropdown
   [{:keys [sub-query-comp acct-type src-bank person-form]}]
   (action [{:keys [state]}]
-          (assert sub-query-comp (u/assert-str "sub-query-comp" sub-query-comp))
-          (assert acct-type (u/assert-str "acct-type" acct-type))
-          (assert src-bank (u/assert-str "src-bank" src-bank))
+          (assert sub-query-comp (us/assert-str "sub-query-comp" sub-query-comp))
+          (assert acct-type (us/assert-str "acct-type" acct-type))
+          (assert src-bank (us/assert-str "src-bank" src-bank))
           (let [st @state
                 ident [:config-data/by-id p/CONFIG_DATA]
                 {:keys [config-data/ledger-accounts]} (get-in st ident)

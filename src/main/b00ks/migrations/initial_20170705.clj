@@ -126,6 +126,7 @@
                [split-accounts :ref :many]
                [splits :ref :many]
                [possible-reports :keyword :many]
+               [rules :ref :many]
                ))
 
    (s/schema auth

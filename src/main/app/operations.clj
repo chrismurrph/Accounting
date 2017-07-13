@@ -61,8 +61,8 @@
 
 (defquery-root :my-unruly-bank-statement-line
                "Queries for the next unruly line and returns it to the client"
-               (value [{:keys [query]} {:keys []}]
-                      (old-api/next-unruly-line query)))
+               (value [{:keys [query b00ks-database]} {:keys []}]
+                      (new-api/next-unruly-line (:connection b00ks-database) query)))
 
 (defquery-root :my-existing-rules
                "Queries for existing rules"

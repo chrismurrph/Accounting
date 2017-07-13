@@ -9,6 +9,7 @@
             [app.forms-helpers :as fh]
             [app.cljs-operations :as cljs-ops]
             [app.util :as u]
+            [cljc.utils :as us]
             [untangled.ui.forms :as f]
             [goog.string :as gstring]
             [goog.string.format]
@@ -50,7 +51,7 @@
   (render [this]
     (let [{:keys [db/id ledger-item-list/label ledger-item-list/items]} (om/props this)
           delete-ledger-item (fn [ledger-item-id]
-                               (u/log (str label "asked to delete" name))
+                               (us/log (str label "asked to delete" name))
                                (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
                (dom/h4 nil label)

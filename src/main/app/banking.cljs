@@ -5,6 +5,7 @@
             [om.next :as om :refer [defui]]
             [untangled.client.data-fetch :as df]
             [app.util :as u]
+            [cljc.utils :as us]
             [goog.string :as gstring]
             [goog.string.format]
             [app.cljs-operations :as cljs-ops]
@@ -62,9 +63,9 @@
           {:keys [rule-selected]} (om/get-computed this)
           _ (assert (some? permanent?))
           permanent-display (if permanent? "true" "false")
-          source-bank-display (u/kw->string source-bank)
-          target-account-display (u/kw->string target-account)
-          logic-operator-display (u/kw->string logic-operator)
+          source-bank-display (us/kw->string source-bank)
+          target-account-display (us/kw->string target-account)
+          logic-operator-display (us/kw->string logic-operator)
           num-conds (str (count conditions))
           conds (str conditions)
           ]
@@ -100,7 +101,7 @@
   (render [this]
     (let [{:keys [db/id rules-list/label ui/selected-rule rules-list/items]} (om/props this)
           rule-selected (fn [id]
-                          (u/log (str "Clicked on " id))
+                          (us/log (str "Clicked on " id))
                           (om/transact! this `[(cljs-ops/selected-rule {:selected ~id})]))
           rule-unselected #(om/transact! this `[(cljs-ops/un-select-rule)])]
       (dom/div nil
@@ -330,7 +331,7 @@
                                                            {:label-width-css "col-sm-2"
                                                             :onChange        (fn [evt]
                                                                                (let [new-target-ledger-val (u/target-kw evt)]
-                                                                                 (u/log-off (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
+                                                                                 (us/log-off (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
                                                                                  (load-existing-rules this src-bank new-target-ledger-val)))}))
                ;Remember that :banking-form is initially how are querying for a rule, that might become the new rule, or
                ; might become editing one of the existing rules. [Select Existing]
@@ -345,7 +346,7 @@
                             (dom/div nil
                                      (dom/label nil (str "ledger type: " ledger-type))
                                      (ui-person-form person))
-                            (u/log "Better create new person")))
+                            (us/log "Better create new person")))
                  (ui-rules-list existing-rules))))))
 
 (def ui-banking-form (om/factory BankingForm))

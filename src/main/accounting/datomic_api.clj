@@ -47,14 +47,16 @@
 ;;
 ;; The id doesn't seem to matter, nor for potential data above
 ;;
-(defn next-unruly-line [conn kws]
+(defn next-unruly-line [conn org-key]
   (merge {:db/id 'BANK-STATEMENT-LINE
           ;:bank-line/src-bank :bank/anz-visa
           ;:bank-line/date     "24/08/2016"
           ;:bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
           ;:bank-line/amount   71.01M
           }
-         (->> (c/records-without-single-rule-match nil (q/query-rules))
+         (->> (c/records-without-single-rule-match {:bank-accounts (q/read-bank-accounts conn org-key)
+                                                    :bank-records  (q/current-period-line-items conn org-key)}
+                                                   (q/query-rules))
               ffirst
               (map (fn [[k v]]
                      [({:out/date     :bank-line/date
@@ -145,6 +147,15 @@
 (defn period-desc [{:keys [actual-period]}]
   ((juxt :period/year :period/quarter) actual-period))
 
+(defn set-default-current-ordinal []
+  (let [conn (d/connect q/db-uri)
+        org-key :seaweed
+        max-ord (->> (q/query-statements)
+                (map :statement/ordinal)
+                (apply max))]
+    (e/update-organisations-ordinal conn org-key max-ord)
+    (println (str "Max ordinal for " org-key " is now " max-ord))))
+
 (defn import-bank-statements []
   (let [conn (d/connect q/db-uri)
         statement-make (partial e/make-statement conn)
@@ -152,6 +163,4 @@
         statements (->> org-key
                         (-import-statements conn)
                         (keep statement-make))]
-    (println (str "Number of statements imported: " (count statements)))
-    ;statements
-    ))
+    (println (str "Number of statements imported: " (count statements)))))

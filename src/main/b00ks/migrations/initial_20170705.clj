@@ -32,6 +32,7 @@
                [name :string "Name of the account, for example \"bank-fee\""]
                [desc :string "Description of the account, for example \"Bank Fee\""]
                [time-slot :ref :one]))
+   ;; We never create one of these, its just a schema
    (s/schema bank-account
              (s/fields
                [headings :ref :many]
@@ -69,6 +70,7 @@
                #_[bank-account :ref :one]
                [actual-period :ref :one]
                [line-items :ref :many]
+               [ordinal :long :one]
                ))
    (s/schema start-bank-balances
              (s/fields
@@ -93,7 +95,7 @@
                [conditions :ref :many]
                [source-bank :ref :one]
                [target-account :ref :one]
-               [period :ref :one]
+               [actual-period :ref :one]
                [on-dates :instant :many]))
 
    (s/schema timespan
@@ -127,6 +129,7 @@
                [splits :ref :many]
                [possible-reports :keyword :many]
                [rules :ref :many]
+               [current-ordinal :long :one]
                ))
 
    (s/schema auth

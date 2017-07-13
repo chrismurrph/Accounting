@@ -166,7 +166,7 @@
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
                                            (bookkeeping/load-organisation-data app :seaweed)
-                                           (banking/load-unruly-bank-statement-line app)
+                                           (banking/load-unruly-bank-statement-line app :seaweed)
                                            (config/load-config-data app :seaweed)))))
 
 (defonce app app-1)

@@ -101,12 +101,14 @@
 
 (defn make-condition [[field predicate subject]]
   (assert subject)
-  (let [field-kw (keyword (str "condition.field/" (name field)))
-        predicate-kw (keyword (str "condition.predicate/" (u/kw->string predicate)))]
+  (let [
+        ;field-kw (keyword (str "condition.field/" (name field)))
+        ;predicate-kw (keyword (str "condition.predicate/" (u/kw->string predicate)))
+        ]
     {:db/id               (d/tempid :db.part/user)
      :base/type           :condition
-     :condition/field     field-kw
-     :condition/predicate predicate-kw
+     :condition/field     field
+     :condition/predicate predicate
      :condition/subject   subject}))
 
 (defn make-rule
@@ -124,7 +126,7 @@
     time-slot
     (assoc :rule/time-slot (make-time-slot time-slot))
     period
-    (assoc :rule/period (e/make-actual-period period))))
+    (assoc :rule/actual-period (e/make-actual-period period))))
 
 (def to-import-accounts
   {:exp      (mapv e/make-account seasoft/exp-accounts)
@@ -200,4 +202,5 @@
            :auth/login  "bob@example.com"}
           ]
       @(d/transact conn (concat groups [owner organisation] all-accounts)))
-    (ada/import-bank-statements)))
+    (ada/import-bank-statements)
+    (ada/set-default-current-ordinal)))

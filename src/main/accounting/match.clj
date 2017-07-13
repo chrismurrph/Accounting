@@ -11,8 +11,9 @@
 ;;
 (defn bank-rules [bank-accounts in-rules]
   (assert (seq bank-accounts) (us/assert-str "bank-accounts" bank-accounts))
-  (let [bank-accounts (set bank-accounts)
-        rules (filter #(bank-accounts (:rule/source-bank %)) in-rules)]
+  (let [bank-account-names (set (map :account/name bank-accounts))
+        ;_ (println bank-account-names)
+        rules (filter #(bank-account-names (u/probe-off (-> % :rule/source-bank :account/name))) in-rules)]
     rules))
 
 ;;
@@ -82,32 +83,42 @@
       (when-let [res (f field-value)]
         rule))))
 
-(defn chk-condition [[field how-kw match-text]]
+(defn chk-condition [{:keys [condition/field condition/predicate condition/subject] :as condition}]
   (assert field)
-  (assert how-kw)
-  (assert match-text))
+  (assert predicate)
+  (assert subject))
 
+;;
+;; [field how-kw match-text] replaced by
+;; {:keys [condition/field condition/predicate condition/subject}
+;;
 (defn field-calculator-hof [record]
-  (fn [[field how-kw match-text]]
-    (let [f (c/condition-functions how-kw)]
-      (assert f (str "Not found a function for: " how-kw))
-      [(f match-text) (field record)])))
+  (fn [{:keys [condition/field condition/predicate condition/subject]}]
+    (let [f (c/condition-functions predicate)]
+      (assert f (str "Not found a function for: " predicate))
+      [(f subject) (field record)])))
 
+;;
 ;; Return the rule if there's a match against it
-;; A condition looks like:
+;; A condition used to look like:
 ;; [:out/desc :starts-with "DIRECT CREDIT"]
-(defn match [record {:keys [logic-operator conditions] :as rule}]
+;; But now looks like:
+;; {:keys [condition/field condition/predicate condition/subject] :as condition}
+;;
+(defn match [record {:keys [rule/logic-operator rule/conditions] :as rule}]
+  (assert (coll? conditions) (str "Supposed to be many conditions, got: " conditions))
   (assert (map? rule) (str "rule is supposed to be a map, got: " rule))
   (assert (map? record) (str "record is supposed to be a map, got: " record ", of type: " (type record)))
   (when (matches-chosen-specifics? record rule)
     (let [field-calculator (field-calculator-hof record)
           res (condp = logic-operator
                 :single (let [_ (assert (= 1 (count conditions)) (str "More than 1 condition for single: " conditions))
-                              [field how-kw match-text :as condition] (first conditions)
+                              {:keys [condition/field condition/predicate condition/subject] :as condition}
+                              (first conditions)
                               _ (chk-condition condition)
-                              f (c/condition-functions how-kw)
-                              _ (assert f (str "Unrecognised condition: " how-kw))]
-                          ((f match-text) (field record)))
+                              f (c/condition-functions predicate)
+                              _ (assert f (str "Unrecognised condition: " predicate))]
+                          ((f subject) (field record)))
                 :and (let [f-field-values (map field-calculator conditions)]
                        (->> f-field-values
                             (map (fn [[f value]] (f value)))
@@ -115,7 +126,8 @@
                             (every? identity)))
                 :or (let [f-field-values (map field-calculator conditions)]
                       (->> f-field-values
-                           (some (fn [[f value]] (f value))))))]
+                           (some (fn [[f value]] (f value)))))
+                (assert false (str "Didn't expect: <" logic-operator ">")))]
       (when res
         rule))))
 

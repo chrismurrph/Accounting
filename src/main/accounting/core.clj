@@ -87,7 +87,8 @@
 
 (defn records-without-single-rule-match [{:keys [bank-accounts bank-records]} rules-in]
   (let [rules (m/bank-rules bank-accounts rules-in)
-        _ (assert (seq rules) (str "No rules found for " bank-accounts " from " (count rules-in)))
+        _ (assert (seq rules) (str "No rules found for " bank-accounts " from " (count rules-in)
+                                   ", first: " (:rule/source-bank (first rules-in))))
         ;_ (u/pp rules)
         matcher (partial m/records-rule-matches rules)
         ;records (import-bank-records! customer-kw periods bank-accounts)

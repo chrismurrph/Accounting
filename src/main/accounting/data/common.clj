@@ -3,7 +3,9 @@
             [accounting.time :as t]))
 
 (defn -starts-with? [starts-with]
+  (assert starts-with)
   (fn [field-value]
+    (assert field-value)
     (s/starts-with? field-value starts-with)))
 
 (defn -ends-with? [ends-with]

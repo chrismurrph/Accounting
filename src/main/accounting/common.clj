@@ -5,5 +5,5 @@
   (assert (seq rules-in) (str "No rules for " period))
   (->> rules-in
        (map (fn [[k v]]
-              [k (mapv #(assoc % :rule/period period :rule/permanent? false) v)]))
+              [k (mapv #(assoc % :rule/actual-period period :rule/permanent? false) v)]))
        (into {})))

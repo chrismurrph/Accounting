@@ -2,6 +2,16 @@
   (:require [datomic.api :as d]
             [cljc.utils :as us]))
 
+(defn read-account [conn account-name account-category]
+  (assert account-name)
+  (let [db (d/db conn)]
+    (d/q '[:find ?a .
+           :in $ ?an ?ac
+           :where
+           [?a :account/name ?an]
+           [?a :account/category ?ac]
+           ] db account-name account-category)))
+
 (defn read-organisation
   "Read an organisation with the given name. Always returns a valid organisation ID."
   [conn org-key]
@@ -15,6 +25,32 @@
         eids (d/q '[:find [?a ...] :in $ ?o :where
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]] db org-key)
+        rvs (mapv #(d/pull db '[:db/id :account/name] %) eids)]
+    rvs))
+
+(defn read-statements
+  "Find all statements of the org."
+  [conn org-key]
+  (let [db (d/db conn)
+        eids (d/q '[:find [?s ...] :in $ ?o :where
+                    [?e :organisation/key ?o]
+                    [?e :organisation/bank-accounts ?a]
+                    [?a :bank-account/statements ?s]] db org-key)
+        rvs (mapv #(d/pull db '[:db/id :statement/ordinal] %) eids)]
+    rvs))
+
+(defn current-period-line-items
+  "Current line items from all banks"
+  [conn org-key]
+  (let [db (d/db conn)
+        eids (d/q '[:find [?i ...]
+                    :in $ ?o :where
+                    [?e :organisation/key ?o]
+                    [?e :organisation/bank-accounts ?a]
+                    [?e :organisation/current-ordinal ?ord]
+                    [?a :bank-account/statements ?s]
+                    [?s :statement/ordinal ?ord]
+                    [?s :statement/line-items ?i]] db org-key)
         rvs (mapv #(d/pull db '[:db/id] %) eids)]
     rvs))
 
@@ -25,7 +61,7 @@
 (def -account-pull [:account/category :account/name :account/desc
                     {:account/time-slot -time-slot-pull}])
 
-;; Some not yet being used been left out: :rule/dominates :rule/period :rule/on-dates
+;; Some not yet being used been left out: :rule/dominates :rule/actual-period :rule/on-dates
 (def -rule-pull [:rule/logic-operator {:rule/time-slot -time-slot-pull}
                  {:rule/conditions -rule-conditions-pull} {:rule/source-bank -account-pull}
                  {:rule/target-account -account-pull}])
@@ -114,6 +150,16 @@
   (let [conn (d/connect db-uri)
         customer-kw :seaweed]
     (find-rules conn customer-kw)))
+
+(defn query-line-items []
+  (let [conn (d/connect db-uri)
+        customer-kw :seaweed]
+    (current-period-line-items conn customer-kw)))
+
+(defn query-statements []
+  (let [conn (d/connect db-uri)
+        customer-kw :seaweed]
+    (read-statements conn customer-kw)))
 
 (defn query-bank-template []
   (let [conn (d/connect db-uri)

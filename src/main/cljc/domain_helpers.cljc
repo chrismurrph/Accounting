@@ -53,7 +53,7 @@
        first))
 
 (defn *periods-range [periods begin end]
-  (u/log-on (str "begin, end: <" begin "," end ">"))
+  (u/log-off (str "begin, end: <" begin "," end ">"))
   (assert begin)
   (assert end)
   (->> periods
@@ -76,8 +76,8 @@
         starting (commencing-year potential-data)
         finishing (latest-year potential-data)
         year (u/kw->number yr)]
-    (u/log-on (str ">>" periods))
-    (u/log-on (str ">" starting ", " finishing ", " year))
+    (u/log-off (str ">>" periods))
+    (u/log-off (str ">" starting ", " finishing ", " year))
     (cond
       (= starting finishing year)
       (*periods-range periods

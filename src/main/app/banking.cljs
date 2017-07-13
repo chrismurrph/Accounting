@@ -148,9 +148,10 @@
 ;; are two and one is permanent and the other is temporal. In that case user has to understand
 ;; that can edit one and come back, then merge will be available.
 ;;
-(defn load-unruly-bank-statement-line [comp]
+(defn load-unruly-bank-statement-line [comp organisation]
   (df/load comp :my-unruly-bank-statement-line BankStatementLine
-           {:post-mutation `cljs-ops/unruly-bank-statement-line}))
+           {:post-mutation `cljs-ops/unruly-bank-statement-line
+            :params {:request/organisation organisation}}))
 
 (defui ^:once ValidatedConditionForm
   static uc/InitialAppState

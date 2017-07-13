@@ -61,7 +61,7 @@
                 [selected-year year-options] (help/years-options-generator potential-data nil)
                 [selected-period period-options] (help/periods-options-generator potential-data selected-year)
                 [selected-report report-options] (help/reports-options-generator potential-data nil)]
-            (us/log-on (str "year: " selected-report))
+            (us/log-off (str "year: " selected-report))
             (us/log-off (str "year options: " year-options))
             (us/log-off (str "period options: " period-options))
             (swap! state #(-> %

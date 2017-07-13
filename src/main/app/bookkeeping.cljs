@@ -61,11 +61,11 @@
                           (dom/tbody nil (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items)))))))
 (def ui-ledger-item-list (om/factory LedgerItemList))
 
-(defui ^:once Enum
+#_(defui ^:once Enum
   static om/IQuery
   (query [this] [:db/ident]))
 
-(defui ^:once Period
+#_(defui ^:once Period
   static om/IQuery
   (query [this] [:db/ident {:period/type (om/get-query Enum)}
                  {:period/quarter (om/get-query Enum)}]))
@@ -73,6 +73,11 @@
 (defui ^:once ActualPeriod
   static om/IQuery
   (query [this] [:actual-period/year :actual-period/quarter :actual-period/month :actual-period/type]))
+
+(defui ^:once Timespan
+  static om/IQuery
+  (query [this] [{:timespan/commencing-period (om/get-query ActualPeriod)}
+                 {:timespan/latest-period (om/get-query ActualPeriod)}]))
 
 ;;
 ;; Important for data fetching the meta-data for a user/orgs from the server.
@@ -90,9 +95,8 @@
   static om/Ident
   (ident [this props] [:organisation/by-id p/ORGANISATION])
   static om/IQuery
-  (query [this] [{:organisation/period-type (om/get-query Enum)}
-                 {:organisation/commencing-period (om/get-query ActualPeriod)}
-                 {:organisation/latest-period (om/get-query ActualPeriod)}
+  (query [this] [:organisation/period-type
+                 {:organisation/timespan (om/get-query Timespan)}
                  :organisation/possible-reports]))
 
 (defn execute-report [comp organisation year period report]

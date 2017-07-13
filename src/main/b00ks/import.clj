@@ -99,6 +99,12 @@
        :time-slot/start-at (u/err-nil (c/to-date begin-date))}
       end-date (assoc :time-slot/end-at (u/err-nil (c/to-date end-date))))))
 
+(defn convert-ns [kw]
+  (let [[ns name] ((juxt namespace name) kw)]
+    (if (= ns "out")
+      (keyword (str "line-item/" name))
+      kw)))
+
 (defn make-condition [[field predicate subject]]
   (assert subject)
   (let [
@@ -107,7 +113,7 @@
         ]
     {:db/id               (d/tempid :db.part/user)
      :base/type           :condition
-     :condition/field     field
+     :condition/field     (convert-ns field)
      :condition/predicate predicate
      :condition/subject   subject}))
 

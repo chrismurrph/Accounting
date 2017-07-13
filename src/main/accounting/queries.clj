@@ -15,7 +15,10 @@
 (defn read-organisation
   "Read an organisation with the given name. Always returns a valid organisation ID."
   [conn org-key]
-  (when-let [eid (d/q '[:find ?e . :in $ ?o :where [?e :organisation/key ?o]] (d/db conn) org-key)]
+  (when-let [eid (d/q '[:find ?e .
+                        :in $ ?o
+                        :where [?e :organisation/key ?o]]
+                      (d/db conn) org-key)]
     eid))
 
 (defn read-bank-accounts
@@ -51,7 +54,7 @@
                     [?a :bank-account/statements ?s]
                     [?s :statement/ordinal ?ord]
                     [?s :statement/line-items ?i]] db org-key)
-        rvs (mapv #(d/pull db '[:db/id] %) eids)]
+        rvs (mapv #(d/pull db '[*] %) eids)]
     rvs))
 
 (def -rule-conditions-pull [:condition/field :condition/predicate :condition/subject])

@@ -94,9 +94,12 @@
 ;;
 (defn field-calculator-hof [record]
   (fn [{:keys [condition/field condition/predicate condition/subject]}]
-    (let [f (c/condition-functions predicate)]
-      (assert f (str "Not found a function for: " predicate))
-      [(f subject) (field record)])))
+    (let [f (c/condition-functions predicate)
+          _ (assert f (str "Not found a function for: " predicate))
+          cond-f (f subject)
+          field-value (field record)]
+      (assert field-value (str "field on record did not work for: <" field ">, <" record ">"))
+      [cond-f field-value])))
 
 ;;
 ;; Return the rule if there's a match against it

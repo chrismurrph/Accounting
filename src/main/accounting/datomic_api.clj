@@ -139,7 +139,7 @@
     (->> org-meta
          (dhs/range-of-years nil)
          (mapcat range-of-periods-f)
-         u/probe-on
+         u/probe-off
          (-do-statements-import conn org-meta importing-meta))))
 
 (def records-count #(-> % :records count))

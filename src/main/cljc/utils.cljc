@@ -20,6 +20,17 @@
   xs)
 
 ;;
+;; Only having to do this b/c I suspect that Untangled always wants to see
+;; keywords in :option/key. I'm probably wrong and will test properly later
+;;
+(defn kw->number [kw]
+  (assert kw)
+  (if (number? kw)
+    kw
+    (-> kw name #?(:cljs js/parseInt
+                   :clj  Integer/parseInt))))
+
+;;
 ;; name - of the thing we are asserting on
 ;; value - of the thing we are asserting on
 ;;

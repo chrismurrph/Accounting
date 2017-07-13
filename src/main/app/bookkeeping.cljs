@@ -15,14 +15,14 @@
             [goog.string.format]
             [app.operations :as ops]))
 
-(defui ^:once LedgerItem
+(defui ^:once LineItem
   static om/Ident
-  (ident [this props] [:ledger-item/by-id (:db/id props)])
+  (ident [this props] [:line-item/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :ledger-item/type :ledger-item/name :ledger-item/amount])
+  (query [this] [:db/id :line-item/type :line-item/name :line-item/amount])
   Object
   (render [this]
-    (let [{:keys [db/id ledger-item/type ledger-item/name ledger-item/amount]} (om/props this)
+    (let [{:keys [db/id line-item/type line-item/name line-item/amount]} (om/props this)
           type-display (and type (subs (str type) 1))
           negative? (= \- (first (str amount)))
           amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))
@@ -35,13 +35,13 @@
                       amount-display)
               (dom/td #js {:className "col-md-2"}
                       type-display)))))
-(def ui-ledger-item (om/factory LedgerItem {:keyfn :db/id}))
+(def ui-ledger-item (om/factory LineItem {:keyfn :db/id}))
 
 (defui ^:once LedgerItemList
   static om/Ident
   (ident [this props] [:ledger-item-list/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :ledger-item-list/label {:ledger-item-list/items (om/get-query LedgerItem)}])
+  (query [this] [:db/id :ledger-item-list/label {:ledger-item-list/items (om/get-query LineItem)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id                  id
@@ -55,8 +55,8 @@
                                (om/transact! this `[(ops/delete-ledger-item {:list-id ~id :ledger-item-id ~ledger-item-id})]))]
       (dom/div nil
                (dom/h4 nil label)
-               ;; table-inverse did not work
-               ;; table-striped doesn't work well with hover as same colour
+               ;; table-inverse simply did not work
+               ;; table-striped doesn't look good with hover as same colour
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map #(ui-ledger-item (om/computed % {:onDelete delete-ledger-item})) items)))))))
 (def ui-ledger-item-list (om/factory LedgerItemList))
@@ -102,7 +102,7 @@
 (defn execute-report [comp organisation year period report]
   #((om/transact! comp `[(cljs-ops/touch-report nil)])
      (df/load comp
-              :my-selected-items-new LedgerItem
+              :my-selected-items-new LineItem
               {:target        help/report-items-whereabouts
                :params        {:request/organisation organisation
                                :request/year         year
@@ -128,7 +128,7 @@
             }))
 
 ;; Hopefully there will be a decent error message rather than user seeing this
-(def initial-potential-data {:organisation/period-type       :period-type/unknown
+(def initial-potential-data {:organisation/period-type       :unknown
                              :organisation/latest-period     {:period/quarter  :q1
                                                               :period/tax-year 2000}
                              :organisation/commencing-period {:period/quarter  :q1
@@ -163,30 +163,37 @@
                   request/report request/manually-executable?] :as form} (om/props this)
           _ (assert report)
           {:keys [organisation/period-type]} potential-data
-          period-label (condp = (:db/ident period-type)
-                         :organisation.period-type/quarterly "Quarter"
-                         :organisation.period-type/monthly "Month"
-                         :organisation.period-type/unknown "Unknown"
+          period-label (condp = period-type
+                         :quarterly "Quarter"
+                         :monthly "Month"
+                         :unknown "Unknown"
                          nil "Unknown")
           at-className (if manually-executable? "btn btn-primary" "btn disabled")
           at-disabled (if manually-executable? "" "true")]
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :request/organisation "Organisation"
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report nil)])
+                                                 (om/transact! this
+                                                               `[(cljs-ops/touch-report nil)])
                                                  (let [new-org-value (u/target-kw evt)]
                                                    (load-organisation-data this new-org-value))
-                                                 (om/transact! this `[(cljs-ops/enable-report-execution nil)]))})
+                                                 (om/transact! this
+                                                               `[(cljs-ops/enable-report-execution nil)]))})
                (fh/field-with-label this form :request/year "Year"
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report nil) (cljs-ops/year-changed nil) (cljs-ops/enable-report-execution nil)]))})
+                                                 (om/transact! this
+                                                               `[(cljs-ops/touch-report nil)
+                                                                 (cljs-ops/year-changed nil)
+                                                                 (cljs-ops/enable-report-execution nil)]))})
                (fh/field-with-label this form :request/period period-label
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report nil)])
+                                                 (om/transact! this
+                                                               `[(cljs-ops/touch-report nil)])
                                                  ((execute-report this organisation year (u/target-kw evt) report)))})
                (fh/field-with-label this form :request/report "Report"
                                     {:onChange (fn [evt]
-                                                 (om/transact! this `[(cljs-ops/touch-report nil)])
+                                                 (om/transact! this
+                                                               `[(cljs-ops/touch-report nil)])
                                                  ((execute-report this organisation year period (u/target-kw evt))))})
                (dom/button #js {:className at-className
                                 :disabled  at-disabled

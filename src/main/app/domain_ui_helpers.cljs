@@ -27,14 +27,6 @@
    :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
    :bank-line/amount   0.00M})
 
-(def example-rule
-  {:logic-operator          :or,
-   :conditions              [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]],
-   :rule/source-bank        :bank/anz-visa,
-   :rule/target-account     :exp/office-expense,
-   :time-slot nil,
-   :on-dates                nil})
-
 (defn make-condition [[field predicate subject]]
   {:condition/field     field
    :condition/predicate predicate
@@ -98,14 +90,11 @@
                                #(-> % first str keyword)))
 
 (def period-kw->period-name
-  {:period.quarter/q1 "Q1"
-   :period.quarter/q2 "Q2"
-   :period.quarter/q3 "Q3"
-   :period.quarter/q4 "Q4"
-   :period.month/jan  "Jan" :period.month/feb "Feb" :period.month/mar "Mar"
-   :period.month/apr  "Apr" :period.month/may "May" :period.month/jun "Jun"
-   :period.month/jul  "Jul" :period.month/aug "Aug" :period.month/sep "Sep"
-   :period.month/oct  "Oct" :period.month/nov "Nov" :period.month/dec "Dec"})
+  {:q1 "Q1" :q2 "Q2" :q3 "Q3" :q4 "Q4"
+   :jan  "Jan" :feb "Feb" :mar "Mar"
+   :apr  "Apr" :may "May" :jun "Jun"
+   :jul  "Jul" :aug "Aug" :sep "Sep"
+   :oct  "Oct" :nov "Nov" :dec "Dec"})
 
 (def periods-options-generator (fh/options-generator
                                  dhs/range-of-periods

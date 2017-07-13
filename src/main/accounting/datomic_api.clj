@@ -67,9 +67,6 @@
               (into {})
               u/probe-off)))
 
-
-(def trial-balance-report nil)
-
 #_(defn biggest-items-report [conn organisation year period]
     (let [
           ;{:keys [rules-fn bank-statements-fn] :as for-org} (organisation by-org)
@@ -81,31 +78,32 @@
            (sort-by (comp - u/abs second))
            coll->ledger-items)))
 
-(declare make-ledger-item)
+(defn make-line-item [idx [kw amount]]
+  (assert idx)
+  (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
+  {:db/id            idx
+   :line-item/name   (name kw)
+   :line-item/type   ((comp keyword namespace) kw)
+   :line-item/amount amount})
 
 (defn biggest-items-report [conn organisation year period]
   (assert period)
   (println period)
   (let [bank-accounts (q/read-bank-accounts conn organisation)]
     (println bank-accounts))
-  (make-ledger-item 1 [:dummy-entry 1002]))
-
-(defn make-ledger-item [idx [kw amount]]
-  (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
-  {:db/id              idx
-   :ledger-item/name   (name kw)
-   :ledger-item/type   ((comp keyword namespace) kw)
-   :ledger-item/amount amount})
+  [(make-line-item 2 [:dummy-entry 1002])])
 
 (def rep->fn
-  {:report/profit-and-loss (fn [_ _ _ _] [(make-ledger-item 0 [:dummy-entry 1000])])
-   :report/balance-sheet   (fn [_ _ _ _] [(make-ledger-item 1 [:dummy-entry 1001])])
+  {:report/profit-and-loss (fn [_ _ _ _] [(make-line-item 0 [:dummy-entry 1000])])
+   :report/balance-sheet   (fn [_ _ _ _] [(make-line-item 1 [:dummy-entry 1001])])
    :report/big-items-first biggest-items-report
-   :report/trial-balance   trial-balance-report})
+   :report/trial-balance   (fn [_ _ _ _] [(make-line-item 3 [:dummy-entry 1003])])})
 
 (defn fetch-report [conn query organisation year period report]
   (assert (= 4 (count query)))
-  ((report rep->fn) conn organisation year period))
+  (let [rep-f (report rep->fn)]
+    (assert rep-f (str "No report function listed for " report))
+    (rep-f conn organisation year period)))
 
 ;;
 ;; The function used (f) didn't think to give us back the year, so this wrapper does
@@ -151,8 +149,8 @@
   (let [conn (d/connect q/db-uri)
         org-key :seaweed
         max-ord (->> (q/query-statements)
-                (map :statement/ordinal)
-                (apply max))]
+                     (map :statement/ordinal)
+                     (apply max))]
     (e/update-organisations-ordinal conn org-key max-ord)
     (println (str "Max ordinal for " org-key " is now " max-ord))))
 

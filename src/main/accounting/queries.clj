@@ -1,6 +1,7 @@
 (ns accounting.queries
   (:require [datomic.api :as d]
-            [cljc.utils :as us]))
+            [cljc.utils :as us]
+            [accounting.util :as u]))
 
 (defn read-account [conn account-name account-category]
   (assert account-name)
@@ -42,6 +43,23 @@
         rvs (mapv #(d/pull db '[:db/id :statement/ordinal] %) eids)]
     rvs))
 
+(defn read-period-statements
+  "Find all statements of the org for a particular period."
+  [conn org-key year quarter]
+  (assert (number? year))
+  (assert (keyword? quarter))
+  (let [db (d/db conn)
+        eids (d/q '[:find [?s ...]
+                    :in $ ?o ?y ?q :where
+                    [?e :organisation/key ?o]
+                    [?e :organisation/bank-accounts ?a]
+                    [?a :bank-account/statements ?s]
+                    [?s :statement/actual-period ?p]
+                    [?p :actual-period/year ?y]
+                    [?p :actual-period/quarter ?q]] db org-key year quarter)
+        rvs (mapv #(d/pull db '[:db/id :statement/ordinal] %) eids)]
+    rvs))
+
 (defn current-period-line-items
   "Current line items from all banks"
   [conn org-key]
@@ -64,9 +82,20 @@
 (def -account-pull [:account/category :account/name :account/desc
                     {:account/time-slot -time-slot-pull}])
 
+(def -actual-period-pull [:actual-period/year
+                          :actual-period/month
+                          :actual-period/quarter
+                          :actual-period/type])
+
 ;; Some not yet being used been left out: :rule/dominates :rule/actual-period :rule/on-dates
-(def -rule-pull [:rule/logic-operator {:rule/time-slot -time-slot-pull}
-                 {:rule/conditions -rule-conditions-pull} {:rule/source-bank -account-pull}
+(def -rule-pull [:db/id
+                 :rule/rule-num
+                 :rule/logic-operator
+                 {:rule/time-slot -time-slot-pull}
+                 {:rule/actual-period -actual-period-pull}
+                 :on-dates
+                 {:rule/conditions -rule-conditions-pull}
+                 {:rule/source-bank -account-pull}
                  {:rule/target-account -account-pull}])
 
 (defn find-rules
@@ -79,10 +108,6 @@
         rvs (mapv #(d/pull db -rule-pull %) eids)]
     rvs))
 
-(def -actual-period-pull [:actual-period/year
-                          :actual-period/month
-                          :actual-period/quarter
-                          :actual-period/type])
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}
                     {:timespan/latest-period -actual-period-pull}])
 
@@ -142,9 +167,9 @@
 (defn find-org-meta [conn org-key]
   (let [db (d/db conn)]
     (let [[[root-dir period-type timespan]] (seq (-read-organisation-meta conn org-key))]
-      {:root-dir                 root-dir
-       :organisation/period-type period-type
-       :organisation/timespan    (d/pull db timespan-pull timespan)
+      {:root-dir                 (u/err-nil root-dir)
+       :organisation/period-type (u/err-nil period-type)
+       :organisation/timespan    (u/err-nil (d/pull db timespan-pull timespan))
        })))
 
 (def db-uri "datomic:dev://localhost:4334/b00ks")
@@ -183,3 +208,50 @@
   (let [conn (d/connect db-uri)
         account-name "anz-visa"]
     (find-headings conn account-name)))
+
+;;
+;; Tells me the console's browser needs to be refreshed!
+;;
+(defn ->entity []
+  (let [id 17592186045473
+        conn (d/connect db-uri)
+        db (d/db conn)
+        entity (d/entity db id)
+        db-entity (d/entity-db entity)
+        fetched (d/pull db '[*] id)]
+    fetched))
+
+;;
+;; Only works when :rule/rule-num is :unique-identity
+;;
+(defn ->eid []
+  (let [conn (d/connect db-uri)
+        db (d/db conn)]
+    (d/pull db '[*] [:rule/rule-num 1])))
+
+;;
+;; All rules from AMP are for personal spending. Makes sense.
+;;
+(defn amp-is-personal []
+  (->> (query-rules)
+       (filter #(= "amp" (-> % :rule/target-account :account/name)))
+       (map (juxt :rule/source-bank :rule/target-account))
+       (take 3)))
+
+(defn general-query []
+  (->> (query-rules)
+       (map #(dissoc % :rule/conditions :rule/logic-operator :rule/source-bank :rule/target-account))
+       (filter #(or
+                  (-> % :rule/actual-period some?)
+                  (-> % :rule/time-slot some?)
+                  (-> % :rule/on-dates count pos?)
+                  #_(= "anz-visa" (-> % :rule/target-account :account/name))))
+       ;(keep keys)
+       ;(map (juxt :rule/source-bank :rule/target-account))
+       ;(take 20)
+       (map (juxt :db/id
+                  :rule/rule-num
+                  #(-> % :on-dates count)
+                  #(-> % :rule/actual-period some?)
+                  #(-> % :rule/time-slot some?)))
+       ))

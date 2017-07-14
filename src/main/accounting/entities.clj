@@ -5,15 +5,15 @@
             [cljc.utils :as us]
             [accounting.queries :as q]))
 
-;;
-;; Unlikely to be importing monthly, asserting here so know to change this function
-;;
 (defn make-period [quarter]
   {:db/id          (d/tempid :db.part/user)
    :base/type      :period
    :period/type    :quarterly
    :period/quarter quarter})
 
+;;
+;; Unlikely to be importing monthly, asserting here so know to change this function
+;;
 (defn make-actual-period [{:keys [actual-period/tax-year actual-period/year actual-period/quarter actual-period/month] :as actual-period}]
   (assert (or tax-year year) "Need to make all data in terms of actual periods")
   (assert (nil? month) (str "Unlikely to be importing monthly: <" actual-period ">"))
@@ -25,35 +25,44 @@
    :actual-period/type    :quarterly
    })
 
-(defn make-account [kw]
+(defn make-time-slot [time-slot]
+  (assert time-slot)
+  (let [[begin-date end-date] time-slot]
+    (assert begin-date)
+    (cond->
+      {:db/id              (d/tempid :db.part/user)
+       :base/type          :time-slot
+       :time-slot/start-at (u/err-nil (c/to-date begin-date))}
+      end-date (assoc :time-slot/end-at (u/err-nil (c/to-date end-date))))))
+
+(defn make-account [begin-date kw]
+  (assert (keyword? kw))
   (let [[ns name] ((juxt namespace name) kw)
         category (keyword ns)]
     (assert name)
     (assert category)
-    ;(println category (type category))
-    {:db/id            (d/tempid :db.part/user)
-     :base/type        :account
-     :account/category category
-     :account/desc     name
-     :account/name     name
-     ; No reason to repeat when the organisation began
-     ;:account/time-slot (make-time-slot [beginning-period nil])
-     ;; Do reverse if need this, an organisation has many accounts
-     ;:account/organisation (assoc seaweed-software-org :organisation/splits
-     ;                                                  (mapv make-split seasoft/splits))
-     }))
+    (cond->
+      {:db/id            (d/tempid :db.part/user)
+       :base/type        :account
+       :account/category category
+       :account/desc     name
+       :account/name     name}
+      ; Repeating when the organisation began. This is okay because we are importing.
+      ; In real life many/all accounts will be created during the life of the organisation.
+      begin-date (assoc :account/time-slot (make-time-slot [begin-date nil])))))
 
 (defn make-heading [n kw]
   {:db/id           (d/tempid :db.part/user)
    :base/type       :heading
-   :heading/key     kw
-   :heading/ordinal n
+   :heading/key     (u/err-nil kw)
+   :heading/ordinal (u/err-nil n)
    ;; don't need anything more
    })
 
-(defn make-bank-account [[heading structure]]
+(defn make-bank-account [begin-date [heading structure]]
   (assert (vector? structure))
-  (let [account (make-account heading)]
+  #_(println structure)
+  (let [account (make-account begin-date heading)]
     (assoc account :bank-account/headings (vec (map-indexed make-heading structure))
                    :bank-account/statements [])))
 
@@ -62,9 +71,8 @@
   {:db/id            (d/tempid :db.part/user)
    :base/type        :line-item
    :line-item/date   (u/err-nil (c/to-date date))
-   :line-item/amount amount
-   :line-item/desc   desc
-   })
+   :line-item/amount (u/err-nil amount)
+   :line-item/desc   (u/err-nil desc)})
 
 (defn quarter->number [quarter]
   (Integer/parseInt (subs (str quarter) 2)))
@@ -111,7 +119,7 @@
         (assert bank-acct-id (str "Entity is blank for " bank-acct-name))
         (let [new-statement {:db/id                   (d/tempid :db.part/user)
                              :base/type               :statement
-                             :statement/ordinal       idx
+                             :statement/ordinal       (u/err-nil idx)
                              :statement/actual-period (make-actual-period actual-period)
                              :statement/line-items    (mapv make-line-item records)
                              }

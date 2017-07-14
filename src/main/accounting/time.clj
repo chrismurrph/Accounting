@@ -49,30 +49,30 @@
    "Dec" 12})
 
 (def month-kw->month
-  {:period.month/jan 1
-   :period.month/feb 2
-   :period.month/mar 3
-   :period.month/apr 4
-   :period.month/may 5
-   :period.month/jun 6
-   :period.month/jul 7
-   :period.month/aug 8
-   :period.month/sep 9
-   :period.month/oct 10
-   :period.month/nov 11
-   :period.month/dec 12})
+  {:jan 1
+   :feb 2
+   :mar 3
+   :apr 4
+   :may 5
+   :jun 6
+   :jul 7
+   :aug 8
+   :sep 9
+   :oct 10
+   :nov 11
+   :dec 12})
 
 (def quarter->begin-month
-  {:period.quarter/q1 7
-   :period.quarter/q2 10
-   :period.quarter/q3 1
-   :period.quarter/q4 4})
+  {:q1 7
+   :q2 10
+   :q3 1
+   :q4 4})
 
 (def quarter->end-month
-  {:period.quarter/q1 9
-   :period.quarter/q2 12
-   :period.quarter/q3 3
-   :period.quarter/q4 6})
+  {:q1 9
+   :q2 12
+   :q3 3
+   :q4 6})
 
 (defn prior-quarter [{:keys [period/tax-year period/quarter]}]
   (assert tax-year)
@@ -138,14 +138,15 @@
         (assoc :when f-ed-when-date))))
 
 (def change-year-for-quarter
-  {:period.quarter/q1 dec
-   :period.quarter/q2 dec
-   :period.quarter/q3 identity
-   :period.quarter/q4 identity})
+  {:q1 dec
+   :q2 dec
+   :q3 identity
+   :q4 identity})
 
-(defn -start-quarter-moment [tax-year quarter]
-  (assert tax-year)
-  (let [calendar-year ((change-year-for-quarter quarter) tax-year)]
+(defn -start-quarter-moment [year quarter]
+  (assert year)
+  (assert quarter)
+  (let [calendar-year ((change-year-for-quarter quarter) year)]
     (->> (quarter->begin-month quarter)
          (t/first-day-of-the-month calendar-year))))
 
@@ -167,16 +168,16 @@
        month-kw->month
        (t/last-day-of-the-month year)))
 
-(defn start-period-moment-orig [{:keys [period/tax-year period/quarter period/year period/month] :as in}]
-  ;(println "==" tax-year (nil? tax-year) year (nil? year))
-  (assert (or tax-year year) in)
-  (assert (or quarter month))
-  (if (nil? tax-year)
-    (-start-month-moment month year)
-    (-start-quarter-moment tax-year quarter)))
+#_(defn start-period-moment-orig [{:keys [period/tax-year period/quarter period/year period/month] :as in}]
+    ;(println "==" tax-year (nil? tax-year) year (nil? year))
+    (assert (or tax-year year) in)
+    (assert (or quarter month))
+    (if (nil? tax-year)
+      (-start-month-moment month year)
+      (-start-quarter-moment tax-year quarter)))
 
-(defn start-period-moment-datomic [{:keys [actual-period/year actual-period/month
-                                           actual-period/quarter actual-period/type] :as in}]
+(defn start-period-moment [{:keys [actual-period/year actual-period/month
+                                   actual-period/quarter actual-period/type] :as in}]
   (if (= :quarterly type)
     (-start-quarter-moment year quarter)
     (assert false "Not yet doing monthly here")
@@ -236,7 +237,7 @@
 (defn within-period? [actual-period date]
   (assert actual-period)
   (assert date)
-  (let [start-moment (start-period-moment-datomic actual-period)
+  (let [start-moment (start-period-moment actual-period)
         end-moment (end-period-moment actual-period)
         res ((within-range-hof? start-moment end-moment) date)]
     res))

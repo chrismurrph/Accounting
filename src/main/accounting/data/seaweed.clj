@@ -28,51 +28,61 @@
 ;;
 (def -q3-2017-rules {
                      ;; Upon closer investigation, this one was personal spending
-                     [amp :personal/amp]        [{:field          :out/desc
+                     [amp :personal/amp]        [{:rule/rule-num  1
+                                                  :field          :out/desc
                                                   :on-dates       #{(t/long-date-str->date "20 Feb 2017")}
                                                   :logic-operator :and
                                                   :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                                    [:ends-with "PAYPAL AUSTRALIA"]]}]
-                     [visa :personal/anz-visa]  [{:field          :out/desc
+                     [visa :personal/anz-visa]  [{:rule/rule-num  2
+                                                  :field          :out/desc
                                                   :logic-operator :single
                                                   :conditions     [[:starts-with "QANTAS AIRWAYS"]]}
                                                  ]
-                     [visa :exp/niim-trip]      [{:field                   :out/desc
+                     [visa :exp/niim-trip]      [{:rule/rule-num  3
+                                                  :field                   :out/desc
                                                   :time-slot (t/inclusive-range "25 Jan 2017" "08 Feb 2017")
                                                   :logic-operator          :or
                                                   :conditions              [[:starts-with "SKYBUS COACH SERVICE"]
                                                                             [:equals "RE & TK WILSDON PTY       KEITH"]
                                                                             [:starts-with "TIGER AIRWAYS AUSTRALIA"]
                                                                             [:starts-with "AUSDRAGON PTY LTD"]]}]
-                     [visa :exp/office-expense] [{:field          :out/desc
+                     [visa :exp/office-expense] [{:rule/rule-num  4
+                                                  :field          :out/desc
                                                   :logic-operator :or
                                                   :conditions     [[:equals "TARGET 5009               ADELAIDE"]
                                                                    [:starts-with "DRAKE SUPERMARKETS"]
                                                                    [:starts-with "Z & Y BEYOND INTL PL"]]}]})
 
 (def -q2-2017-rules {
-                     [amp :personal/amp] [{:field          :out/desc
-                                           :on-dates       #{(t/long-date-str->date "12 Dec 2016") (t/long-date-str->date "8 Dec 2016")}
+                     [amp :personal/amp] [{:rule/rule-num  5
+                                           :field          :out/desc
+                                           :on-dates       #{(t/long-date-str->date "12 Dec 2016")
+                                                             (t/long-date-str->date "8 Dec 2016")}
                                            :logic-operator :and
                                            :conditions     [[:starts-with "Direct Entry Debit Item Ref: "]
                                                             [:ends-with "PAYPAL AUSTRALIA"]]}]})
 
 (def -q1-2017-rules {
-                     [amp :exp/national-travel]  [{:field          :out/desc
+                     [amp :exp/national-travel]  [{:rule/rule-num  6
+                                                   :field          :out/desc
                                                    :logic-operator :or
                                                    :conditions     [[:equals "Internet banking external transfer 062202 10481871 - car rental"]
                                                                     [:equals "ROAM TOLLING P/L          MELBOURNE"]]}]
-                     [amp :exp/rent]             [{:field          :out/desc
+                     [amp :exp/rent]             [{:rule/rule-num  7
+                                                   :field          :out/desc
                                                    :logic-operator :single
                                                    :conditions     [[:equals "Internet banking external transfer 062202 10481871 - renting caravan"]]}]
-                     [visa :exp/national-travel] [{:field          :out/desc
+                     [visa :exp/national-travel] [{:rule/rule-num  8
+                                                   :field          :out/desc
                                                    :logic-operator :or
                                                    :conditions     [[:equals "MILDURA INLANDER          MILDURA"]
                                                                     [:equals "TRAVELLERS REST MTL   WEE THALLE    NSW"]
                                                                     ;; Actually petrol - putting in here b/c I know it won't be removed
                                                                     ;; by my accountant
                                                                     [:equals "UNITED MEDLOW BATH        MEDLOW BATH"]]}]
-                     [visa :exp/food]            [{:field          :out/desc
+                     [visa :exp/food]            [{:rule/rule-num  9
+                                                   :field          :out/desc
                                                    :logic-operator :or
                                                    :conditions     [[:equals '"M J Brown & S E Thomps    GOOLGOWI"]
                                                                     [:equals "BURONGA IGA X-PRESS       BURONGA"]
@@ -83,10 +93,12 @@
                                                                     [:equals "Purchase/Cash out - COLES EXPRESS 1724       FAULCONBRIDGEAU"]
                                                                     [:equals "HAZELBROOK BUTCHERY       HAZELBROOK"]
                                                                     ]}]
-                     [visa :exp/freight-courier] [{:field          :out/desc
+                     [visa :exp/freight-courier] [{:rule/rule-num  10
+                                                   :field          :out/desc
                                                    :logic-operator :single
                                                    :conditions     [[:equals "POST   HAZELBROOK LP      HAZELBROOK"]]}]
-                     [visa :personal/anz-visa]   [{:field          :out/desc
+                     [visa :personal/anz-visa]   [{:rule/rule-num  11
+                                                   :field          :out/desc
                                                    :on-dates       #{(t/short-date-str->date "26/07/2016")
                                                                      (t/short-date-str->date "04/07/2016")}
                                                    :logic-operator :single
@@ -313,7 +325,9 @@
    :q3 q3-2017-rules})
 
 (def all-rules
-  (let [initial-rules (merge-with (comp vec concat) permanent-rules (apply concat (map quarter->rules [:q1 :q2 :q3])))]
+  (let [initial-rules (merge-with (comp vec concat)
+                                  permanent-rules
+                                  (apply concat (map quarter->rules [:q1 :q2 :q3])))]
     (->> initial-rules
          dc/canonicalise-rules
          (mapv t/civilize-joda))))

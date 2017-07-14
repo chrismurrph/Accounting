@@ -48,11 +48,7 @@
 ;;
 (defn parse-csv [headings bank-account lines]
   (assert (not (keyword? headings)) headings)
-  (let [
-        ;_ (println "headings" headings)
-        ;headings (c/bank-account-headings bank-account)
-        ;_ (assert (every? c/all-headings headings) (str "New heading introduced: " headings ", expected: " c/all-headings))
-        heading-objs (map c/heading->parse-obj headings)
+  (let [heading-objs (map c/heading->parse-obj headings)
         _ (assert (seq heading-objs) (str "No headings yet for " bank-account))
         make-record (record-maker bank-account heading-objs)]
     (map make-record lines)))

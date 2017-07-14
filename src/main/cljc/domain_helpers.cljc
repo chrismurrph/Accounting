@@ -99,6 +99,7 @@
 (defn range-of-years [_ potential-data]
   (u/log-off (str "POT: " potential-data))
   (assert potential-data (str "No potential data"))
+  (assert (:organisation/timespan potential-data))
   (let [starting (commencing-year potential-data)
         finishing (latest-year potential-data)]
     ;(println starting finishing)

@@ -86,11 +86,14 @@
    :line-item/type   ((comp keyword namespace) kw)
    :line-item/amount amount})
 
-(defn biggest-items-report [conn organisation year period]
-  (assert period)
-  (println period)
-  (let [bank-accounts (q/read-bank-accounts conn organisation)]
-    (println bank-accounts))
+(defn biggest-items-report [conn organisation year actual-period]
+  (assert year)
+  (assert actual-period)
+  (println actual-period)
+  (let [bank-accounts (q/read-bank-accounts conn organisation)
+        statements (q/read-period-statements conn organisation (us/kw->number year) actual-period)]
+    (println bank-accounts)
+    (println statements))
   [(make-line-item 2 [:dummy-entry 1002])])
 
 (def rep->fn

@@ -89,16 +89,6 @@
    :base/type     :tax-year
    :tax-year/year year})
 
-(defn make-time-slot [time-slot]
-  (assert time-slot)
-  (let [[begin-date end-date] time-slot]
-    (assert begin-date)
-    (cond->
-      {:db/id              (d/tempid :db.part/user)
-       :base/type          :time-slot
-       :time-slot/start-at (u/err-nil (c/to-date begin-date))}
-      end-date (assoc :time-slot/end-at (u/err-nil (c/to-date end-date))))))
-
 (defn convert-ns [kw]
   (let [[ns name] ((juxt namespace name) kw)]
     (if (= ns "out")
@@ -119,7 +109,10 @@
 
 (defn make-rule
   [accounts {:keys [logic-operator conditions rule/source-bank rule/target-account
-                    dominates time-slot rule/period on-dates]}]
+                    dominates time-slot rule/actual-period on-dates rule/rule-num]}]
+  (assert (not= source-bank target-account))
+  (when (= 1 rule-num)
+    (println "on-dates: " on-dates))
   (cond->
     {:db/id               (d/tempid :db.part/user)
      :base/type           :rule
@@ -130,27 +123,32 @@
      :rule/target-account (find-account accounts target-account)
      :rule/on-dates       (if on-dates (vec on-dates) [])}
     time-slot
-    (assoc :rule/time-slot (make-time-slot time-slot))
-    period
-    (assoc :rule/actual-period (e/make-actual-period period))))
+    (assoc :rule/time-slot (e/make-time-slot time-slot))
+    actual-period
+    (assoc :rule/actual-period (e/make-actual-period actual-period))
+    rule-num
+    (assoc :rule/rule-num rule-num)))
 
-(def to-import-accounts
-  {:exp      (mapv e/make-account seasoft/exp-accounts)
-   :non-exp  (mapv e/make-account seasoft/non-exp-accounts)
-   :income   (mapv e/make-account seasoft/income-accounts)
-   :personal (mapv e/make-account seasoft/personal-accounts)
-   :liab     (mapv e/make-account seasoft/liab-accounts)
-   :equity   (mapv e/make-account seasoft/equity-accounts)
-   :asset    (mapv e/make-account seasoft/asset-accounts)
-   :bank     (mapv e/make-bank-account
-                   (->> accounting.convert/bank-account-headings
-                        ;; there are 4 and last is for croquet
-                        (take 3)))
-   :split    (mapv e/make-account (keys seasoft/splits))
-   })
+(defn to-import-accounts [begin-date]
+  (let [account-make (partial e/make-account begin-date)
+        bank-account-make (partial e/make-bank-account begin-date)]
+    {:exp      (mapv account-make seasoft/exp-accounts)
+     :non-exp  (mapv account-make seasoft/non-exp-accounts)
+     :income   (mapv account-make seasoft/income-accounts)
+     :personal (mapv account-make seasoft/personal-accounts)
+     :liab     (mapv account-make seasoft/liab-accounts)
+     :equity   (mapv account-make seasoft/equity-accounts)
+     :asset    (mapv account-make seasoft/asset-accounts)
+     :bank     (mapv bank-account-make
+                     (->> accounting.convert/bank-account-headings
+                          ;; there are 4 and last is for croquet
+                          (take 3)))
+     :split    (mapv account-make (keys seasoft/splits))
+     }))
 
-(defn amend-org-with-individual-accounts [org]
-  (let [{:keys [exp non-exp income personal liab equity asset bank split]} to-import-accounts]
+(defn amend-org-with-individual-accounts [all-accounts begin-date org]
+  (let [{:keys [exp non-exp income personal liab equity asset bank split]} all-accounts]
+    (assert exp)
     (-> org
         (assoc :organisation/exp-accounts exp)
         (assoc :organisation/non-exp-accounts non-exp)
@@ -172,8 +170,7 @@
                :organisation/tax-years
                (mapv make-tax-year seasoft/tax-years)
                :organisation/rules
-               (mapv rule-make seasoft-data/all-rules)
-               ))))
+               (mapv rule-make seasoft-data/all-rules)))))
 
 (defn delete-all []
   (d/delete-database db-uri))
@@ -185,12 +182,14 @@
   (let [commencing (-> seaweed-software-org :organisation/timespan :timespan/commencing-period)
         _ (assert commencing)
         _ (println commencing)
-        all-accounts (->> to-import-accounts vals (apply concat))
-        ;rules (mapv rule-make seasoft-data/all-rules)
-        org-amend (partial amend-org-misc all-accounts)
+        begin-date (t/start-period-moment commencing)
+        incoming-accounts (to-import-accounts begin-date)
+        all-accounts (->> incoming-accounts vals (apply concat))
+        accounts-on-org (partial amend-org-with-individual-accounts incoming-accounts begin-date)
+        other-org-amend (partial amend-org-misc all-accounts)
         organisation (-> seaweed-software-org
-                         amend-org-with-individual-accounts
-                         org-amend)
+                         accounts-on-org
+                         other-org-amend)
         conn (d/connect db-uri)]
     @(d/transact conn (s/generate-schema current/db-schema))
     (doseq [a (attrs current/db-schema)]

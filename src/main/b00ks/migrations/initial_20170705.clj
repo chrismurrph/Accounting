@@ -96,7 +96,9 @@
                [source-bank :ref :one]
                [target-account :ref :one]
                [actual-period :ref :one]
-               [on-dates :instant :many]))
+               [on-dates :instant :many]
+               ;; Something to trace the origin
+               [rule-num :long :unique-identity]))
 
    (s/schema timespan
              (s/fields
@@ -105,7 +107,7 @@
 
    (s/schema organisation
              (s/fields
-               [name :string "Name of the organisation"]
+               [name :string :indexed "Name of the organisation"]
                [key :keyword "Keyword of the organisation"]
                [period-type :keyword #_[:quarterly :monthly]]
                ;; Not so much over-engineered as a de-normalization for
@@ -134,16 +136,16 @@
 
    (s/schema auth
              (s/fields
-               [login :string]
+               [login :string :indexed]
                [pwd :bytes]))
 
    (s/schema person
              (s/fields
-               [name :string "Name of the person"]))
+               [name :string :indexed "Name of the person"]))
 
    (s/schema group
              (s/fields
-               [name :string]))])
+               [name :string :indexed]))])
 
 (defn transactions []
   [(s/generate-parts parts) (s/generate-schema db-schema)])

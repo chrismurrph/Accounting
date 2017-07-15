@@ -3,6 +3,10 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+(defn keys-remapper [m]
+  (fn [ma]
+    (into {} (map (fn [[k v]] [(m k) v]) ma))))
+
 (defn err-nil [x]
   (assert x "Can't assign nil (or false)")
   x)

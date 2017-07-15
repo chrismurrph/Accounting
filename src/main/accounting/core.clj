@@ -112,6 +112,7 @@
        (partition-by (juxt :out/date :out/desc :out/src-bank #_:out/dest-account))
        (map compact-trans)))
 
+(def correct-keys #{:db/id :out/date :out/amount :out/desc :out/src-bank})
 ;;
 ;; Used for reporting, when your data is 'all good'! This kind of talk is an artifact of manual processing.
 ;; In reality we will silo the imported transactions. In fact in database each can have a rule-matched-against
@@ -131,11 +132,12 @@
                 target-account (:rule/target-account rule)]
           ;; :personal is an event that affects the bank balance of non-company accounts
           ;; With :personal taken into account non-company bank balances will be true from period to period
-          ;;:when (not= target-account :personal)
+          ;; :when (not= target-account :personal)
           ]
       (do
+        (assert (every? correct-keys (keys record)) (str "Record has wrong keys: " (keys record)))
         ;; `first-without-single-rule-match` is designed to find this out, so start using it!
-        (assert rule (str "No rule will match: <" (select-keys record [:out/desc :out/src-bank]) ", " record ">"))
+        (assert rule (str "No rule will match: <" (select-keys record [:out/desc :out/src-bank]) #_", " #_record ">"))
         (u/assrt (empty? tail) (str "Don't expect more than one rule per record\nRULE:\n" (u/pp-str rule) "\nTAIL:\n" (u/pp-str tail) "\nFOR:\n" (u/pp-str (t/show-trans-record record))))
         (assert target-account (str "rule has no :rule/target-account: <" rule ">"))
         [target-account (assoc record :out/dest-account target-account)]))))

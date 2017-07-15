@@ -111,7 +111,7 @@
                                                       actual-period)
                                       bank-accounts)
         _ (assert (seq current-bank-accounts) (str "No current bank accounts from " bank-accounts " within " actual-period))
-        bank-records (q/read-period-line-items conn organisation (us/kw->number year) period)
+        bank-records (q/find-line-items conn organisation (us/kw->number year) period)
         current-rules (q/read-period-rules conn organisation (us/kw->number year) period)]
     (->> (c/account-grouped-transactions {:bank-accounts current-bank-accounts
                                           :bank-records  bank-records} current-rules)

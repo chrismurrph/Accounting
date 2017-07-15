@@ -53,7 +53,7 @@
   (assert (number? year))
   (assert (keyword? quarter))
   (let [db (d/db conn)
-        eids (d/q '[:find [?lines ...]
+        eids (d/q '[:find ?lines ?c ?n
                     :in $ ?o ?y ?q :where
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]
@@ -66,8 +66,9 @@
                     [?p :actual-period/year ?y]
                     [?p :actual-period/quarter ?q]
                     ] db org-key year quarter)
-        rvs (mapv #(d/pull db '[:db/id :line-item/date :line-item/amount :line-item/desc] %) eids)]
-    rvs))
+        ;rvs (mapv #(d/pull db '[:db/id :line-item/date :line-item/amount :line-item/desc] %) eids)
+        ]
+    eids))
 
 (defn current-period-line-items
   "Current line items from all banks"
@@ -207,17 +208,39 @@
        :organisation/timespan    (u/err-nil (d/pull db timespan-pull timespan))
        })))
 
+(def -line-item-pull [:db/id :line-item/date :line-item/amount :line-item/desc])
+
+(def db-keys->books-keys
+  {:line-item/date   :out/date
+   :line-item/amount :out/amount
+   :line-item/desc   :out/desc
+   :out/src-bank     :out/src-bank
+   :db/id            :db/id})
+
+(defn create-src-bank [{:keys [acct-cat acct-name] :as m}]
+  (let [acct-cat-str (subs (str acct-cat) 1)]
+    (-> m
+        (assoc :out/src-bank (keyword (str acct-cat-str "/" acct-name)))
+        (dissoc :acct-cat :acct-name))))
+
+(defn find-line-items [conn org-key year quarter]
+  (let [db (d/db conn)
+        remap-keys (u/keys-remapper db-keys->books-keys)]
+    (->> (read-period-line-items conn :seaweed year quarter)
+         (map (fn [[item-id acct-cat acct-name]]
+                (into (d/pull db -line-item-pull item-id) [[:acct-cat acct-cat] [:acct-name acct-name]])))
+         ;(take 1)
+         (map create-src-bank)
+         u/probe-off
+         (map remap-keys)
+         )))
+
 (def db-uri "datomic:dev://localhost:4334/b00ks")
 
 (defn query-current-period-rules []
   (let [conn (d/connect db-uri)
         customer-kw :seaweed]
     (find-current-period-rules conn customer-kw)))
-
-(defn query-line-items []
-  (let [conn (d/connect db-uri)
-        customer-kw :seaweed]
-    (current-period-line-items conn customer-kw)))
 
 (defn query-statements []
   (let [conn (d/connect db-uri)
@@ -273,7 +296,7 @@
        (map (juxt :rule/source-bank :rule/target-account))
        (take 3)))
 
-(defn general-query []
+(defn general-query-1 []
   (->> (query-current-period-rules)
        (map #(dissoc % :rule/conditions :rule/logic-operator :rule/source-bank :rule/target-account))
        (filter #(or
@@ -290,3 +313,8 @@
                   #(-> % :rule/actual-period some?)
                   #(-> % :rule/time-slot some?)))
        ))
+
+(defn query-line-items []
+  (let [conn (d/connect db-uri)
+        customer-kw :seaweed]
+    (find-line-items conn customer-kw 2017 :q3)))

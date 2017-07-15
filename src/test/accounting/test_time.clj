@@ -1,5 +1,6 @@
 (ns accounting.test-time
-  (:require [accounting.time :as t]))
+  (:require [accounting.time :as t]
+            [clojure.test :as test]))
 
 (defn x-1 []
   (t/long-date-str->date "21 Mar 2017"))
@@ -12,7 +13,7 @@
    :period/quarter  :q2})
 
 (defn x-3 []
-  (->> (t/end-period-moment current-period)
+  (->> (t/end-actual-period-moment current-period)
        t/format-time))
 
 ;;
@@ -33,5 +34,17 @@
         dates #{date-1 date-2 date-3}
         date-4 (t/long-date-str->date "24 Mar 2017")]
     (dates date-4)))
+
+(test/deftest test-within
+  (let [act-period #:actual-period{:year 2018, :quarter :q1, :type :quarterly}
+        slot #:time-slot{:start-at (t/short-date-str->date "04/07/2017")
+                         :end-at (t/short-date-str->date "15/07/2017")}]
+    (test/is (t/intersects? act-period slot))))
+
+(test/deftest test-within-no-end
+  (let [act-period #:actual-period{:year 2017, :quarter :q1, :type :quarterly}
+        slot #:time-slot{:start-at (t/short-date-str->date "04/07/2017")
+                         :end-at nil}]
+    (test/is (not (t/intersects? act-period slot)))))
 
 

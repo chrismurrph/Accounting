@@ -5,7 +5,8 @@
             [cljc.domain-helpers :as dhs]
             [cljc.utils :as us]
             [accounting.entities :as e]
-            [accounting.queries :as q]))
+            [accounting.queries :as q]
+            [accounting.time :as t]))
 
 #_(defn make-district [connection list-name]
     (let [id (d/tempid :db.part/user)
@@ -56,7 +57,7 @@
           }
          (->> (c/records-without-single-rule-match {:bank-accounts (q/read-bank-accounts conn org-key)
                                                     :bank-records  (q/current-period-line-items conn org-key)}
-                                                   (q/query-rules))
+                                                   (q/query-current-period-rules))
               ffirst
               (map (fn [[k v]]
                      [({:out/date     :bank-line/date
@@ -86,15 +87,38 @@
    :line-item/type   ((comp keyword namespace) kw)
    :line-item/amount amount})
 
-(defn biggest-items-report [conn organisation year actual-period]
+(defn make-ledger-item [idx [kw amount]]
+  (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
+  {:db/id              idx
+   :ledger-item/name   (name kw)
+   :ledger-item/type   ((comp keyword namespace) kw)
+   :ledger-item/amount amount})
+
+(defn coll->ledger-items [xs]
+  (assert (coll? xs) (str "Expected a coll but got: " (type xs)))
+  (->> xs
+       (map-indexed make-ledger-item)
+       vec))
+
+(defn biggest-items-report [conn organisation year period]
   (assert year)
-  (assert actual-period)
-  (println actual-period)
+  (assert period)
+  (println period)
   (let [bank-accounts (q/read-bank-accounts conn organisation)
-        statements (q/read-period-statements conn organisation (us/kw->number year) actual-period)]
-    (println bank-accounts)
-    (println statements))
-  [(make-line-item 2 [:dummy-entry 1002])])
+        _ (println bank-accounts)
+        actual-period #:actual-period{:type :quarterly :year (us/kw->number year) :quarter period}
+        current-bank-accounts (filter #(t/intersects? (u/probe-on (t/wildify-java-2 (:account/time-slot %)))
+                                                      actual-period)
+                                      bank-accounts)
+        _ (assert (seq current-bank-accounts) (str "No current bank accounts from " bank-accounts " within " actual-period))
+        bank-records (q/read-period-line-items conn organisation (us/kw->number year) period)
+        current-rules (q/read-period-rules conn organisation (us/kw->number year) period)]
+    (->> (c/account-grouped-transactions {:bank-accounts current-bank-accounts
+                                          :bank-records  bank-records} current-rules)
+         c/accounts-summary
+         (sort-by (comp - u/abs second))
+         coll->ledger-items))
+  #_[(make-line-item 2 [:dummy-entry 1002])])
 
 (def rep->fn
   {:report/profit-and-loss (fn [_ _ _ _] [(make-line-item 0 [:dummy-entry 1000])])
@@ -148,13 +172,13 @@
 (defn period-desc [{:keys [actual-period]}]
   ((juxt :period/year :period/quarter) actual-period))
 
-(defn set-default-current-ordinal []
+(defn set-default-current-time-ordinal []
   (let [conn (d/connect q/db-uri)
         org-key :seaweed
         max-ord (->> (q/query-statements)
-                     (map :statement/ordinal)
+                     (map :statement/time-ordinal)
                      (apply max))]
-    (e/update-organisations-ordinal conn org-key max-ord)
+    (e/update-organisations-time-ordinal conn org-key max-ord)
     (println (str "Max ordinal for " org-key " is now " max-ord))))
 
 (defn import-bank-statements []

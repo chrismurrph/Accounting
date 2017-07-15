@@ -90,11 +90,17 @@
         (- (quarter->number quarter-one) (quarter->number quarter-two)))
       years-diff)))
 
-(defn update-organisations-ordinal [conn org-key new-current-ordinal]
+(defn update-organisations-time-ordinal [conn org-key new-current-time-ordinal]
   (let [db (d/db conn)
         org-id (q/read-organisation conn org-key)
-        new-org (assoc (d/pull db [:db/id] org-id) :organisation/current-ordinal new-current-ordinal)]
+        new-org (assoc (d/pull db [:db/id] org-id) :organisation/current-time-ordinal new-current-time-ordinal)]
     @(d/transact conn [new-org])))
+
+(defn make-time-lookup [time-ordinal actual-period]
+  {:db/id                     (d/tempid :db.part/user)
+   :base/type                 :time-lookup
+   :time-lookup/time-ordinal  time-ordinal
+   :time-lookup/actual-period actual-period})
 
 ;;
 ;; Does all the checking and updates the bank account. If nothing was done
@@ -105,23 +111,26 @@
 (defn make-statement [conn {:keys [bank-acct-name actual-period records]}]
   (let [db (d/db conn)
         bank-acct-id (q/read-account conn bank-acct-name :bank)
-        existing-periods (->> (d/pull db [{:bank-account/statements
-                                           [{:statement/actual-period
-                                             [:actual-period/year :actual-period/quarter
-                                              :actual-period/month :actual-period/type]}]}]
-                                      bank-acct-id)
-                              :bank-account/statements
-                              (map :statement/actual-period)
-                              (into (sorted-set-by statement-comparator)))]
-    (when (not (existing-periods actual-period))
-      (let [all-periods (conj existing-periods actual-period)
+        existing-statement-periods
+        (->> (d/pull db [{:bank-account/statements
+                          [{:statement/actual-period
+                            [:actual-period/year :actual-period/quarter
+                             :actual-period/month :actual-period/type]}]}]
+                     bank-acct-id)
+             :bank-account/statements
+             (map :statement/actual-period)
+             (into (sorted-set-by statement-comparator)))]
+    (when (not (existing-statement-periods actual-period))
+      (let [all-periods (conj existing-statement-periods actual-period)
             idx (u/index-of actual-period all-periods)]
         (assert bank-acct-id (str "Entity is blank for " bank-acct-name))
-        (let [new-statement {:db/id                   (d/tempid :db.part/user)
+        (let [new-actual-period (make-actual-period actual-period)
+              new-time-lookup (make-time-lookup idx new-actual-period)
+              new-statement {:db/id                   (d/tempid :db.part/user)
                              :base/type               :statement
-                             :statement/ordinal       (u/err-nil idx)
-                             :statement/actual-period (make-actual-period actual-period)
+                             :statement/time-ordinal  (u/err-nil idx)
+                             :statement/actual-period new-actual-period
                              :statement/line-items    (mapv make-line-item records)
                              }
               new-account (update (d/pull db [:db/id] bank-acct-id) :bank-account/statements conj new-statement)]
-          @(d/transact conn [new-account]))))))
+          @(d/transact conn [new-account new-time-lookup]))))))

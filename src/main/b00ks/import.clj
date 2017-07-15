@@ -126,6 +126,8 @@
     (assoc :rule/time-slot (e/make-time-slot time-slot))
     actual-period
     (assoc :rule/actual-period (e/make-actual-period actual-period))
+    (nil? actual-period)
+    (assoc :rule/permanent? true)
     rule-num
     (assoc :rule/rule-num rule-num)))
 
@@ -182,7 +184,7 @@
   (let [commencing (-> seaweed-software-org :organisation/timespan :timespan/commencing-period)
         _ (assert commencing)
         _ (println commencing)
-        begin-date (t/start-period-moment commencing)
+        begin-date (t/start-actual-period-moment commencing)
         incoming-accounts (to-import-accounts begin-date)
         all-accounts (->> incoming-accounts vals (apply concat))
         accounts-on-org (partial amend-org-with-individual-accounts incoming-accounts begin-date)
@@ -208,4 +210,4 @@
           ]
       @(d/transact conn (concat groups [owner organisation] all-accounts)))
     (ada/import-bank-statements)
-    (ada/set-default-current-ordinal)))
+    (ada/set-default-current-time-ordinal)))

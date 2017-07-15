@@ -39,7 +39,7 @@
 ;; across the wire.
 ;;
 (defn read-all-edn []
-  (let [just-read (mapv t/wildify-java (u/read-edn "seaweed.edn"))]
+  (let [just-read (mapv t/wildify-java-1 (u/read-edn "seaweed.edn"))]
     ;(assert (= seasoft-con/current-rules just-read))
     just-read))
 

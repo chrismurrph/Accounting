@@ -70,7 +70,7 @@
                #_[bank-account :ref :one]
                [actual-period :ref :one]
                [line-items :ref :many]
-               [ordinal :long :one]
+               [time-ordinal :long :one]
                ))
    (s/schema start-bank-balances
              (s/fields
@@ -92,9 +92,15 @@
                [logic-operator :keyword #_[:or :and :single]]
                [dominates :ref :many]
                [time-slot :ref :one]
+               [permanent? :boolean]
                [conditions :ref :many]
                [source-bank :ref :one]
                [target-account :ref :one]
+               ;;
+               ;; Notice that statement has a time ordinal. Here we have only
+               ;; actual-period, not yet time-ordinal. Not sure yet how design will
+               ;; evolve. Have time-lookup so have flexibility now, either will do
+               ;;
                [actual-period :ref :one]
                [on-dates :instant :many]
                ;; Something to trace the origin
@@ -104,6 +110,11 @@
              (s/fields
                [commencing-period :ref :actual-period]
                [latest-period :ref :actual-period]))
+
+   (s/schema time-lookup
+             (s/fields
+               [actual-period :ref :one :unique-identity]
+               [time-ordinal :long :one :unique-identity]))
 
    (s/schema organisation
              (s/fields
@@ -131,7 +142,7 @@
                [splits :ref :many]
                [possible-reports :keyword :many]
                [rules :ref :many]
-               [current-ordinal :long :one]
+               [current-time-ordinal :long :one]
                ))
 
    (s/schema auth

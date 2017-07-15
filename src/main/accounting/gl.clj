@@ -37,6 +37,7 @@
 ;;
 (defn get-within [debug-ledger-kw date-kw op begin end amount records]
   (u/assrt (seq records) (str "No records between " (t/show begin) " and end " (t/show end) " for " debug-ledger-kw ", need find ledger worth: " amount))
+  (assert (t/gte? end begin))
   (let [after-begin? (t/after-begin-bound? begin)
         before-end? (t/before-end-bound? end)
         start-from-records (->> records

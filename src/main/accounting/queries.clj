@@ -22,6 +22,8 @@
                       (d/db conn) org-key)]
     eid))
 
+(def -time-slot-pull [:time-slot/start-at :time-slot/end-at])
+
 (defn read-bank-accounts
   "Find all bank accounts of the org."
   [conn org-key]
@@ -29,7 +31,9 @@
         eids (d/q '[:find [?a ...] :in $ ?o :where
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]] db org-key)
-        rvs (mapv #(d/pull db '[:db/id :account/name] %) eids)]
+        rvs (mapv #(d/pull db '[:db/id
+                                :account/name
+                                {:account/time-slot [:time-slot/start-at :time-slot/end-at]}] %) eids)]
     rvs))
 
 (defn read-statements
@@ -40,24 +44,29 @@
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]
                     [?a :bank-account/statements ?s]] db org-key)
-        rvs (mapv #(d/pull db '[:db/id :statement/ordinal] %) eids)]
+        rvs (mapv #(d/pull db '[:db/id :statement/time-ordinal] %) eids)]
     rvs))
 
-(defn read-period-statements
+(defn read-period-line-items
   "Find all statements of the org for a particular period."
   [conn org-key year quarter]
   (assert (number? year))
   (assert (keyword? quarter))
   (let [db (d/db conn)
-        eids (d/q '[:find [?s ...]
+        eids (d/q '[:find [?lines ...]
                     :in $ ?o ?y ?q :where
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]
                     [?a :bank-account/statements ?s]
+                    ;; We want these 2 because together are source bank
+                    [?a :account/category ?c]
+                    [?a :account/name ?n]
                     [?s :statement/actual-period ?p]
+                    [?s :statement/line-items ?lines]
                     [?p :actual-period/year ?y]
-                    [?p :actual-period/quarter ?q]] db org-key year quarter)
-        rvs (mapv #(d/pull db '[:db/id :statement/ordinal] %) eids)]
+                    [?p :actual-period/quarter ?q]
+                    ] db org-key year quarter)
+        rvs (mapv #(d/pull db '[:db/id :line-item/date :line-item/amount :line-item/desc] %) eids)]
     rvs))
 
 (defn current-period-line-items
@@ -68,16 +77,14 @@
                     :in $ ?o :where
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]
-                    [?e :organisation/current-ordinal ?ord]
+                    [?e :organisation/current-time-ordinal ?ord]
                     [?a :bank-account/statements ?s]
-                    [?s :statement/ordinal ?ord]
+                    [?s :statement/time-ordinal ?ord]
                     [?s :statement/line-items ?i]] db org-key)
         rvs (mapv #(d/pull db '[*] %) eids)]
     rvs))
 
 (def -rule-conditions-pull [:condition/field :condition/predicate :condition/subject])
-
-(def -time-slot-pull [:time-slot/start-at :time-slot/end-at])
 
 (def -account-pull [:account/category :account/name :account/desc
                     {:account/time-slot -time-slot-pull}])
@@ -98,14 +105,42 @@
                  {:rule/source-bank -account-pull}
                  {:rule/target-account -account-pull}])
 
-(defn find-rules
-  "Find all rules of the org."
+(defn find-current-period-rules
+  "Find all rules of the org for the current period."
   [conn org-key]
   (let [db (d/db conn)
-        eids (d/q '[:find [?a ...] :in $ ?o :where
+        eids (d/q '[:find [?r ...]
+                    :in $ ?o :where
                     [?e :organisation/key ?o]
-                    [?e :organisation/rules ?a]] db org-key)
+                    [?e :organisation/current-time-ordinal ?ord]
+                    [?tlu :time-lookup/time-ordinal ?ord]
+                    [?tlu :time-lookup/actual-period ?ap]
+                    [?e :organisation/rules ?r]
+                    (or-join [?ap]
+                             [?r :rule/time-slot ?ap]
+                             [?r :rule/permanent? true])
+                    ] db org-key)
         rvs (mapv #(d/pull db -rule-pull %) eids)]
+    rvs))
+
+(defn read-period-rules
+  "Find all rules of the org for a particular period."
+  [conn org-key year quarter]
+  (assert (number? year))
+  (assert (keyword? quarter))
+  (let [db (d/db conn)
+        eids (d/q '[:find [?r ...]
+                    :in $ ?o ?y ?q :where
+                    [?e :organisation/key ?o]
+                    [?ap :actual-period/year ?y]
+                    [?ap :actual-period/quarter ?q]
+                    [?r :rule/actual-period ?ap]
+                    [?e :organisation/rules ?r]
+                    (or-join [?ap]
+                             [?r :rule/time-slot ?ap]
+                             [?r :rule/permanent? true])
+                    ] db org-key year quarter)
+        rvs (mapv #(d/pull db '[:db/id :statement/time-ordinal] %) eids)]
     rvs))
 
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}
@@ -174,10 +209,10 @@
 
 (def db-uri "datomic:dev://localhost:4334/b00ks")
 
-(defn query-rules []
+(defn query-current-period-rules []
   (let [conn (d/connect db-uri)
         customer-kw :seaweed]
-    (find-rules conn customer-kw)))
+    (find-current-period-rules conn customer-kw)))
 
 (defn query-line-items []
   (let [conn (d/connect db-uri)
@@ -233,13 +268,13 @@
 ;; All rules from AMP are for personal spending. Makes sense.
 ;;
 (defn amp-is-personal []
-  (->> (query-rules)
+  (->> (query-current-period-rules)
        (filter #(= "amp" (-> % :rule/target-account :account/name)))
        (map (juxt :rule/source-bank :rule/target-account))
        (take 3)))
 
 (defn general-query []
-  (->> (query-rules)
+  (->> (query-current-period-rules)
        (map #(dissoc % :rule/conditions :rule/logic-operator :rule/source-bank :rule/target-account))
        (filter #(or
                   (-> % :rule/actual-period some?)

@@ -1,4 +1,4 @@
-(ns accounting.test-gl
+  (ns accounting.test-gl
   (:require [accounting.gl :as g]
             [accounting.time :as t]
             [accounting.data.seaweed :as d]

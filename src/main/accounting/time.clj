@@ -3,7 +3,8 @@
             [clj-time.core :as t]
             [clj-time.format :as f]
             [clj-time.coerce :as c]
-            [accounting.data.meta.periods :as periods]))
+            [accounting.data.meta.periods :as periods]
+            [cljc.utils :as us]))
 
 (defn joda-set->java [s]
   (assert (or (nil? s) (set? s)) (str "Not set but: " (type s)))
@@ -27,12 +28,19 @@
       (update :time-slot joda-vector->java)
       (update :on-dates joda-set->java)))
 
-(defn wildify-java [m]
+(defn wildify-java-1 [m]
   (assert (map? m))
+  (assert (every? #{:time-slot :on-dates} (keys m)))
   (-> m
       (update :time-slot java-vector->joda)
       (update :on-dates java-set->joda)))
 
+(defn wildify-java-2 [m]
+  (assert (map? m))
+  (assert (every? #{:time-slot/start-at :time-slot/end-at} (keys m)))
+  (-> m
+      (update :time-slot/start-at (fn [d] (c/from-date d)))
+      (update :time-slot/end-at (fn [d] (c/from-date d)))))
 
 (def str->month
   {"Jan" 1
@@ -168,25 +176,18 @@
        month-kw->month
        (t/last-day-of-the-month year)))
 
-#_(defn start-period-moment-orig [{:keys [period/tax-year period/quarter period/year period/month] :as in}]
-    ;(println "==" tax-year (nil? tax-year) year (nil? year))
-    (assert (or tax-year year) in)
-    (assert (or quarter month))
-    (if (nil? tax-year)
-      (-start-month-moment month year)
-      (-start-quarter-moment tax-year quarter)))
-
-(defn start-period-moment [{:keys [actual-period/year actual-period/month
-                                   actual-period/quarter actual-period/type] :as in}]
+(defn start-actual-period-moment [{:keys [actual-period/year actual-period/month
+                                          actual-period/quarter actual-period/type] :as in}]
   (if (= :quarterly type)
     (-start-quarter-moment year quarter)
-    (assert false "Not yet doing monthly here")
+    (assert false (str "Not yet doing monthly here: " type))
     #_(-start-month-moment month year)))
 
-(defn end-period-moment [{:keys [period/tax-year period/quarter period/year period/month]}]
-  (if (nil? tax-year)
-    (-end-month-moment month year)
-    (-end-quarter-moment tax-year quarter)))
+(defn end-actual-period-moment [{:keys [actual-period/year actual-period/quarter
+                                        actual-period/type actual-period/month]}]
+  (if (= :quarterly type)
+    (-end-quarter-moment year quarter)
+    (-end-month-moment month year)))
 
 (defn equal? [this that]
   (t/equal? this that))
@@ -203,16 +204,17 @@
 
 (defn after-begin-bound? [begin-moment]
   (fn [date]
+    (println (type date) (type begin-moment))
     (let [res (or (t/after? date begin-moment)
                   (t/equal? date begin-moment))]
-      ;(println "after-begin-bound? " (show begin-moment) (show date) res)
+      (println "after-begin-bound? it:" (show date) ", beg-bound:" (show begin-moment) res)
       res)))
 
 (defn before-end-bound? [end-moment]
   (fn [date]
     (let [res (or (t/before? date end-moment)
                   (t/equal? date end-moment))]
-      ;(println "before-end-bound? " (show end-moment) (show date) res)
+      (println "before-end-bound? it:" (show date) ", end-bound:" (show end-moment) res)
       res)))
 
 ;;
@@ -234,13 +236,27 @@
   ;(println (str "See if " (format-date date) " is in " (mapv format-date dates)))
   (dates date))
 
-(defn within-period? [actual-period date]
+(defn within-actual-period? [date actual-period]
   (assert actual-period)
-  (assert date)
-  (let [start-moment (start-period-moment actual-period)
-        end-moment (end-period-moment actual-period)
-        res ((within-range-hof? start-moment end-moment) date)]
-    res))
+  (assert (:actual-period/type actual-period) (us/assert-str "actual-period" actual-period))
+  (when date
+    (let [start-moment (start-actual-period-moment actual-period)
+          end-moment (end-actual-period-moment actual-period)
+          res ((within-range-hof? start-moment end-moment) date)]
+      res)))
+
+;;
+;; To become db function. We are always looking at a current time period.
+;; Some accounts are no longer being used. Or our period might be before
+;; an account existed. In either case we don't want the user to see these
+;; accounts.
+;;
+(defn intersects? [{:keys [time-slot/start-at time-slot/end-at]} actual-period]
+  (let [start-actual-period (start-actual-period-moment actual-period)
+        end-actual-period (end-actual-period-moment actual-period)
+        within-bank-account-duration-f? (within-range-hof? start-at end-at)]
+    (or (within-bank-account-duration-f? start-actual-period)
+        (within-bank-account-duration-f? end-actual-period))))
 
 (defn get-within [date-kw]
   (fn [begin end xs]

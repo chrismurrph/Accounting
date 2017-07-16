@@ -111,7 +111,8 @@
   [accounts {:keys [logic-operator conditions rule/source-bank rule/target-account
                     dominates time-slot rule/actual-period on-dates rule/rule-num]}]
   (assert (not= source-bank target-account))
-  (when (= 1 rule-num)
+  (assert (or (= rule-num 3) (nil? time-slot)) (str "Only rule 3 s/have time slot " rule-num " " time-slot))
+  #_(when (= 1 rule-num)
     (println "on-dates: " on-dates))
   (cond->
     {:db/id               (d/tempid :db.part/user)

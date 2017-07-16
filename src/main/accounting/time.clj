@@ -204,17 +204,17 @@
 
 (defn after-begin-bound? [begin-moment]
   (fn [date]
-    (println (type date) (type begin-moment))
+    ;(println (type date) (type begin-moment))
     (let [res (or (t/after? date begin-moment)
                   (t/equal? date begin-moment))]
-      (println "after-begin-bound? it:" (show date) ", beg-bound:" (show begin-moment) res)
+      ;(println "after-begin-bound? it:" (show date) ", beg-bound:" (show begin-moment) res)
       res)))
 
 (defn before-end-bound? [end-moment]
   (fn [date]
     (let [res (or (t/before? date end-moment)
                   (t/equal? date end-moment))]
-      (println "before-end-bound? it:" (show date) ", end-bound:" (show end-moment) res)
+      ;(println "before-end-bound? it:" (show date) ", end-bound:" (show end-moment) res)
       res)))
 
 ;;

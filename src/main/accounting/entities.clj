@@ -93,7 +93,9 @@
 (defn update-organisations-time-ordinal [conn org-key new-current-time-ordinal]
   (let [db (d/db conn)
         org-id (q/read-organisation conn org-key)
-        new-org (assoc (d/pull db [:db/id] org-id) :organisation/current-time-ordinal new-current-time-ordinal)]
+        new-org (assoc
+                  (d/pull db [:db/id] org-id)
+                  :organisation/current-time-ordinal new-current-time-ordinal)]
     @(d/transact conn [new-org])))
 
 (defn make-time-lookup [time-ordinal actual-period]

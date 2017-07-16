@@ -124,6 +124,7 @@
 ;; All we needed from the rule is the target account
 ;;
 (defn attach-rules [bank-records rules]
+  (assert (seq rules) "No rules")
   (let [matcher (partial m/records-rule-matches rules)
         ;records (import-bank-records! customer-kw periods bank-accounts)
         ]

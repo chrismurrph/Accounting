@@ -100,21 +100,21 @@
        (map-indexed make-ledger-item)
        vec))
 
-(defn biggest-items-report [conn organisation year period]
+(defn biggest-items-report [conn org-key year period]
   (assert year)
   (assert period)
-  (println period)
-  (let [bank-accounts (q/read-bank-accounts conn organisation)
-        _ (println bank-accounts)
-        actual-period #:actual-period{:type :quarterly :year (us/kw->number year) :quarter period}
-        current-bank-accounts (filter #(t/intersects? (u/probe-on (t/wildify-java-2 (:account/time-slot %)))
-                                                      actual-period)
+  ;(println period)
+  (let [bank-accounts (q/read-bank-accounts conn org-key)
+        ;_ (println bank-accounts)
+        rep-actual-period #:actual-period{:type :quarterly :year (us/kw->number year) :quarter period}
+        rep-bank-accounts (filter #(t/intersects? (u/probe-off (t/wildify-java-2 (:account/time-slot %)))
+                                                      rep-actual-period)
                                       bank-accounts)
-        _ (assert (seq current-bank-accounts) (str "No current bank accounts from " bank-accounts " within " actual-period))
-        bank-records (q/find-line-items conn organisation (us/kw->number year) period)
-        current-rules (q/read-period-rules conn organisation (us/kw->number year) period)]
-    (->> (c/account-grouped-transactions {:bank-accounts current-bank-accounts
-                                          :bank-records  bank-records} current-rules)
+        _ (assert (seq rep-bank-accounts) (str "No current bank accounts from " bank-accounts " within " rep-actual-period))
+        rep-bank-records (q/find-line-items conn org-key (us/kw->number year) period)
+        rep-rules (q/read-period-specific-rules conn org-key (us/kw->number year) period)]
+    (->> (c/account-grouped-transactions {:bank-accounts rep-bank-accounts
+                                          :bank-records  rep-bank-records} rep-rules)
          c/accounts-summary
          (sort-by (comp - u/abs second))
          coll->ledger-items))

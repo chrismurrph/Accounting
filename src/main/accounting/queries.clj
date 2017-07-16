@@ -96,15 +96,15 @@
                           :actual-period/type])
 
 ;; Some not yet being used been left out: :rule/dominates :rule/actual-period :rule/on-dates
-(def -rule-pull [:db/id
-                 :rule/rule-num
-                 :rule/logic-operator
-                 {:rule/time-slot -time-slot-pull}
-                 {:rule/actual-period -actual-period-pull}
-                 :on-dates
-                 {:rule/conditions -rule-conditions-pull}
-                 {:rule/source-bank -account-pull}
-                 {:rule/target-account -account-pull}])
+(def rule-pull [:db/id
+                :rule/rule-num
+                :rule/logic-operator
+                {:rule/time-slot -time-slot-pull}
+                {:rule/actual-period -actual-period-pull}
+                :on-dates
+                {:rule/conditions -rule-conditions-pull}
+                {:rule/source-bank -account-pull}
+                {:rule/target-account -account-pull}])
 
 (defn find-current-period-rules
   "Find all rules of the org for the current period."
@@ -118,13 +118,13 @@
                     [?tlu :time-lookup/actual-period ?ap]
                     [?e :organisation/rules ?r]
                     (or-join [?ap]
-                             [?r :rule/time-slot ?ap]
+                             [?r :rule/actual-period ?ap]
                              [?r :rule/permanent? true])
                     ] db org-key)
-        rvs (mapv #(d/pull db -rule-pull %) eids)]
+        rvs (mapv #(d/pull db rule-pull %) eids)]
     rvs))
 
-(defn read-period-rules
+(defn read-period-specific-rules
   "Find all rules of the org for a particular period."
   [conn org-key year quarter]
   (assert (number? year))
@@ -133,15 +133,14 @@
         eids (d/q '[:find [?r ...]
                     :in $ ?o ?y ?q :where
                     [?e :organisation/key ?o]
+                    [?e :organisation/rules ?r]
                     [?ap :actual-period/year ?y]
                     [?ap :actual-period/quarter ?q]
-                    [?r :rule/actual-period ?ap]
-                    [?e :organisation/rules ?r]
                     (or-join [?ap]
-                             [?r :rule/time-slot ?ap]
+                             [?r :rule/actual-period ?ap]
                              [?r :rule/permanent? true])
                     ] db org-key year quarter)
-        rvs (mapv #(d/pull db '[:db/id :statement/time-ordinal] %) eids)]
+        rvs (mapv #(d/pull db rule-pull %) eids)]
     rvs))
 
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}
@@ -208,7 +207,7 @@
        :organisation/timespan    (u/err-nil (d/pull db timespan-pull timespan))
        })))
 
-(def -line-item-pull [:db/id :line-item/date :line-item/amount :line-item/desc])
+(def line-item-pull [:db/id :line-item/date :line-item/amount :line-item/desc])
 
 (def db-keys->books-keys
   {:line-item/date   :out/date
@@ -228,7 +227,7 @@
         remap-keys (u/keys-remapper db-keys->books-keys)]
     (->> (read-period-line-items conn :seaweed year quarter)
          (map (fn [[item-id acct-cat acct-name]]
-                (into (d/pull db -line-item-pull item-id) [[:acct-cat acct-cat] [:acct-name acct-name]])))
+                (into (d/pull db line-item-pull item-id) [[:acct-cat acct-cat] [:acct-name acct-name]])))
          ;(take 1)
          (map create-src-bank)
          u/probe-off
@@ -285,7 +284,7 @@
 (defn ->eid []
   (let [conn (d/connect db-uri)
         db (d/db conn)]
-    (d/pull db '[*] [:rule/rule-num 1])))
+    (d/pull db '[*] [:rule/rule-num 3])))
 
 ;;
 ;; All rules from AMP are for personal spending. Makes sense.
@@ -295,6 +294,15 @@
        (filter #(= "amp" (-> % :rule/target-account :account/name)))
        (map (juxt :rule/source-bank :rule/target-account))
        (take 3)))
+
+(defn general-query-2 []
+  (let [conn (d/connect db-uri)
+        customer-kw :seaweed]
+    (->> (read-period-specific-rules conn customer-kw 2017 :q1)
+         first
+         keys
+         ;(select-keys [:rule/rule-num])
+         )))
 
 (defn general-query-1 []
   (->> (query-current-period-rules)

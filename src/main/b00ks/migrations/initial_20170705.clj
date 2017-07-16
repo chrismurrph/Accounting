@@ -91,18 +91,22 @@
              (s/fields
                [logic-operator :keyword #_[:or :and :single]]
                [dominates :ref :many]
+               ;; These two only if user needs to be very specific. Sometimes the rule becomes
+               ;; so tight it is effectively tied to one statement line item
                [time-slot :ref :one]
+               [on-dates :instant :many]
+               ;; Most are permanent. If not will have an actual-period
                [permanent? :boolean]
                [conditions :ref :many]
                [source-bank :ref :one]
                [target-account :ref :one]
                ;;
                ;; Notice that statement has a time ordinal. Here we have only
-               ;; actual-period, not yet time-ordinal. Not sure yet how design will
-               ;; evolve. Have time-lookup so have flexibility now, either will do
+               ;; actual-period, rather than time-ordinal. Have time-lookup
+               ;; entity which use if want to get actual-period->time-ordinal or
+               ;; time-ordinal->actual-period
                ;;
                [actual-period :ref :one]
-               [on-dates :instant :many]
                ;; Something to trace the origin
                [rule-num :long :unique-identity]))
 

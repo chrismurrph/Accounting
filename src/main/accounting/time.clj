@@ -6,6 +6,9 @@
             [accounting.data.meta.periods :as periods]
             [cljc.utils :as us]))
 
+(defn satisfies-joda? [x]
+  (or (nil? x) (satisfies? clj-time.core/DateTimeProtocol x)))
+
 (defn joda-set->java [s]
   (assert (or (nil? s) (set? s)) (str "Not set but: " (type s)))
   (when s (into #{} (map c/to-date s))))
@@ -135,8 +138,11 @@
 (def -time-formatter (f/formatter "dd/MM/yyyy HH:mm:ss"))
 (def format-time #(f/unparse -time-formatter %))
 
+;;
+;; c/from-date s/be used earlier than this
+;;
 (defn show-trans-record [record]
-  (let [f-ed-out-date (-> record :out/date c/from-date format-date)]
+  (let [f-ed-out-date (-> record :out/date #_c/from-date format-date)]
     (-> record
         (assoc :out/date f-ed-out-date))))
 
@@ -203,7 +209,9 @@
   (t/before? this that))
 
 (defn after-begin-bound? [begin-moment]
+  (assert (satisfies-joda? begin-moment))
   (fn [date]
+    (assert (satisfies-joda? date))
     ;(println (type date) (type begin-moment))
     (let [res (or (t/after? date begin-moment)
                   (t/equal? date begin-moment))]
@@ -211,7 +219,9 @@
       res)))
 
 (defn before-end-bound? [end-moment]
+  (assert (satisfies-joda? end-moment))
   (fn [date]
+    (assert (satisfies-joda? date))
     (let [res (or (t/before? date end-moment)
                   (t/equal? date end-moment))]
       ;(println "before-end-bound? it:" (show date) ", end-bound:" (show end-moment) res)
@@ -225,15 +235,20 @@
 ;; moment.
 ;;
 (defn within-range-hof? [start-moment end-moment]
+  (assert (satisfies-joda? start-moment) (us/assert-str "start-moment" start-moment))
+  (assert (satisfies-joda? end-moment))
   (let [begin? (after-begin-bound? start-moment)
         end? (before-end-bound? end-moment)]
     (fn [date]
+      (assert (satisfies-joda? date))
       (and (begin? date)
            (end? date)))))
 
 ;; I'm assuming these Java dates are immutable - don't know why equals? exists in the clj-time library
 (defn in-set? [dates date]
-  ;(println (str "See if " (format-date date) " is in " (mapv format-date dates)))
+  (assert date "No date")
+  (assert (set? dates))
+  (println (str "See if " (format-date date) " is in " (mapv format-date dates)))
   (dates date))
 
 (defn within-actual-period? [date actual-period]

@@ -169,7 +169,7 @@
                                   rule/target-account time-slot
                                   on-dates]}]
   {:db/id                        idx
-   :rule/period                  period
+   :rule/actual-period           period
    :rule/permanent?              permanent?
    :rule/source-bank             source-bank
    :rule/target-account          target-account

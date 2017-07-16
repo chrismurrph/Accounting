@@ -81,25 +81,26 @@
            (sort-by (comp - u/abs second))
            coll->ledger-items)))
 
-(defn make-line-item [idx [kw amount]]
+(defn make-dummy-line-item [idx [kw amount]]
   (assert idx)
   (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
+  (assert (number? amount) (us/assert-str "amount" amount))
   {:db/id            idx
    :line-item/name   (name kw)
    :line-item/type   ((comp keyword namespace) kw)
    :line-item/amount amount})
 
-(defn make-ledger-item [idx [kw amount]]
-  (assert (keyword? kw) (str "Expect a keyword but got: " kw ", has type: " (type kw)))
-  {:db/id              idx
-   :ledger-item/name   (name kw)
-   :ledger-item/type   ((comp keyword namespace) kw)
-   :ledger-item/amount amount})
+(defn make-line-item [idx [{:keys [account/category account/name]} amount]]
+  (assert (number? amount) (us/assert-str "amount" amount))
+  {:db/id            idx
+   :line-item/name   name
+   :line-item/type   category
+   :line-item/amount amount})
 
 (defn coll->ledger-items [xs]
   (assert (coll? xs) (str "Expected a coll but got: " (type xs)))
   (->> xs
-       (map-indexed make-ledger-item)
+       (map-indexed make-line-item)
        vec))
 
 (defn biggest-items-report [conn org-key year period]
@@ -120,13 +121,13 @@
          c/accounts-summary
          (sort-by (comp - u/abs second))
          coll->ledger-items))
-  #_[(make-line-item 2 [:dummy-entry 1002])])
+  #_[(make-dummy-line-item 2 [:dummy-entry 1002])])
 
 (def rep->fn
-  {:report/profit-and-loss (fn [_ _ _ _] [(make-line-item 0 [:dummy-entry 1000])])
-   :report/balance-sheet   (fn [_ _ _ _] [(make-line-item 1 [:dummy-entry 1001])])
+  {:report/profit-and-loss (fn [_ _ _ _] [(make-dummy-line-item 0 [:dummy-entry 1000])])
+   :report/balance-sheet   (fn [_ _ _ _] [(make-dummy-line-item 1 [:dummy-entry 1001])])
    :report/big-items-first biggest-items-report
-   :report/trial-balance   (fn [_ _ _ _] [(make-line-item 3 [:dummy-entry 1003])])})
+   :report/trial-balance   (fn [_ _ _ _] [(make-dummy-line-item 3 [:dummy-entry 1003])])})
 
 (defn fetch-report [conn query organisation year period report]
   (assert (= 4 (count query)))

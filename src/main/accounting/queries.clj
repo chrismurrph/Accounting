@@ -1,7 +1,8 @@
 (ns accounting.queries
   (:require [datomic.api :as d]
             [cljc.utils :as us]
-            [accounting.util :as u]))
+            [accounting.util :as u]
+            [clj-time.coerce :as c]))
 
 (defn read-account [conn account-name account-category]
   (assert account-name)
@@ -110,6 +111,12 @@
                 {:rule/source-bank -account-pull}
                 {:rule/target-account -account-pull}])
 
+(defn coerce-timeslot [{:keys [rule/time-slot] :as m}]
+  (cond-> m
+          time-slot (update :rule/time-slot (fn [{:keys [time-slot/start-at time-slot/end-at]}]
+                                              {:time-slot/start-at (c/from-date start-at)
+                                               :time-slot/end-at   (c/from-date end-at)}))))
+
 (defn -find-current-period-rules
   "Find all rules of the org for the current period."
   [conn org-key]
@@ -125,7 +132,9 @@
                              [?r :rule/actual-period ?ap]
                              [?r :rule/permanent? true])
                     ] db org-key)
-        rvs (mapv #(d/pull db rule-pull %) eids)]
+        rvs (->> eids
+                 (map #(d/pull db rule-pull %))
+                 (mapv coerce-timeslot))]
     rvs))
 
 (defn read-period-specific-rules
@@ -144,7 +153,9 @@
                              [?r :rule/actual-period ?ap]
                              [?r :rule/permanent? true])
                     ] db org-key year quarter)
-        rvs (mapv #(d/pull db rule-pull %) eids)]
+        rvs (->> eids
+                 (map #(d/pull db rule-pull %))
+                 (mapv coerce-timeslot))]
     rvs))
 
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}
@@ -227,6 +238,9 @@
         (assoc :out/src-bank (keyword (str acct-cat-str "/" acct-name)))
         (dissoc :acct-cat :acct-name))))
 
+(defn -coerce-date [{:keys [out/date] :as m}]
+  (assoc m :out/date (c/from-date date)))
+
 (defn line-items-transform [conn line-items]
   (assert (seq? line-items) (us/assert-str "line-items" line-items))
   (let [db (d/db conn)
@@ -237,7 +251,8 @@
          ;(take 1)
          (map -create-src-bank)
          u/probe-off
-         (map remap-keys))))
+         (map remap-keys)
+         (map -coerce-date))))
 
 (defn find-line-items [conn org-key year quarter]
   (let [db (d/db conn)]
@@ -310,9 +325,12 @@
   (let [conn (d/connect db-uri)
         customer-kw :seaweed]
     (->> (read-period-specific-rules conn customer-kw 2017 :q1)
-         first
-         keys
-         ;(select-keys [:rule/rule-num])
+         ;(filter (fn [[k v]] (= k :rule/time-slot)))
+         ;first
+         ;keys
+         (map #(select-keys % [:rule/time-slot]))
+         u/probe-on
+         (map coerce-timeslot)
          )))
 
 (defn general-query-1 []

@@ -107,6 +107,9 @@
      :condition/predicate predicate
      :condition/subject   subject}))
 
+;;
+;; TODO Where is amount ?
+;;
 (defn make-rule
   [accounts {:keys [logic-operator conditions rule/source-bank rule/target-account
                     dominates time-slot rule/actual-period on-dates rule/rule-num]}]
@@ -122,7 +125,7 @@
      :rule/conditions     (mapv make-condition conditions)
      :rule/source-bank    (find-account accounts source-bank)
      :rule/target-account (find-account accounts target-account)
-     :rule/on-dates       (if on-dates (vec on-dates) [])}
+     :rule/on-dates       (if on-dates (set on-dates) #{})}
     time-slot
     (assoc :rule/time-slot (e/make-time-slot time-slot))
     actual-period

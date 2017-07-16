@@ -31,13 +31,17 @@
 ;;   :on-dates
 ;;   :time-slot
 ;;   :amount
-;;   - already has :period
-(defn matches-chosen-specifics? [record {:keys [period on-dates time-slot amount] :as rule}]
-  (and (or (nil? period) (t/within-actual-period? (:out/date record) period))
+;;   - already has :actual-period
+(defn matches-chosen-specifics? [record
+                                 {:keys [rule/actual-period
+                                         rule/on-dates
+                                         rule/time-slot
+                                         rule/amount] :as rule}]
+  (and (or (nil? actual-period) (t/within-actual-period? (:out/date record) actual-period))
        (or (nil? on-dates) (t/in-set? on-dates (:out/date record)))
        (or (nil? time-slot)
-           (let [[start end] time-slot]
-             ((t/within-range-hof? start end) (:out/date record))))
+           (let [{:keys [time-slot/start-at time-slot/end-at]} time-slot]
+             ((t/within-range-hof? start-at end-at) (:out/date record))))
        (or (nil? amount) (= amount (:out/amount record)))))
 
 ;;

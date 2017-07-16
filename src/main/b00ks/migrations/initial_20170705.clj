@@ -108,7 +108,8 @@
                ;;
                [actual-period :ref :one]
                ;; Something to trace the origin
-               [rule-num :long :unique-identity]))
+               [rule-num :long :unique-identity]
+               [amount :bigdec]))
 
    (s/schema timespan
              (s/fields

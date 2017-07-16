@@ -56,7 +56,9 @@
           ;:bank-line/amount   71.01M
           }
          (->> (c/records-without-single-rule-match {:bank-accounts (q/read-bank-accounts conn org-key)
-                                                    :bank-records  (q/current-period-line-items conn org-key)}
+                                                    :bank-records  (->> org-key
+                                                                        (q/current-period-line-items conn)
+                                                                        (q/line-items-transform conn))}
                                                    (q/query-current-period-rules))
               ffirst
               (map (fn [[k v]]
@@ -108,8 +110,8 @@
         ;_ (println bank-accounts)
         rep-actual-period #:actual-period{:type :quarterly :year (us/kw->number year) :quarter period}
         rep-bank-accounts (filter #(t/intersects? (u/probe-off (t/wildify-java-2 (:account/time-slot %)))
-                                                      rep-actual-period)
-                                      bank-accounts)
+                                                  rep-actual-period)
+                                  bank-accounts)
         _ (assert (seq rep-bank-accounts) (str "No current bank accounts from " bank-accounts " within " rep-actual-period))
         rep-bank-records (q/find-line-items conn org-key (us/kw->number year) period)
         rep-rules (q/read-period-specific-rules conn org-key (us/kw->number year) period)]

@@ -68,22 +68,26 @@
                     ] db org-key year quarter)
         ;rvs (mapv #(d/pull db '[:db/id :line-item/date :line-item/amount :line-item/desc] %) eids)
         ]
-    eids))
+    (seq eids)))
 
 (defn current-period-line-items
   "Current line items from all banks"
   [conn org-key]
   (let [db (d/db conn)
-        eids (d/q '[:find [?i ...]
+        eids (d/q '[:find ?lines ?c ?n
                     :in $ ?o :where
                     [?e :organisation/key ?o]
                     [?e :organisation/bank-accounts ?a]
                     [?e :organisation/current-time-ordinal ?ord]
                     [?a :bank-account/statements ?s]
+                    ;; We want these 2 because together are source bank
+                    [?a :account/category ?c]
+                    [?a :account/name ?n]
                     [?s :statement/time-ordinal ?ord]
-                    [?s :statement/line-items ?i]] db org-key)
-        rvs (mapv #(d/pull db '[*] %) eids)]
-    rvs))
+                    [?s :statement/line-items ?lines]] db org-key)
+        ;rvs (mapv #(d/pull db '[*] %) eids)
+        ]
+    (seq eids)))
 
 (def -rule-conditions-pull [:condition/field :condition/predicate :condition/subject])
 
@@ -106,7 +110,7 @@
                 {:rule/source-bank -account-pull}
                 {:rule/target-account -account-pull}])
 
-(defn find-current-period-rules
+(defn -find-current-period-rules
   "Find all rules of the org for the current period."
   [conn org-key]
   (let [db (d/db conn)
@@ -216,22 +220,29 @@
    :out/src-bank     :out/src-bank
    :db/id            :db/id})
 
-(defn create-src-bank [{:keys [acct-cat acct-name] :as m}]
+(defn -create-src-bank [{:keys [acct-cat acct-name] :as m}]
+  (assert acct-cat (us/assert-str "acct-cat" m))
   (let [acct-cat-str (subs (str acct-cat) 1)]
     (-> m
         (assoc :out/src-bank (keyword (str acct-cat-str "/" acct-name)))
         (dissoc :acct-cat :acct-name))))
 
-(defn find-line-items [conn org-key year quarter]
+(defn line-items-transform [conn line-items]
+  (assert (seq? line-items) (us/assert-str "line-items" line-items))
   (let [db (d/db conn)
         remap-keys (u/keys-remapper db-keys->books-keys)]
-    (->> (read-period-line-items conn :seaweed year quarter)
+    (->> line-items
          (map (fn [[item-id acct-cat acct-name]]
                 (into (d/pull db line-item-pull item-id) [[:acct-cat acct-cat] [:acct-name acct-name]])))
          ;(take 1)
-         (map create-src-bank)
+         (map -create-src-bank)
          u/probe-off
-         (map remap-keys)
+         (map remap-keys))))
+
+(defn find-line-items [conn org-key year quarter]
+  (let [db (d/db conn)]
+    (->> (read-period-line-items conn :seaweed year quarter)
+         (line-items-transform conn)
          )))
 
 (def db-uri "datomic:dev://localhost:4334/b00ks")
@@ -239,7 +250,7 @@
 (defn query-current-period-rules []
   (let [conn (d/connect db-uri)
         customer-kw :seaweed]
-    (find-current-period-rules conn customer-kw)))
+    (-find-current-period-rules conn customer-kw)))
 
 (defn query-statements []
   (let [conn (d/connect db-uri)

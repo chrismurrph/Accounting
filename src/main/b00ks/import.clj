@@ -89,7 +89,7 @@
    :base/type     :tax-year
    :tax-year/year year})
 
-(defn convert-ns [kw]
+#_(defn convert-ns [kw]
   (let [[ns name] ((juxt namespace name) kw)]
     (if (= ns "out")
       (keyword (str "line-item/" name))
@@ -103,7 +103,7 @@
         ]
     {:db/id               (d/tempid :db.part/user)
      :base/type           :condition
-     :condition/field     (convert-ns field)
+     :condition/field     field
      :condition/predicate predicate
      :condition/subject   subject}))
 

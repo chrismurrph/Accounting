@@ -136,7 +136,7 @@
 (def format-time #(f/unparse -time-formatter %))
 
 (defn show-trans-record [record]
-  (let [f-ed-out-date (-> record :out/date format-date)]
+  (let [f-ed-out-date (-> record :out/date c/from-date format-date)]
     (-> record
         (assoc :out/date f-ed-out-date))))
 

@@ -16,14 +16,16 @@
    {:actual-period/tax-year 2017
     :actual-period/quarter  :q3} seasoft-d/q3-2017-rules})
 
-(def -all-three-quarters [{:actual-period/tax-year 2017
-                           :actual-period/quarter  :q1}
-                          {:actual-period/tax-year 2017
-                           :actual-period/quarter  :q2}
-                          {:actual-period/tax-year 2017
-                           :actual-period/quarter  :q3}])
+(def -all-four-quarters [{:actual-period/tax-year 2017
+                          :actual-period/quarter  :q1}
+                         {:actual-period/tax-year 2017
+                          :actual-period/quarter  :q2}
+                         {:actual-period/tax-year 2017
+                          :actual-period/quarter  :q3}
+                         {:actual-period/tax-year 2017
+                          :actual-period/quarter  :q4}])
 
-(def total-range (take 3 -all-three-quarters))
+(def total-range (take 4 -all-four-quarters))
 
 (def officeworks-conditions [[:out/desc :starts-with "OFFICEWORKS"] [:out/desc :equals "POST   APPIN LPO          APPIN"]])
 
@@ -39,7 +41,7 @@
 ;; across the wire.
 ;;
 (defn read-all-edn []
-  (let [just-read (mapv t/wildify-java-1 (u/read-edn "seaweed.edn"))]
+  (let [just-read (mapv t/wildify-java-old (u/read-edn "seaweed.edn"))]
     ;(assert (= seasoft-con/current-rules just-read))
     just-read))
 
@@ -81,8 +83,8 @@
 (def seasoft-current-range total-range)
 (def seasoft-bank-accounts (-> meta/human-meta :seaweed :bank-accounts))
 #_(def seasoft-bank-statements (let [bank-accounts (set seasoft-bank-accounts)
-                                   bank-records (c/import-bank-records! :seaweed seasoft-current-range bank-accounts)]
-                               {:bank-records bank-records :bank-accounts bank-accounts}))
+                                     bank-records (c/import-bank-records! :seaweed seasoft-current-range bank-accounts)]
+                                 {:bank-records bank-records :bank-accounts bank-accounts}))
 
 (defn write-all-edn []
   (u/write-edn "seaweed.edn" (mapv t/civilize-joda @current-rules)))

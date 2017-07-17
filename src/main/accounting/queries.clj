@@ -2,7 +2,8 @@
   (:require [datomic.api :as d]
             [cljc.utils :as us]
             [accounting.util :as u]
-            [clj-time.coerce :as c]))
+            [clj-time.coerce :as c]
+            [accounting.time :as t]))
 
 (defn read-account [conn account-name account-category]
   (assert account-name)
@@ -23,22 +24,8 @@
                       (d/db conn) org-key)]
     eid))
 
-(def -time-slot-pull [:time-slot/start-at :time-slot/end-at])
-
-(defn read-bank-accounts
-  "Find all bank accounts of the org."
-  [conn org-key]
-  (let [db (d/db conn)
-        eids (d/q '[:find [?a ...] :in $ ?o :where
-                    [?e :organisation/key ?o]
-                    [?e :organisation/bank-accounts ?a]] db org-key)
-        rvs (mapv #(d/pull db '[:db/id
-                                :account/name
-                                {:account/time-slot [:time-slot/start-at :time-slot/end-at]}] %) eids)]
-    rvs))
-
 (defn read-statements
-  "Find all statements of the org."
+  "Find all statements of the org. Only done for fun so far, needs when part, as never read all the statements"
   [conn org-key]
   (let [db (d/db conn)
         eids (d/q '[:find [?s ...] :in $ ?o :where
@@ -71,6 +58,32 @@
         ]
     (seq eids)))
 
+;;
+;; Bank accounts (any accounts) have a time slot not an actual period. Hence need to
+;; use `from` `to` in order to filter
+;;
+(defn read-bank-accounts
+  "Find all bank accounts of the org."
+  [conn org-key from to]
+  (assert from)
+  (assert to)
+  (let [db (d/db conn)
+        eids (d/q '[:find [?a ...] :in $ ?o :where
+                    [?e :organisation/key ?o]
+                    [?e :organisation/bank-accounts ?a]] db org-key)
+        rvs (->> eids
+                 (map #(d/pull db '[:db/id
+                                    :account/name
+                                    {:account/time-slot [:time-slot/start-at :time-slot/end-at]}] %))
+                 (map (fn [m]
+                        (update m :account/time-slot (fn [ts] (t/wildify-java-datomic ts)))))
+                 (filter (fn [{:keys [account/time-slot] :as in}]
+                           (let [{:keys [time-slot/start-at time-slot/end-at]} time-slot]
+                             (assert start-at (us/assert-str "start-at" in))
+                             (t/overlaps? start-at end-at from to))))
+                 vec)]
+    rvs))
+
 (defn current-period-line-items
   "Current line items from all banks"
   [conn org-key]
@@ -91,16 +104,16 @@
     (seq eids)))
 
 (def -rule-conditions-pull [:condition/field :condition/predicate :condition/subject])
-
+(def -time-slot-pull [:time-slot/start-at :time-slot/end-at])
 (def -account-pull [:account/category :account/name :account/desc
                     {:account/time-slot -time-slot-pull}])
-
 (def -actual-period-pull [:actual-period/year
                           :actual-period/month
                           :actual-period/quarter
                           :actual-period/type])
 
-;; Some not yet being used been left out: :rule/dominates :rule/actual-period :rule/on-dates
+;; TODO
+;; Some not YET being used been left out: :rule/dominates
 (def rule-pull [:db/id
                 :rule/rule-num
                 :rule/logic-operator
@@ -136,6 +149,21 @@
                  (map #(d/pull db rule-pull %))
                  (mapv coerce-timeslot))]
     rvs))
+
+(defn -current-period
+  "Find everything about the current actual time period."
+  [conn org-key]
+  (let [db (d/db conn)
+        ids (d/q '[:find ?ord ?ap
+                    :in $ ?o :where
+                    [?e :organisation/key ?o]
+                    [?e :organisation/current-time-ordinal ?ord]
+                    [?tlu :time-lookup/time-ordinal ?ord]
+                    [?tlu :time-lookup/actual-period ?ap]
+                    ] db org-key)]
+    (->> ids
+         (map (fn [[ord ap]]
+                [ord (d/pull db -actual-period-pull ap)])))))
 
 (defn read-period-specific-rules
   "Find all rules of the org for a particular period."
@@ -215,12 +243,20 @@
          (map :heading/key))))
 
 (defn find-org-meta [conn org-key]
-  (let [db (d/db conn)]
-    (let [[[root-dir period-type timespan]] (seq (-read-organisation-meta conn org-key))]
-      {:root-dir                 (u/err-nil root-dir)
-       :organisation/period-type (u/err-nil period-type)
-       :organisation/timespan    (u/err-nil (d/pull db timespan-pull timespan))
-       })))
+  (let [db (d/db conn)
+        [[root-dir period-type timespan]] (seq (-read-organisation-meta conn org-key))]
+    {:root-dir                 (u/err-nil root-dir)
+     :organisation/period-type (u/err-nil period-type)
+     :organisation/timespan    (u/err-nil (d/pull db timespan-pull timespan))
+     }))
+
+(defn find-current-period [conn org-key]
+  (let [db (d/db conn)
+        [[time-ordinal actual-period]] (seq (-current-period conn org-key))]
+    {:time-ordinal  time-ordinal
+     :actual-period actual-period
+     :time-slot     {:time-slot/start-at (t/start-actual-period-moment actual-period)
+                     :time-slot/end-at   (t/end-actual-period-moment actual-period)}}))
 
 (def line-item-pull [:db/id :line-item/date :line-item/amount :line-item/desc])
 
@@ -324,13 +360,8 @@
 (defn general-query-2 []
   (let [conn (d/connect db-uri)
         customer-kw :seaweed]
-    (->> (read-period-specific-rules conn customer-kw 2017 :q1)
-         ;(filter (fn [[k v]] (= k :rule/time-slot)))
-         ;first
-         ;keys
-         (map #(select-keys % [:rule/time-slot]))
-         u/probe-on
-         (map coerce-timeslot)
+    (->> (find-current-period conn customer-kw)
+         u/probe-off
          )))
 
 (defn general-query-1 []

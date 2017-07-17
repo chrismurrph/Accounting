@@ -9,6 +9,15 @@
 (defn satisfies-joda? [x]
   (or (nil? x) (satisfies? clj-time.core/DateTimeProtocol x)))
 
+(defn overlaps? [start-a end-a start-b end-b]
+  (assert (satisfies-joda? start-a) (us/assert-str "start-a" start-a))
+  (assert (satisfies-joda? end-a) (us/assert-str "end-a" end-a))
+  (assert (satisfies-joda? start-b) (us/assert-str "start-b" start-b))
+  (assert (satisfies-joda? end-b) (us/assert-str "end-b" end-b))
+  (if end-a
+    (t/overlaps? start-a end-a start-b end-b)
+    (t/before? start-a end-b)))
+
 (defn joda-set->java [s]
   (assert (or (nil? s) (set? s)) (str "Not set but: " (type s)))
   (when s (into #{} (map c/to-date s))))
@@ -31,18 +40,19 @@
       (update :time-slot joda-vector->java)
       (update :on-dates joda-set->java)))
 
-(defn wildify-java-1 [m]
+(defn wildify-java-old [m]
   (assert (map? m))
   (assert (every? #{:time-slot :on-dates} (keys m)))
   (-> m
       (update :time-slot java-vector->joda)
       (update :on-dates java-set->joda)))
 
-(defn wildify-java-2 [m]
+(defn wildify-java-datomic [m]
   (assert (map? m))
   (assert (every? #{:time-slot/start-at :time-slot/end-at} (keys m)))
   (-> m
       (update :time-slot/start-at (fn [d] (c/from-date d)))
+      ;; Quite normal not to have an end-at
       (update :time-slot/end-at (fn [d] (c/from-date d)))))
 
 (def str->month
@@ -184,13 +194,15 @@
 
 (defn start-actual-period-moment [{:keys [actual-period/year actual-period/month
                                           actual-period/quarter actual-period/type] :as in}]
+  (assert type (us/assert-str "actual-period/type" in))
   (if (= :quarterly type)
     (-start-quarter-moment year quarter)
     (assert false (str "Not yet doing monthly here: " type))
     #_(-start-month-moment month year)))
 
 (defn end-actual-period-moment [{:keys [actual-period/year actual-period/quarter
-                                        actual-period/type actual-period/month]}]
+                                        actual-period/type actual-period/month] :as in}]
+  (assert type (us/assert-str "actual-period/type" in))
   (if (= :quarterly type)
     (-end-quarter-moment year quarter)
     (-end-month-moment month year)))

@@ -3,7 +3,6 @@
             [accounting.util :as u]
             [accounting.convert :as c]
             [accounting.match :as m]
-            #_[accounting.data.meta.seaweed :as m]
             [clojure.string :as s]
             [accounting.gl :as gl]
             [accounting.time :as t]))

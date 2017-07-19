@@ -27,6 +27,7 @@
   (query [this] [:db/id :bank-line/src-bank :bank-line/date :bank-line/desc :bank-line/amount])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id]}]
+    (assert (not= id -1))
     (help/make-example-bank-line id))
   Object
   (render [this]
@@ -62,7 +63,7 @@
   (render [this]
     (let [{:keys [db/id rule/permanent? rule/source-bank rule/target-account rule/logic-operator rule/conditions]} (om/props this)
           {:keys [rule-selected]} (om/get-computed this)
-          _ (assert (some? permanent?))
+          ;; permanent? is either true or nil
           permanent-display (if permanent? "true" "false")
           source-bank-display (us/kw->string source-bank)
           target-account-display (us/kw->string target-account)
@@ -110,7 +111,7 @@
                #_(dom/label nil (str "DEBUG - Matching rules count: " (count items) (when selected-rule (str ", selected rule: " (inc selected-rule)))))
                (if (or selected-rule (= 1 (count items)))
                  (let [{:keys [rule/logic-operator] :as the-rule} (nth items (or selected-rule 0))
-                       conditions (map help/make-condition (:rule/conditions the-rule))]
+                       conditions (:rule/conditions the-rule)]
                    (dom/div nil
                             (if selected-rule
                               (dom/div nil
@@ -229,13 +230,13 @@
                                                           (let [new-target-ledger-val (u/target-kw evt)]
                                                             (us/log-on (str "src bank: " src-bank ", target ledger: " new-target-ledger-val))
                                                             (load-existing-rules this :seaweed src-bank new-target-ledger-val)))})
-                 (when (= ledger-type :type/personal)
-                   (dom/button nil "SAVE")))
+                 (comment "Only diff is 2nd dropdown" (when (= ledger-type :type/personal)
+                            (dom/button nil "SAVE"))))
                ;Remember that :banking-form is initially how are querying for a rule, that might become the new rule, or
                ; might become editing one of the existing rules. [Select Existing]
                ;whereas :rule is one of many possibilities may want to start editing
                ;(fh/field-with-label this form :banking-form/logic-operator "Selector")
-               (if (and (zero? matching-rules-count) (not (#{no-pick :type/personal} ledger-type)))
+               (if (and (zero? matching-rules-count) (not (#{no-pick #_:type/personal} ledger-type)))
                  (dom/div nil
                           (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
                                               " from " (help/bank-kw->bank-name src-bank)

@@ -119,6 +119,7 @@
 (def rule-pull [:db/id
                 :rule/rule-num
                 :rule/logic-operator
+                :rule/permanent?
                 {:rule/time-slot -time-slot-pull}
                 {:rule/actual-period -actual-period-pull}
                 :on-dates
@@ -148,8 +149,9 @@
                              [?r :rule/permanent? true])
                     ] db org-key)
         rvs (->> eids
-                 (map #(d/pull db rule-pull %))
-                 (mapv coerce-timeslot))]
+                 (mapv #(d/pull db rule-pull %))
+                 (mapv coerce-timeslot)
+                 )]
     rvs))
 
 (defn -current-period

@@ -178,7 +178,7 @@
    :rule/conditions              conditions
    :rule/logic-operator          logic-operator})
 
-(defn rules-from-bank-ledger [kws source-bank target-ledger]
+(defn rules-from-bank-ledger [_ kws source-bank target-ledger]
   (assert (keyword? source-bank) (us/assert-str "source-bank" source-bank))
   (assert (keyword? target-ledger) (us/assert-str "target-ledger" target-ledger))
   ;(println "Choosing on " source-bank " and " target-ledger)
@@ -186,5 +186,5 @@
     (->> to-send
          (map-indexed rule->outgoing)
          vec
-         u/probe-off)))
+         u/probe-on)))
 

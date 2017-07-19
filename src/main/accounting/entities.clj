@@ -35,6 +35,14 @@
        :time-slot/start-at (u/err-nil (c/to-date begin-date))}
       end-date (assoc :time-slot/end-at (u/err-nil (c/to-date end-date))))))
 
+(defn make-account-key [kw]
+  (let [[ns name] ((juxt namespace name) kw)
+        category (keyword ns)]
+    (assert name)
+    (assert category)
+    {:account/name     name
+     :account/category category}))
+
 (defn make-account [begin-date kw]
   (assert (keyword? kw))
   (let [[ns name] ((juxt namespace name) kw)

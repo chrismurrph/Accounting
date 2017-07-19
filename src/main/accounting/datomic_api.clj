@@ -47,29 +47,41 @@
       (-> (c/trial-balance bank-statements current-rules splits starting-balances)
           map->ledger-items)))
 
+(defn objectify-account [acct]
+  acct)
+
 (defn rules-from-bank-ledger [conn org-key source-bank target-ledger]
   (assert (keyword? source-bank) (us/assert-str "source-bank" source-bank))
   (assert (keyword? target-ledger) (us/assert-str "target-ledger" target-ledger))
+  (println source-bank target-ledger)
   (let [{:keys [time-slot actual-period]} (q/find-current-period conn org-key)
-        {:keys [actual-period/year actual-period/quarter]} actual-period]
+        {:keys [actual-period/year actual-period/quarter]} actual-period
+        bank (e/make-account-key source-bank)
+        ledger (e/make-account-key target-ledger)]
     (->> (q/read-period-specific-rules conn org-key year quarter)
-         (m/filter-rules-new #{source-bank} #{target-ledger})
-         us/probe-count-on)))
+         (m/filter-rules-new #{bank} #{ledger})
+         ;(drop 3)
+         ;(take 10)
+         vec
+         u/probe-on)))
+
+(defn ->upload-key [k]
+  (case k
+    :out/date :bank-line/date
+    :out/amount :bank-line/amount
+    :out/desc :bank-line/desc
+    :out/src-bank :bank-line/src-bank
+    (assert false (str "Unknown key: " k))))
 
 ;;
-;; The id doesn't seem to matter, nor for potential data above
+;; The id is removed as the statement line is never updated
 ;;
 (defn next-unruly-line [conn org-key]
   (let [{:keys [time-slot actual-period]} (q/find-current-period conn org-key)
         {:keys [time-slot/start-at time-slot/end-at]} time-slot
         {:keys [actual-period/year actual-period/quarter]} actual-period
         ]
-    (merge {:db/id 'BANK-STATEMENT-LINE
-            ;:bank-line/src-bank :bank/anz-visa
-            ;:bank-line/date     "24/08/2016"
-            ;:bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
-            ;:bank-line/amount   71.01M
-            }
+    (merge {:db/id 'BANK-STATEMENT-LINE}
            (->> (c/records-without-single-rule-match
                   {:bank-accounts (q/read-bank-accounts conn org-key start-at end-at)
                    :bank-records  (->> org-key
@@ -77,12 +89,9 @@
                                        (q/line-items-transform conn))}
                   (q/read-period-specific-rules conn org-key year quarter))
                 ffirst
-                (map (fn [[k v]]
-                       [({:out/date     :bank-line/date
-                          :out/amount   :bank-line/amount
-                          :out/desc     :bank-line/desc
-                          :out/src-bank :bank-line/src-bank}
-                          k) v]))
+                (keep (fn [[k v]]
+                        (when (not= k :db/id)
+                          [(->upload-key k) v])))
                 (into {})
                 u/probe-off))))
 

@@ -27,14 +27,18 @@
   (let [rules (filter #(and (bank-accounts (:rule/source-bank %)) (ledger-accounts (:rule/target-account %))) in-rules)]
     rules))
 
-(def -uniq-bank-keys [:account/category :account/name])
+(def -uniq-account-keys [:account/category :account/name])
 (defn filter-rules-new [bank-accounts ledger-accounts in-rules]
   (assert (set? bank-accounts))
   (assert (set? ledger-accounts))
   (assert (seq bank-accounts))
   (assert (seq ledger-accounts))
-  (let [rules (filter #(and (bank-accounts (select-keys (:rule/source-bank %) -uniq-bank-keys))
-                            (ledger-accounts (select-keys (:rule/target-account %) -uniq-bank-keys)))
+  (assert (-> bank-accounts first keyword? not))
+  (assert (-> ledger-accounts first keyword? not))
+  (println bank-accounts)
+  (println ledger-accounts)
+  (let [rules (filter #(and (bank-accounts (select-keys (:rule/source-bank %) -uniq-account-keys))
+                            (ledger-accounts (select-keys (:rule/target-account %) -uniq-account-keys)))
                       in-rules)]
     rules))
 

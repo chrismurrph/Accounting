@@ -149,7 +149,11 @@
 
 (def rules-list-ident [:rules-list/by-id p/RULES_LIST])
 (def rules-list-items-whereabouts (conj rules-list-ident :rules-list/items))
-(def rules-list-selected-rule (conj rules-list-ident :ui/selected-rule))
+
+;; ui/ are supposed to be kept at the top level
+#_(def rules-list-selected-rule (conj rules-list-ident :ui/selected-rule))
+(def selected-rule [:ui/selected-rule])
+(def only-rule [:ui/only-rule])
 
 ;
 ;(def source-bank-field-whereabouts (conj banking-form-ident :banking-form/source-bank))

@@ -53,7 +53,7 @@
 (defn rules-from-bank-ledger [conn org-key source-bank target-ledger]
   (assert (keyword? source-bank) (us/assert-str "source-bank" source-bank))
   (assert (keyword? target-ledger) (us/assert-str "target-ledger" target-ledger))
-  (println source-bank target-ledger)
+  ;(println source-bank target-ledger)
   (let [{:keys [time-slot actual-period]} (q/find-current-period conn org-key)
         {:keys [actual-period/year actual-period/quarter]} actual-period
         bank (e/make-account-key source-bank)
@@ -63,7 +63,7 @@
          ;(drop 3)
          ;(take 10)
          vec
-         u/probe-on)))
+         u/probe-off)))
 
 (defn ->upload-key [k]
   (case k

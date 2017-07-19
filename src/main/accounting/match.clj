@@ -35,8 +35,8 @@
   (assert (seq ledger-accounts))
   (assert (-> bank-accounts first keyword? not))
   (assert (-> ledger-accounts first keyword? not))
-  (println bank-accounts)
-  (println ledger-accounts)
+  ;(println bank-accounts)
+  ;(println ledger-accounts)
   (let [rules (filter #(and (bank-accounts (select-keys (:rule/source-bank %) -uniq-account-keys))
                             (ledger-accounts (select-keys (:rule/target-account %) -uniq-account-keys)))
                       in-rules)]

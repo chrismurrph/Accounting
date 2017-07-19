@@ -186,5 +186,5 @@
     (->> to-send
          (map-indexed rule->outgoing)
          vec
-         u/probe-on)))
+         u/probe-off)))
 

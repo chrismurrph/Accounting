@@ -166,6 +166,33 @@
        next
        vec))
 
+(def a-1 [{:day "01/01" :balance 100.00}, {:day "05/01" :balance -50.00}, {:day "10/01" :balance -100.00},
+          {:day "14/01" :balance 50.00}, {:day "17/01" :balance -200.00}])
+
+(def a-2 [{:day "01/01" :balance 100.00}, {:day "05/01" :balance -50.00}])
+
+(defn x-13 []
+  (filterv #(-> % :balance neg?) 1))
+
+(defn dec-date [d]
+  d)
+
+(defn x-14 []
+  (->> a-1
+       (partition-by #(-> % :balance neg?))
+       (drop-while #(-> % first :balance pos?))
+       (mapcat identity)
+       (map (juxt :day :balance))
+       (partition-all 2 1)
+       (keep (fn [[[date-1 val-1] [date-2 val-2]]]
+               (cond
+                 (neg? val-1) (cond-> {:start date-1
+                                       :value val-1}
+                                      date-2 (assoc :end (dec-date date-2)))
+                 (pos? val-1) nil
+                 :else {:start date-2
+                        :value val-1})))))
+
 ["anz-visa"
  "_ANZ_credit_card.csv"
  #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},

@@ -122,7 +122,7 @@
                 :rule/permanent?
                 {:rule/time-slot -time-slot-pull}
                 {:rule/actual-period -actual-period-pull}
-                :on-dates
+                :rule/on-dates
                 {:rule/conditions -rule-conditions-pull}
                 {:rule/source-bank -account-pull}
                 {:rule/target-account -account-pull}])
@@ -130,8 +130,8 @@
 (defn coerce-timeslot [{:keys [rule/time-slot] :as m}]
   (cond-> m
           time-slot (update :rule/time-slot (fn [{:keys [time-slot/start-at time-slot/end-at]}]
-                                              {:time-slot/start-at (c/from-date start-at)
-                                               :time-slot/end-at   (c/from-date end-at)}))))
+                                              {:time-slot/start-at (c/to-date start-at)
+                                               :time-slot/end-at   (c/to-date end-at)}))))
 
 (defn find-current-period-rules
   "Find all rules of the org for the current period."

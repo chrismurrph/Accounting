@@ -85,16 +85,6 @@
    :type/liab    (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
-(defmutation selected-rule
-  [{:keys [selected]}]
-  (action [{:keys [state]}]
-          (swap! state assoc-in help/rules-list-selected-rule selected)))
-
-(defmutation un-select-rule
-  [{:keys [selected]}]
-  (action [{:keys [state]}]
-          (swap! state assoc-in help/rules-list-selected-rule nil)))
-
 (defn make-person [name age]
   {:db/id                      (om/tempid)
    :person/name                name
@@ -116,23 +106,34 @@
 (defmutation rules-loaded
   [{:keys [no-params]}]
   (action [{:keys [state]}]
-          (let [rules-count (-> (get-in @state help/rules-list-items-whereabouts) count)
+          (let [st @state
+                rules-count (-> (get-in st help/rules-list-items-whereabouts) count)
                 _ (println "rules-loaded, rules count: " rules-count)]
-            (when (zero? rules-count)
-              (let [st @state
-                    person-form (get st :permanent/person-form)
-                    _ (assert person-form)
-                    new-person (f/build-form person-form (make-person "Chris Murphy" 50))
-                    _ (assert new-person)
-                    person-ident (om/ident person-form new-person)
-                    target help/banking-form-person-whereabouts
-                    ;conditions-integrator (nst/normalizer :rule/by-id :rule/conditions :condition/by-id nst/v->condition 1000)
-                    ]
-                (swap! state #(-> %
-                                  (assoc-in person-ident new-person)
-                                  (assoc-in target person-ident)
-                                  ;conditions-integrator
-                                  )))))))
+            (condp = rules-count
+              0 (let [st @state
+                      person-form (get st :permanent/person-form)
+                      _ (assert person-form)
+                      new-person (f/build-form person-form (make-person "Chris Murphy" 50))
+                      _ (assert new-person)
+                      person-ident (om/ident person-form new-person)
+                      target help/banking-form-person-whereabouts
+                      ;conditions-integrator (nst/normalizer :rule/by-id :rule/conditions :condition/by-id nst/v->condition 1000)
+                      ]
+                  (swap! state #(-> %
+                                    (assoc-in person-ident new-person)
+                                    (assoc-in target person-ident)
+                                    (assoc-in help/only-rule nil)
+                                    (assoc-in help/selected-rule nil)
+                                    ;conditions-integrator
+                                    )))
+              1 (swap! state #(-> %
+                                  (assoc-in help/only-rule (first (get-in st help/rules-list-items-whereabouts)))
+                                  (assoc-in help/selected-rule nil)))
+              (swap! state #(-> %
+                                (assoc-in help/only-rule nil)
+                                (assoc-in help/selected-rule nil)
+                                ;conditions-integrator
+                                ))))))
 
 (defn ledger-drop-down [st acct-type]
   (if (= acct-type :type/personal)
@@ -155,8 +156,7 @@
           (assert acct-type (us/assert-str "acct-type" acct-type))
           (assert src-bank (us/assert-str "src-bank" src-bank))
           (println (str "config data, if have, for " acct-type))
-          (let [
-                personal-key (keyword (str "personal/" src-bank))
+          (let [personal-key (keyword (str "personal/" (name src-bank)))
                 [ledger-accounts selected-target-account target-account-options] (ledger-drop-down @state acct-type)]
             (if (not= :type/personal acct-type)
               (let [alphabetic-target-account-options (sort-by :option/label target-account-options)
@@ -169,29 +169,42 @@
                 (assert (pos? (count ledger-accounts)))
                 (swap! state help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options))
               (swap! state assoc-in help/target-account-field-whereabouts personal-key))
-              ;; 'rules-loaded (see post-mutation below) doesn't take a parameter so have to put one in here
-              (swap! state assoc :permanent/person-form person-form)
-              (let [st @state
-                    org-ident [:organisation/by-id p/ORGANISATION]
-                    {:keys [organisation/key]} (get-in st org-ident)]
-                ;; If no rules have been loaded from the server then we need to create one for the
-                ;; user to fill out. Hence the post mutation here:
-                (df/load-action state :my-existing-rules sub-query-comp
-                                {:target        help/rules-list-items-whereabouts
-                                 :refresh       [[:banking-form/by-id p/BANKING_FORM]]
-                                 :params        {:source-bank          src-bank
-                                                 :target-ledger        (if (= :type/personal acct-type)
-                                                                         personal-key
-                                                                         selected-target-account)
-                                                 :request/organisation key}
-                                 :post-mutation 'app.cljs-operations/rules-loaded
-                                 }))))
-          (remote [env] (df/remote-load env)))
+            ;; 'rules-loaded (see post-mutation below) doesn't take a parameter so have to put one in here
+            (swap! state assoc :permanent/person-form person-form)
+            (let [st @state
+                  org-ident [:organisation/by-id p/ORGANISATION]
+                  {:keys [organisation/key]} (get-in st org-ident)]
+              ;; If no rules have been loaded from the server then we need to create one for the
+              ;; user to fill out. Hence the post mutation here:
+              (df/load-action state :my-existing-rules sub-query-comp
+                              {:target        help/rules-list-items-whereabouts
+                               :refresh       [[:banking-form/by-id p/BANKING_FORM]]
+                               :params        {:source-bank          src-bank
+                                               :target-ledger        (if (= :type/personal acct-type)
+                                                                       personal-key
+                                                                       selected-target-account)
+                                               :request/organisation key}
+                               :post-mutation 'app.cljs-operations/rules-loaded
+                               }))))
+  (remote [env] (df/remote-load env)))
+
+(defmutation selected-rule
+  [{:keys [selected-ident]}]
+  (action [{:keys [state]}]
+          (swap! state assoc-in help/selected-rule selected-ident)))
+
+(defmutation un-select-rule
+  [{:keys [selected]}]
+  (action [{:keys [state]}]
+          (swap! state assoc-in help/selected-rule nil)))
 
 (defmutation unruly-bank-statement-line
   [no-params]
   (action [{:keys [state]}]
-          (swap! state dissoc :my-unruly-bank-statement-line)))
+          (swap! state #(-> %
+                            (dissoc :my-unruly-bank-statement-line)
+                            (assoc-in help/selected-rule nil)
+                            (assoc-in help/only-rule nil)))))
 
 ;;
 ;; Use when have done a big query from Datomic, and all results normalised. However there

@@ -79,8 +79,8 @@
 (def type->what-remove
   {:type/exp     (set/union always-remove #{"income" "non-exp" "personal" "liab"})
    :type/non-exp (set/union always-remove #{"income" "exp" "personal" "liab"})
-   ;; The user has a checkbox for this. Personal/external.
-   ;;:type/personal (set/union always-remove #{"income" "non-exp" "exp" "liab"})
+   ;; personal doesn't even have a drop down.
+   ;; :type/personal (set/union always-remove #{"income" "non-exp" "exp" "liab"})
    :type/income  (set/union always-remove #{"personal" "non-exp" "exp" "liab"})
    :type/liab    (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
@@ -111,60 +111,82 @@
             (swap! state assoc-in phone-ident new-phone)
             (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
 
-;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :temp/person-form
-(defmutation post-load-rules
+;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :permanent/person-form
+;; Used the word 'permanent' because it is never going to change and can always be there to be picked by by others
+(defmutation rules-loaded
   [{:keys [no-params]}]
   (action [{:keys [state]}]
-          (when (-> (get-in @state help/rules-list-items-whereabouts) count zero?)
-            (let [st @state
-                  person-form (get st :temp/person-form)
-                  new-person (f/build-form person-form (make-person "Chris Murphy" 50))
-                  person-ident (om/ident person-form new-person)
-                  target help/banking-form-person-whereabouts
-                  ;conditions-integrator (nst/normalizer :rule/by-id :rule/conditions :condition/by-id nst/v->condition 1000)
-                  ]
-              (swap! state #(-> %
-                                (dissoc :temp/person-form)
-                                (assoc-in person-ident new-person)
-                                (assoc-in target person-ident)
-                                ;conditions-integrator
-                                ))))))
+          (let [rules-count (-> (get-in @state help/rules-list-items-whereabouts) count)
+                _ (println "rules-loaded, rules count: " rules-count)]
+            (when (zero? rules-count)
+              (let [st @state
+                    person-form (get st :permanent/person-form)
+                    _ (assert person-form)
+                    new-person (f/build-form person-form (make-person "Chris Murphy" 50))
+                    _ (assert new-person)
+                    person-ident (om/ident person-form new-person)
+                    target help/banking-form-person-whereabouts
+                    ;conditions-integrator (nst/normalizer :rule/by-id :rule/conditions :condition/by-id nst/v->condition 1000)
+                    ]
+                (swap! state #(-> %
+                                  (assoc-in person-ident new-person)
+                                  (assoc-in target person-ident)
+                                  ;conditions-integrator
+                                  )))))))
 
+(defn ledger-drop-down [st acct-type]
+  (if (= acct-type :type/personal)
+    [nil nil nil]
+    (let [to-remove (type->what-remove acct-type)
+          _ (assert to-remove (str "No set found from <" acct-type ">"))
+          config-ident [:config-data/by-id p/CONFIG_DATA]
+          {:keys [config-data/ledger-accounts]} (get-in st config-ident)
+          ledger-accounts (remove #(to-remove (namespace %)) ledger-accounts)
+          [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts acct-type)]
+      [ledger-accounts selected-target-account target-account-options])))
+
+;;
+;; If user has selected :type/personal then the next drop down is not even going to appear
+;;
 (defmutation config-data-for-target-ledger-dropdown
   [{:keys [sub-query-comp acct-type src-bank person-form]}]
   (action [{:keys [state]}]
           (assert sub-query-comp (us/assert-str "sub-query-comp" sub-query-comp))
           (assert acct-type (us/assert-str "acct-type" acct-type))
           (assert src-bank (us/assert-str "src-bank" src-bank))
-          (let [st @state
-                ident [:config-data/by-id p/CONFIG_DATA]
-                {:keys [config-data/ledger-accounts]} (get-in st ident)
-                to-remove (type->what-remove acct-type)
-                _ (assert to-remove (str "No set found from <" acct-type ">"))
-                ledger-accounts (remove #(to-remove (namespace %)) ledger-accounts)
-                [selected-target-account target-account-options] (help/target-account-options-generator ledger-accounts acct-type)
-                alphabetic-target-account-options (sort-by :option/label target-account-options)
-                ;; On this one we will need to do the same event as if the user had selected it
-                ;; Hmm - that involves a load which I don't want to do from a mutation
-                ;; See below for how to do the load - load-action does everything load can do
-                ;; Interestingly this whole mutation now becomes remote
-                ;; This is not 'chaining' because there is only one remote call
-                ]
-            (assert (pos? (count ledger-accounts)))
-            (swap! state #(-> %
-                              ;; 'post-load-rules doesn't take a parameter so have to put one in here
-                              (assoc :temp/person-form person-form)
-                              (help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options)))
-            ;; If no rules have been loaded from the server then we need to create one for the
-            ;; user to fill out. Hence the post mutation here:
-            (df/load-action state :my-existing-rules sub-query-comp
-                            {:target        help/rules-list-items-whereabouts
-                             :refresh       [[:banking-form/by-id p/BANKING_FORM]]
-                             :params        {:source-bank src-bank :target-ledger selected-target-account}
-                             :post-mutation 'app.cljs-operations/post-load-rules
-                             })
-            ))
-  (remote [env] (df/remote-load env)))
+          (println (str "config data, if have, for " acct-type))
+          (let [
+                personal-key (keyword (str "personal/" src-bank))
+                [ledger-accounts selected-target-account target-account-options] (ledger-drop-down @state acct-type)]
+            (if (not= :type/personal acct-type)
+              (let [alphabetic-target-account-options (sort-by :option/label target-account-options)
+                    ;; On this one we will need to do the same event as if the user had selected it
+                    ;; Hmm - that involves a load which I don't want to do from a mutation
+                    ;; See below for how to do the load - load-action does everything load can do
+                    ;; Interestingly this whole mutation now becomes remote
+                    ;; This is not 'chaining' because there is only one remote call
+                    ]
+                (assert (pos? (count ledger-accounts)))
+                (swap! state help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options))
+              (swap! state assoc-in help/target-account-field-whereabouts personal-key))
+              ;; 'rules-loaded (see post-mutation below) doesn't take a parameter so have to put one in here
+              (swap! state assoc :permanent/person-form person-form)
+              (let [st @state
+                    org-ident [:organisation/by-id p/ORGANISATION]
+                    {:keys [organisation/key]} (get-in st org-ident)]
+                ;; If no rules have been loaded from the server then we need to create one for the
+                ;; user to fill out. Hence the post mutation here:
+                (df/load-action state :my-existing-rules sub-query-comp
+                                {:target        help/rules-list-items-whereabouts
+                                 :refresh       [[:banking-form/by-id p/BANKING_FORM]]
+                                 :params        {:source-bank          src-bank
+                                                 :target-ledger        (if (= :type/personal acct-type)
+                                                                         personal-key
+                                                                         selected-target-account)
+                                                 :request/organisation key}
+                                 :post-mutation 'app.cljs-operations/rules-loaded
+                                 }))))
+          (remote [env] (df/remote-load env)))
 
 (defmutation unruly-bank-statement-line
   [no-params]

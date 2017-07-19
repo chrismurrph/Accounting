@@ -157,6 +157,15 @@
     (fn [x y] (* (+ x y) 0.5))
     [1 10 15]))
 
+(def some-values [{:key 1, :value 10, :other "bla"}, {:key 2, :value 13, :other "bla"}, {:key 1, :value 7, :other "bla"}])
+
+(defn x-12 []
+  (->> [{:key 1, :value 10, :other "bla"}, {:key 2, :value 13, :other "bla"}, {:key 1, :value 7, :other "bla"}]
+       (reductions #(assoc %2 :value (+ (:value %1) (:value %2)))
+                   {:value 0})
+       next
+       vec))
+
 ["anz-visa"
  "_ANZ_credit_card.csv"
  #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},

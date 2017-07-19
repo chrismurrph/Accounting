@@ -6,7 +6,9 @@
             [cljc.utils :as us]
             [accounting.entities :as e]
             [accounting.queries :as q]
-            [accounting.time :as t]))
+            [accounting.play :as p]
+            [accounting.time :as t]
+            [accounting.match :as m]))
 
 #_(defn make-district [connection list-name]
     (let [id (d/tempid :db.part/user)
@@ -45,12 +47,23 @@
       (-> (c/trial-balance bank-statements current-rules splits starting-balances)
           map->ledger-items)))
 
+(defn rules-from-bank-ledger [conn org-key source-bank target-ledger]
+  (assert (keyword? source-bank) (us/assert-str "source-bank" source-bank))
+  (assert (keyword? target-ledger) (us/assert-str "target-ledger" target-ledger))
+  (let [{:keys [time-slot actual-period]} (q/find-current-period conn org-key)
+        {:keys [actual-period/year actual-period/quarter]} actual-period]
+    (->> (q/read-period-specific-rules conn org-key year quarter)
+         (m/filter-rules-new #{source-bank} #{target-ledger})
+         us/probe-count-on)))
+
 ;;
 ;; The id doesn't seem to matter, nor for potential data above
 ;;
 (defn next-unruly-line [conn org-key]
-  (let [{:keys [time-slot]} (q/find-current-period conn org-key)
-        {:keys [time-slot/start-at time-slot/end-at]} time-slot]
+  (let [{:keys [time-slot actual-period]} (q/find-current-period conn org-key)
+        {:keys [time-slot/start-at time-slot/end-at]} time-slot
+        {:keys [actual-period/year actual-period/quarter]} actual-period
+        ]
     (merge {:db/id 'BANK-STATEMENT-LINE
             ;:bank-line/src-bank :bank/anz-visa
             ;:bank-line/date     "24/08/2016"
@@ -62,7 +75,7 @@
                    :bank-records  (->> org-key
                                        (q/current-period-line-items conn)
                                        (q/line-items-transform conn))}
-                  (q/query-current-period-rules))
+                  (q/read-period-specific-rules conn org-key year quarter))
                 ffirst
                 (map (fn [[k v]]
                        [({:out/date     :bank-line/date
@@ -179,17 +192,19 @@
 (defn period-desc [{:keys [actual-period]}]
   ((juxt :period/year :period/quarter) actual-period))
 
+(def db-uri "datomic:dev://localhost:4334/b00ks")
+
 (defn set-default-current-time-ordinal []
-  (let [conn (d/connect q/db-uri)
+  (let [conn (d/connect db-uri)
         org-key :seaweed
-        max-ord (->> (q/query-statements)
+        max-ord (->> (q/read-statements conn org-key)
                      (map :statement/time-ordinal)
                      (apply max))]
     (e/update-organisations-time-ordinal conn org-key max-ord)
     (println (str "Max ordinal for " org-key " is now " max-ord))))
 
 (defn import-bank-statements []
-  (let [conn (d/connect q/db-uri)
+  (let [conn (d/connect db-uri)
         statement-make (partial e/make-statement conn)
         org-key :seaweed
         statements (->> org-key

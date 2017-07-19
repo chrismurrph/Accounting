@@ -66,8 +66,8 @@
 
 (defquery-root :my-existing-rules
                "Queries for existing rules"
-               (value [{:keys [query]} {:keys [source-bank target-ledger]}]
-                      (old-api/rules-from-bank-ledger query source-bank target-ledger)))
+               (value [{:keys [query b00ks-database]} {:keys [request/organisation source-bank target-ledger]}]
+                      (new-api/rules-from-bank-ledger (:connection b00ks-database) organisation source-bank target-ledger)))
 
 (defquery-root :district-query
                "Datomic query"

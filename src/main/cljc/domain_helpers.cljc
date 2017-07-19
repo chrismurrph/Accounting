@@ -68,7 +68,6 @@
   (assert (map? potential-data) (u/assert-str "potential-data" potential-data))
   (let [period-type (-> potential-data :organisation/period-type)
         _ (assert period-type)
-        _ (println "period-type:" period-type)
         periods (condp = period-type
                   :quarterly quarters
                   :monthly months

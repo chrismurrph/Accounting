@@ -12,11 +12,11 @@
        (iterate inc)
        (take-while #(<= % to))))
 
-(defn count-probe-on [xs]
+(defn probe-count-on [xs]
   (println "COUNT" (count xs))
   xs)
 
-(defn count-probe-off [xs]
+(defn probe-count-off [xs]
   xs)
 
 ;;

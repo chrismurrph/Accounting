@@ -65,7 +65,7 @@
 ;; Permanent and temporal rules are merged here. This is what we want for matching rules, but is no good
 ;; for writing them. Permanent rules really don't come with a date!
 ;; CRAP! Those other data structures were just so it is easy for me to manually enter the data.
-;; It look each of these is a map object, some of which have a :period. So it is correct to read and
+;; If look you will see each of these is a map object, some of which have an :actual-period. So it is correct to read and
 ;; write these, and this format will go in the database.
 ;;
 (def current-rules

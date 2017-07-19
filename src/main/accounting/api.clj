@@ -180,9 +180,9 @@
 
 (defn rules-from-bank-ledger [kws source-bank target-ledger]
   (assert (keyword? source-bank) (us/assert-str "source-bank" source-bank))
-  (assert (keyword? target-ledger))
+  (assert (keyword? target-ledger) (us/assert-str "target-ledger" target-ledger))
   ;(println "Choosing on " source-bank " and " target-ledger)
-  (let [to-send (m/filter-rules #{source-bank} #{target-ledger} (mapv t/civilize-joda @seasoft-con/current-rules))]
+  (let [to-send (m/filter-rules-old #{source-bank} #{target-ledger} (mapv t/civilize-joda @seasoft-con/current-rules))]
     (->> to-send
          (map-indexed rule->outgoing)
          vec

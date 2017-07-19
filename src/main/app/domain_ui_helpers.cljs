@@ -43,7 +43,7 @@
   [(f/option :type/exp "Expense")
    (f/option :type/non-exp "Non-Expense")
    (f/option :type/income "Income")
-   ;; S/be done with checkbox. Sep ui/personal? then we don't need to display the
+   ;; C/be done with checkbox. Sep ui/personal? then we don't need to display the
    ;; target-ledger, which will be auto-set to same bank account but with :personal
    ;; namespace at the beginning.
    ;; For examples rule on server will end up being:
@@ -54,7 +54,7 @@
    ;; account (known here as target-ledger). Un-setting to of course un-set.
    ;; When personal/trash is on the target-ledger drop down will disappear.
    ;;
-   ;(f/option :type/personal "Personal")
+   (f/option :type/personal "Personal")
    (f/option :type/liab "Liability")])
 
 (def logic-options

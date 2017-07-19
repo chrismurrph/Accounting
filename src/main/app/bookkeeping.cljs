@@ -95,7 +95,8 @@
   static om/Ident
   (ident [this props] [:organisation/by-id p/ORGANISATION])
   static om/IQuery
-  (query [this] [:organisation/period-type
+  (query [this] [:organisation/key
+                 :organisation/period-type
                  {:organisation/timespan (om/get-query Timespan)}
                  :organisation/possible-reports]))
 

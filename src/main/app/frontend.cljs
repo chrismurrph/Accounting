@@ -1,5 +1,5 @@
 (ns app.frontend
-  (:require [untangled.client.core :as uc]
+  (:require [fulcro.client.core :as uc]
             [om.dom :as dom]
             [app.operations :as ops]
             [app.cljs-operations :as cljs-ops]
@@ -10,13 +10,13 @@
             [app.bookkeeping :as bookkeeping]
             [app.domain-ui-helpers :as domain]
             [om.next :as om :refer [defui]]
-            [untangled.client.data-fetch :as df]
-            [untangled.client.network :as net]
-            [untangled.ui.forms :as f]
+            [fulcro.client.data-fetch :as df]
+            [fulcro.client.network :as net]
+            [fulcro.ui.forms :as f]
             [app.util :as u]
             [app.forms-helpers :as fh]
             [app.domain-ui-helpers :as help]
-            [untangled.client.routing :as r :refer-macros [defrouter]]))
+            [fulcro.client.routing :as r :refer-macros [defrouter]]))
 
 (defrouter TopRouter :top-router
            (ident [this props] [(:page props) :top])
@@ -65,15 +65,15 @@
                (dom/br nil)
                (ui-top top-router)))))
 
-(defonce app-2 (atom (uc/new-untangled-client
-                       :networking {:remote (net/make-untangled-network
+(defonce app-2 (atom (uc/new-fulcro-client
+                       :networking {:remote (net/make-fulcro-network
                                               "/api"
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]
                                            ))))
 
-(defonce app-1 (atom (uc/new-untangled-client
-                       :networking {:remote (net/make-untangled-network
+(defonce app-1 (atom (uc/new-fulcro-client
+                       :networking {:remote (net/make-fulcro-network
                                               "/api"
                                               :global-error-callback (constantly nil))}
                        :started-callback (fn [app]

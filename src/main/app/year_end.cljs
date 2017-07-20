@@ -1,9 +1,9 @@
 (ns app.year-end
   (:require [om.dom :as dom]
             [om.next :as om]
-            [untangled.client.core :as uc]
+            [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
-            [untangled.client.data-fetch :as df]))
+            [fulcro.client.data-fetch :as df]))
 
 (defui ^:once YearEnd
   static om/IQuery

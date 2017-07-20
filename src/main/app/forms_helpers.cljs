@@ -1,6 +1,6 @@
 (ns app.forms-helpers
   (:require [om.dom :as dom]
-            [untangled.ui.forms :as f]))
+            [fulcro.ui.forms :as f]))
 
 ;;
 ;; Can be used in a mutation to assoc-in new options

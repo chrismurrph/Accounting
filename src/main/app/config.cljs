@@ -1,9 +1,9 @@
 (ns app.config
   (:require [om.dom :as dom]
             [om.next :as om]
-            [untangled.client.core :as uc]
+            [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
-            [untangled.client.data-fetch :as df]
+            [fulcro.client.data-fetch :as df]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
             [app.domain-ui-helpers :as help]))

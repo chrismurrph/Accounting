@@ -1,7 +1,7 @@
 (ns app.person
-  (:require [untangled.client.core :as uc]
+  (:require [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
-            [untangled.ui.forms :as f]
+            [fulcro.ui.forms :as f]
             [om.dom :as dom]
             [app.forms-helpers :as fh]
             [app.cljs-operations :as cljs-ops]))

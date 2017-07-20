@@ -1,8 +1,8 @@
 (ns cljs.user
   (:require
     [app.frontend :refer [app Root]]
-    [untangled.client.core :as uc]
-    [untangled.ui.forms :as f]))
+    [fulcro.client.core :as uc]
+    [fulcro.ui.forms :as f]))
 
 (defn refresh [] (swap! app uc/mount Root "app"))
 

@@ -1,12 +1,12 @@
 (ns app.operations
   (:require
-    [untangled.ui.forms :as forms]
-    [untangled.client.mutations :as m :refer [defmutation]]
+    [fulcro.ui.forms :as forms]
+    [fulcro.client.mutations :as m :refer [defmutation]]
     [om.next :as om]
-    [untangled.client.core :as uc]
+    [fulcro.client.core :as uc]
     [om.dom :as dom]
     [om.next :as om :refer [defui]]
-    [untangled.ui.forms :as f]))
+    [fulcro.ui.forms :as f]))
 
 (defmutation delete-ledger-item
              "Mutation: Delete the ledger-item with ledger-item-id from the list with list-id"

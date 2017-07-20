@@ -1,8 +1,8 @@
 (ns app.neighborhood
   (:require [om.dom :as dom]
             [om.next :as om :refer [defui]]
-            [untangled.client.core :as uc]
-            [untangled.client.data-fetch :as df]
+            [fulcro.client.core :as uc]
+            [fulcro.client.data-fetch :as df]
             [app.cljs-operations :as cljs-ops]))
 
 ;;

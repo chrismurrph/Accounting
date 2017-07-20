@@ -1,10 +1,11 @@
 (defproject Accounting "0.1.0-SNAPSHOT"
   :description "Accounting = doing the bookkeeping for my business"
   :url "http://seasoft.com.au/FIXME"
-  :dependencies [[org.clojure/clojure "1.9.0-alpha16"]
-                 [org.clojure/clojurescript "1.9.562"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
+                 [org.clojure/clojurescript "1.9.671"]
                  [org.omcljs/om "1.0.0-beta1"]
-                 [awkay/untangled "1.0.0-SNAPSHOT"]
+                 [fulcrologic/fulcro "1.0.0-beta5"]
+                 ;[awkay/untangled "1.0.0-SNAPSHOT"]
                  [navis/untangled-datomic "0.4.11"]
                  [clj-time "0.13.0"]
                  [com.andrewmcveigh/cljs-time "0.5.0"]

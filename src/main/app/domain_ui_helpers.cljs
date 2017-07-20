@@ -1,6 +1,6 @@
 (ns app.domain-ui-helpers
   (:require [om.dom :as dom]
-            [untangled.ui.forms :as f]
+            [fulcro.ui.forms :as f]
             [app.util :as u]
             [app.panels :as p]
             [app.forms-helpers :as fh]

@@ -94,20 +94,26 @@
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   static om/IQuery
-  (query [this] [:db/id :rule/permanent? :rule/source-bank :rule/target-account :rule/logic-operator :rule/conditions
+  (query [this] [:db/id :rule/permanent? :rule/rule-num :rule/source-bank :rule/target-account :rule/logic-operator :rule/conditions
                  :rule/on-dates {:rule/time-slot (om/get-query TimeSlot)}])
   Object
   (render [this]
     (let [props (om/props this)
-          {:keys [db/id rule/permanent? rule/source-bank rule/target-account rule/logic-operator rule/conditions]} props
+          {:keys [db/id rule/permanent? rule/rule-num rule/source-bank rule/target-account rule/logic-operator rule/conditions]} props
           {:keys [rule-unselected]} (om/get-computed this)]
       (dom/div nil
                (if rule-unselected
                  (dom/div nil
                           (dom/label nil (str "Selector: " logic-operator))
+                          (dom/br nil)
+                          (dom/label nil (str "Rule Num: " rule-num))
+                          (dom/br nil)
                           (dom/button #js {:onClick rule-unselected} "Back"))
                  (dom/div nil
-                          (dom/label nil (str "Selector: " logic-operator))))
+                          (dom/label nil (str "Selector: " logic-operator))
+                          (dom/br nil)
+                          (dom/label nil (str "Rule Num: " rule-num))
+                          (dom/br nil)))
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map ui-condition conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))

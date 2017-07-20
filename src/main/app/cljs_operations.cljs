@@ -8,6 +8,7 @@
     [cljc.utils :as us]
     [untangled.ui.forms :as f]
     [app.forms-helpers :as fh]
+    [app.om-helpers :as oh]
     [clojure.set :as set]
     [untangled.client.data-fetch :as df]
     [untangled.client.core :as uc]
@@ -101,6 +102,10 @@
             (swap! state assoc-in phone-ident new-phone)
             (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
 
+(def conditions-count-sorter (oh/sort-idents 10
+                                             (fn [m] [:rule/by-id (:db/id m)])
+                                             (comp count :rule/conditions)))
+
 ;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :permanent/person-form
 ;; Used the word 'permanent' because it is never going to change and can always be there to be picked by by others
 (defmutation rules-loaded
@@ -117,14 +122,12 @@
                       _ (assert new-person)
                       person-ident (om/ident person-form new-person)
                       target help/banking-form-person-whereabouts
-                      ;conditions-integrator (nst/normalizer :rule/by-id :rule/conditions :condition/by-id nst/v->condition 1000)
                       ]
                   (swap! state #(-> %
                                     (assoc-in person-ident new-person)
                                     (assoc-in target person-ident)
                                     (assoc-in help/only-rule nil)
                                     (assoc-in help/selected-rule nil)
-                                    ;conditions-integrator
                                     )))
               1 (swap! state #(-> %
                                   (assoc-in help/only-rule (first (get-in st help/rules-list-items-whereabouts)))
@@ -132,8 +135,8 @@
               (swap! state #(-> %
                                 (assoc-in help/only-rule nil)
                                 (assoc-in help/selected-rule nil)
-                                ;conditions-integrator
-                                ))))))
+                                (update-in help/rules-list-items-whereabouts
+                                           (fn [rules] (conditions-count-sorter % rules)))))))))
 
 (defn ledger-drop-down [st acct-type]
   (if (= acct-type :type/personal)

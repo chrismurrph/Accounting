@@ -53,7 +53,7 @@
                                          rule/time-slot
                                          rule/amount] :as rule}]
   (and (or (nil? actual-period) (t/within-actual-period? (:out/date record) actual-period))
-       (or (nil? on-dates) (t/in-set? on-dates (:out/date record)))
+       (or (nil? on-dates) (t/in-set? (set on-dates) (:out/date record)))
        (or (nil? time-slot)
            (let [{:keys [time-slot/start-at time-slot/end-at]} time-slot]
              ((t/within-range-hof? start-at end-at) (:out/date record))))

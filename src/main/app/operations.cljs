@@ -17,12 +17,3 @@
                                       (vec (filter #(not= ident-to-remove %) old-fks)))]
                        (swap! state update-in [:ledger-item-list/by-id list-id :ledger-item-list/people] strip-fk)))
              (remote [env] true))
-
-#_(defmutation create-person [{:keys [id]}]
-    (action [{:keys [state]}]
-            (let [new-phone    (f/build-form uubms/ValidatedPhoneForm {:db/id id :phone/type :home :phone/number ""})
-                  person-ident [:people/by-id person]
-                  phone-ident  (om/ident uubms/ValidatedPhoneForm new-phone)]
-              (swap! state assoc-in phone-ident new-phone)
-              (uc/integrate-ident! state phone-ident :append (conj person-ident :person/phone-numbers)))))
-

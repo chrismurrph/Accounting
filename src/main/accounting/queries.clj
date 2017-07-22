@@ -127,11 +127,13 @@
                 {:rule/source-bank -account-pull}
                 {:rule/target-account -account-pull}])
 
-(defn coerce-timeslot [{:keys [rule/time-slot] :as m}]
+(defn coerce-timeslot [{:keys [rule/time-slot rule/on-dates] :as m}]
   (cond-> m
           time-slot (update :rule/time-slot (fn [{:keys [time-slot/start-at time-slot/end-at]}]
-                                              {:time-slot/start-at (c/to-date start-at)
-                                               :time-slot/end-at   (c/to-date end-at)}))))
+                                              {:time-slot/start-at (c/from-date start-at)
+                                               :time-slot/end-at   (c/from-date end-at)}))
+          on-dates (update :rule/on-dates (fn [dates]
+                                            (mapv c/from-date dates)))))
 
 (defn find-current-period-rules
   "Find all rules of the org for the current period."
@@ -159,19 +161,19 @@
   [conn org-key]
   (let [db (d/db conn)
         ids (d/q '[:find ?ord ?ap
-                    :in $ ?o :where
-                    [?e :organisation/key ?o]
-                    [?e :organisation/current-time-ordinal ?ord]
-                    [?tlu :time-lookup/time-ordinal ?ord]
-                    [?tlu :time-lookup/actual-period ?ap]
-                    ] db org-key)]
+                   :in $ ?o :where
+                   [?e :organisation/key ?o]
+                   [?e :organisation/current-time-ordinal ?ord]
+                   [?tlu :time-lookup/time-ordinal ?ord]
+                   [?tlu :time-lookup/actual-period ?ap]
+                   ] db org-key)]
     (->> ids
          (map (fn [[ord ap]]
                 [ord (d/pull db -actual-period-pull ap)])))))
 
 (defn read-period-specific-rules
   "Find all rules of the org for a particular period."
-  [conn org-key year quarter]
+  [joda? conn org-key year quarter]
   (assert (number? year))
   (assert (keyword? quarter))
   (let [db (d/db conn)
@@ -185,9 +187,9 @@
                              [?r :rule/actual-period ?ap]
                              [?r :rule/permanent? true])
                     ] db org-key year quarter)
-        rvs (->> eids
-                 (map #(d/pull db rule-pull %))
-                 (mapv coerce-timeslot))]
+        rvs (cond->> eids
+                     true (map #(d/pull db rule-pull %))
+                     joda? (mapv coerce-timeslot))]
     rvs))
 
 (def timespan-pull [{:timespan/commencing-period -actual-period-pull}

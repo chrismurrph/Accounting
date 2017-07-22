@@ -193,6 +193,36 @@
                  :else {:start date-2
                         :value val-1})))))
 
+(defn x-15 []
+  (let [[[mentry-k mentry-v]] {:a :b}]
+    [mentry-k mentry-v]))
+
+(defn x-16 []
+  (let [[mentry-k mentry-v] (first {:a :b})]
+    [mentry-k mentry-v]))
+
+(defn x-17 []
+  (let [[mentry-k mentry-v] (nth {:a :b} 0)]
+    [mentry-k mentry-v]))
+
+(defn x-18 []
+  (let [[mentry-k mentry-v] (get {:a :b} :a)]
+    [mentry-k mentry-v]))
+
+
+(def vector-of-maps [{:a 1 :b 2} {:a 3 :b 4}])
+
+(defn update-map [m f]
+  (reduce-kv (fn [m k v]
+               (assoc m k (f v)))
+             {}
+             m))
+
+(defn x-19 []
+  (map #(update-map % inc) vector-of-maps))
+
+;; => ({:b 3, :a 2} {:b 5, :a 4})
+
 ["anz-visa"
  "_ANZ_credit_card.csv"
  #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},

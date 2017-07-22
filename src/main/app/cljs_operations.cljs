@@ -107,7 +107,7 @@
                                              (fn [m] [:rule/by-id (:db/id m)])
                                              (comp count :rule/conditions)))
 
-;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :permanent/person-form
+;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :global-form/person-form
 ;; Used the word 'permanent' because it is never going to change and can always be there to be picked by by others
 (defmutation rules-loaded
   [{:keys [no-params]}]
@@ -117,7 +117,7 @@
                 _ (println "rules-loaded, rules count: " rules-count)]
             (condp = rules-count
               0 (let [st @state
-                      person-form (get st :permanent/person-form)
+                      person-form (get st :global-form/person-form)
                       _ (assert person-form)
                       new-person (f/build-form person-form (make-person "Chris Murphy" 50))
                       _ (assert new-person)
@@ -174,7 +174,7 @@
                 (swap! state help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options))
               (swap! state assoc-in help/target-account-field-whereabouts personal-key))
             ;; 'rules-loaded (see post-mutation below) doesn't take a parameter so have to put one in here
-            (swap! state assoc :permanent/person-form person-form)
+            (swap! state assoc :global-form/person-form person-form)
             (let [st @state
                   org-ident [:organisation/by-id p/ORGANISATION]
                   {:keys [organisation/key]} (get-in st org-ident)]

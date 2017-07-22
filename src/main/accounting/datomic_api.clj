@@ -58,7 +58,7 @@
         {:keys [actual-period/year actual-period/quarter]} actual-period
         bank (e/make-account-key source-bank)
         ledger (e/make-account-key target-ledger)]
-    (->> (q/read-period-specific-rules conn org-key year quarter)
+    (->> (q/read-period-specific-rules false conn org-key year quarter)
          (m/filter-rules-new #{bank} #{ledger})
          ;(drop 3)
          ;(take 10)
@@ -87,7 +87,7 @@
                    :bank-records  (->> org-key
                                        (q/current-period-line-items conn)
                                        (q/line-items-transform conn))}
-                  (q/read-period-specific-rules conn org-key year quarter))
+                  (q/read-period-specific-rules false conn org-key year quarter))
                 ffirst
                 (keep (fn [[k v]]
                         (when (not= k :db/id)
@@ -141,7 +141,7 @@
                                   bank-accounts)
         _ (assert (seq rep-bank-accounts) (str "No current bank accounts from " bank-accounts " within " rep-actual-period))
         rep-bank-records (q/find-line-items conn org-key (us/kw->number year) period)
-        rep-rules (q/read-period-specific-rules conn org-key (us/kw->number year) period)]
+        rep-rules (q/read-period-specific-rules true conn org-key (us/kw->number year) period)]
     (->> (c/account-grouped-transactions {:bank-accounts rep-bank-accounts
                                           :bank-records  rep-bank-records} rep-rules)
          c/accounts-summary

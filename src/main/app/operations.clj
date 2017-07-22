@@ -9,6 +9,7 @@
     [accounting.datomic-api :as new-api]
     [fulcro.ui.forms :as f]
     [datomic.api :as d]
+    [accounting.datomic-helpers :as dh]
     [untangled.datomic.protocols :as db]))
 
 (def people-db (atom {1  {:db/id 1 :ledger-item/name "Bert" :ledger-item/amount 55}
@@ -27,9 +28,36 @@
              (action [{:keys [state]}]
                      (timbre/info "Server add-phone" id " " person)))
 
-(defmethod server/server-mutate `f/commit-to-entity [env k params]
+(def understood-keys #{:form/new-entities :form/add-relations})
+(defn unimplemented-keys? [m]
+  (let [new-keys (->> m
+                      keys
+                      (remove understood-keys))]
+    (seq new-keys)))
+
+(defn replace-db-ids [m]
+  (->> m
+       (map (fn [[k v]]
+              (if (= k :db/id)
+                [k (d/tempid :db.part/user)]
+                [k v])))
+       (into {})))
+
+(defmethod server/server-mutate `f/commit-to-entity [{:keys [b00ks-database]} k params]
   {:action (fn []
-             (println (str "<" params ">")))})
+             (assert (not (unimplemented-keys? params)) (str "Not yet coded for these keys: " (unimplemented-keys? params)))
+             ;(println (str "<" params ">"))
+             (let [conn (:connection b00ks-database)
+                   _ (assert conn)
+                   ; How get hold of id anyway (see ToDoMVC example app)
+                   ;datomic-id (d/tempid :db.part/user)
+                   ;omid->tempid {id datomic-id}
+                   nested (dh/create-datomic-nested :phone/by-id params)
+                   with-datomic-tempids (mapv replace-db-ids nested)
+                   _ (println "TRANS: " with-datomic-tempids)
+                   ]
+               @(d/transact conn with-datomic-tempids)
+               ))})
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

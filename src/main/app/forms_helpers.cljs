@@ -54,6 +54,3 @@
         (assoc-in options-whereabouts options-value))))
 
 
-
-
-

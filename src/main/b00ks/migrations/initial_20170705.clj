@@ -1,6 +1,7 @@
 (ns b00ks.migrations.initial-20170705
   (:require [datomic.api :as d]
-            [untangled.datomic.schema :as s]))
+            [untangled.datomic.schema :as s]
+            [accounting.util :as u]))
 
 (def parts
   [(s/part "app")])
@@ -97,7 +98,7 @@
                [on-dates :instant :many]
                ;; Most are permanent. If not will have an actual-period
                [permanent? :boolean]
-               [conditions :ref :many]
+               [conditions :ref :many :component]
                [source-bank :ref :one]
                [target-account :ref :one]
                ;;
@@ -147,6 +148,7 @@
                [splits :ref :many]
                [possible-reports :keyword :many]
                [rules :ref :many]
+               [people :ref :many]
                [current-time-ordinal :long :one]
                ))
 
@@ -155,9 +157,17 @@
                [login :string :indexed]
                [pwd :bytes]))
 
-   (s/schema person
+   (s/schema phone
              (s/fields
-               [name :string :indexed "Name of the person"]))
+               [number :string  :unique-identity]
+               [type :keyword]))
+
+   (s/schema person
+             (u/probe-on (s/fields
+                           [name :string :unique-identity]
+                           [age :long]
+                           [registered-to-vote? :boolean]
+                           [phone-numbers :ref :many :component])))
 
    (s/schema group
              (s/fields

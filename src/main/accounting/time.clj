@@ -256,11 +256,12 @@
       (and (begin? date)
            (end? date)))))
 
-;; I'm assuming these Java dates are immutable - don't know why equals? exists in the clj-time library
 (defn in-set? [dates date]
   (assert date "No date")
+  (assert (satisfies-joda? date) (us/assert-str "date" date))
+  (assert (satisfies-joda? (first dates)))
   (assert (set? dates))
-  (println (str "See if " (format-date date) " is in " (mapv format-date dates)))
+  ;(println (str "See if " (format-date date) " is in " (mapv format-date dates)))
   (dates date))
 
 (defn within-actual-period? [date actual-period]

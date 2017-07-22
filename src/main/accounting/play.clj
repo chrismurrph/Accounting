@@ -100,6 +100,6 @@
         customer-kw :seaweed
         bank-account #:account{:category :bank :name "anz-visa"}
         ledger-account #:account{:category :exp :name "niim-trip"}]
-    (->> (q/read-period-specific-rules conn customer-kw 2017 :q3)
+    (->> (q/read-period-specific-rules false conn customer-kw 2017 :q3)
          (m/filter-rules-new #{bank-account} #{ledger-account})
          us/probe-count-on)))

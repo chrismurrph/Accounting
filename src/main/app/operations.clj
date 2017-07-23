@@ -43,21 +43,25 @@
                 [k v])))
        (into {})))
 
-(defmethod server/server-mutate `f/commit-to-entity [{:keys [b00ks-database]} k params]
+(defn resolve-ids [new-db omids->tempids tempids->realids]
+  (reduce
+    (fn [acc [cid dtmpid]]
+      (assoc acc cid (d/resolve-tempid new-db tempids->realids dtmpid)))
+    {}
+    omids->tempids))
+
+(defmethod server/server-mutate `f/commit-to-entity [{:keys [b00ks-database] :as env} k params]
   {:action (fn []
              (assert (not (unimplemented-keys? params)) (str "Not yet coded for these keys: " (unimplemented-keys? params)))
-             ;(println (str "<" params ">"))
+             (println (str "<" params ">"))
              (let [conn (:connection b00ks-database)
                    _ (assert conn)
-                   ; How get hold of id anyway (see ToDoMVC example app)
-                   ;datomic-id (d/tempid :db.part/user)
-                   ;omid->tempid {id datomic-id}
-                   nested (dh/create-datomic-nested :phone/by-id params)
-                   with-datomic-tempids (mapv replace-db-ids nested)
-                   _ (println "TRANS: " with-datomic-tempids)
-                   ]
-               @(d/transact conn with-datomic-tempids)
-               ))})
+                   {:keys [omid->tempid tx]} (dh/datomic-driver-2 :people/by-id :phone/by-id params)
+                   _ (println "TRANS: " tx)
+                   result @(d/transact conn tx)
+                   tempid->realid (:tempids result)
+                   omids->realids (resolve-ids (d/db conn) omid->tempid tempid->realid)]
+               {:tempids omids->realids}))})
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

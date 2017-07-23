@@ -91,7 +91,9 @@
                                                "UNDO")
                                    (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
                                                     :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
-                                                                                     (f/commit-to-entity {:form ~(om/props this) :remote true})])}
+                                                                                     (f/commit-to-entity {:form ~(om/props this)
+                                                                                                          :id (:db/id props)
+                                                                                                          :remote true})])}
                                                "Submit"))))))
 
 (def ui-person-form (om/factory PersonForm))

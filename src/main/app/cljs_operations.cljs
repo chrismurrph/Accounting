@@ -1,6 +1,5 @@
 (ns app.cljs-operations
   (:require
-    ;[untangled.client.mutations :as m :refer [defmutation]]
     [fulcro.client.mutations :as m :refer [defmutation]]
     [om.next :as om]
     [app.panels :as p]
@@ -108,7 +107,7 @@
                                              (comp count :rule/conditions)))
 
 ;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :global-form/person-form
-;; Used the word 'permanent' because it is never going to change and can always be there to be picked by by others
+;; Used the word 'global-form' because it is never going to change and can always be there to be picked by by others
 (defmutation rules-loaded
   [{:keys [no-params]}]
   (action [{:keys [state]}]
@@ -119,7 +118,7 @@
               0 (let [st @state
                       person-form (get st :global-form/person-form)
                       _ (assert person-form)
-                      new-person (f/build-form person-form (make-person "Chris Murphy" 50))
+                      new-person (f/build-form person-form (make-person "Chris Murphy" 25))
                       _ (assert new-person)
                       person-ident (om/ident person-form new-person)
                       target help/banking-form-person-whereabouts

@@ -10,8 +10,7 @@
                  [clj-time "0.13.0"]
                  [com.andrewmcveigh/cljs-time "0.5.0"]
                  ;; Putting in this version of guava fixes datomic dependency issues
-                 [com.google.guava/guava "21.0"]
-                 [com.datomic/datomic-pro "0.9.5385"]
+                 [com.datomic/datomic-pro "0.9.5561" :exclusions [com.google.guava/guava]]
                  ]
   :source-paths ["src/main"]
   :resource-paths ["resources"]

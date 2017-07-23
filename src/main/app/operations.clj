@@ -28,39 +28,16 @@
              (action [{:keys [state]}]
                      (timbre/info "Server add-phone" id " " person)))
 
-(def understood-keys #{:form/new-entities :form/add-relations})
-(defn unimplemented-keys? [m]
-  (let [new-keys (->> m
-                      keys
-                      (remove understood-keys))]
-    (seq new-keys)))
-
-(defn replace-db-ids [m]
-  (->> m
-       (map (fn [[k v]]
-              (if (= k :db/id)
-                [k (d/tempid :db.part/user)]
-                [k v])))
-       (into {})))
-
-(defn resolve-ids [new-db omids->tempids tempids->realids]
-  (reduce
-    (fn [acc [cid dtmpid]]
-      (assoc acc cid (d/resolve-tempid new-db tempids->realids dtmpid)))
-    {}
-    omids->tempids))
-
 (defmethod server/server-mutate `f/commit-to-entity [{:keys [b00ks-database] :as env} k params]
   {:action (fn []
-             (assert (not (unimplemented-keys? params)) (str "Not yet coded for these keys: " (unimplemented-keys? params)))
-             (println (str "<" params ">"))
+             (assert (not (dh/unimplemented-keys? params))
+                     (str "Not yet coded for these keys: " (dh/unimplemented-keys? params)))
              (let [conn (:connection b00ks-database)
                    _ (assert conn)
-                   {:keys [omid->tempid tx]} (dh/datomic-driver-2 :people/by-id :phone/by-id params)
-                   _ (println "TRANS: " tx)
+                   {:keys [omid->tempid tx]} (dh/datomic-driver :people/by-id :phone/by-id params)
                    result @(d/transact conn tx)
                    tempid->realid (:tempids result)
-                   omids->realids (resolve-ids (d/db conn) omid->tempid tempid->realid)]
+                   omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]
                {:tempids omids->realids}))})
 
 (defmutation delete-ledger-item

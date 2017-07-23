@@ -1,6 +1,20 @@
 (ns accounting.datomic-helpers
   (:require [datomic.api :as d]))
 
+(def understood-keys #{:form/new-entities :form/add-relations})
+(defn unimplemented-keys? [m]
+  (let [new-keys (->> m
+                      keys
+                      (remove understood-keys))]
+    (seq new-keys)))
+
+(defn resolve-ids [new-db omids->tempids tempids->realids]
+  (reduce
+    (fn [acc [cid dtmpid]]
+      (assoc acc cid (d/resolve-tempid new-db tempids->realids dtmpid)))
+    {}
+    omids->tempids))
+
 (defn replace-db-ids [omid->tempid]
   (fn [m]
     (->> m
@@ -15,7 +29,7 @@
 ;; entities and relations that are added. Yet to come is existing entities and relations to be removed.
 ;; From Datomic's point of view the reference to the nested map must be a component attribute.
 ;;
-(defn datomic-driver-1 [detail-class {:keys [form/new-entities form/add-relations]}]
+(defn fulcro->nested [detail-class {:keys [form/new-entities form/add-relations]}]
   (-> (reduce-kv
         (fn [m k v]
           (let [[relation-k [merge-k merge-idents]] (some (fn [[rk rv]] (when (= rk k) [rk (first rv)])) add-relations)]
@@ -38,14 +52,14 @@
 ;; 4. mapv over this with replace-db-ids s/give us tx that Datomic needs
 ;; 5. Return as hash-map with tx and omid->tempid
 ;;
-(defn datomic-driver-2 [master-class detail-class {:keys [form/new-entities form/add-relations] :as in}]
+(defn datomic-driver [master-class detail-class {:keys [form/new-entities form/add-relations] :as in}]
   (let [master-ids (->> new-entities
                         (filter (fn [[k v]] (= master-class (first k))))
                         (map (fn [[k v]] (second k))))
         omid->tempid (->> master-ids
                           (map (fn [id] [id (d/tempid :db.part/user)]))
                           (into {}))
-        tx (datomic-driver-1 detail-class in)
+        tx (fulcro->nested detail-class in)
         tx (mapv (replace-db-ids omid->tempid) tx)]
     {:tx           tx
      :omid->tempid omid->tempid}))
@@ -67,10 +81,10 @@
                                             {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]]}}})
 
 (defn test-create-nested-1 []
-  (datomic-driver-1 :phone/by-id incoming-example))
+  (fulcro->nested :phone/by-id incoming-example))
 
 (defn test-create-nested-2 []
-  (datomic-driver-2 :people/by-id :phone/by-id incoming-example))
+  (datomic-driver :people/by-id :phone/by-id incoming-example))
 
 ;;
 ;; If there are only new entities life is easy...
@@ -116,7 +130,7 @@
 ;;
 (defn test-creating-nested []
   (let [conn (d/connect db-uri)
-        nested (datomic-driver-1 :phone/by-id incoming-example)]
+        nested (fulcro->nested :phone/by-id incoming-example)]
     @(d/transact conn nested)))
 
 (defn test-what-coming []

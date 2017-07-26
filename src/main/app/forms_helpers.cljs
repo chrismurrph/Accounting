@@ -1,6 +1,7 @@
 (ns app.forms-helpers
   (:require [om.dom :as dom]
-            [fulcro.ui.forms :as f]))
+            [fulcro.ui.forms :as f]
+            [fulcro.client.mutations :as m :refer [defmutation]]))
 
 ;;
 ;; Can be used in a mutation to assoc-in new options

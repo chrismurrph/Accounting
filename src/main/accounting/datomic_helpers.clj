@@ -43,24 +43,36 @@
       vals
       vec))
 
+(defn place-within [{:keys [eid content-holder-key]}]
+  (fn [tx]
+    {:db/id             eid
+     content-holder-key (mapv :db/id tx)
+     }))
+
 ;;
 ;; Needs to return tx, a transaction vector, and omid->tempid, which maps the ids from add-relations to the ids
 ;; we create here which are used by Datomic in the transaction.
 ;; 1. Get the existing ids of the master class as a list
 ;; 2. Create the omid->tempid map by generating against every one in the list
-;; 3. datomic-driver-1 will give us tx but without the Datomic tempids
+;; 3. fulcro->nested will give us tx but without the Datomic tempids
 ;; 4. mapv over this with replace-db-ids s/give us tx that Datomic needs
 ;; 5. Return as hash-map with tx and omid->tempid
 ;;
-(defn datomic-driver [master-class detail-class {:keys [form/new-entities form/add-relations] :as in}]
-  (let [master-ids (->> new-entities
+(defn datomic-driver [within {:keys [form/new-entities form/add-relations] :as in}]
+  (let [{:keys [eid attribute attribute-value-value master-class detail-class]} within
+        master-ids (->> new-entities
                         (filter (fn [[k v]] (= master-class (first k))))
                         (map (fn [[k v]] (second k))))
         omid->tempid (->> master-ids
                           (map (fn [id] [id (d/tempid :db.part/user)]))
                           (into {}))
-        tx (fulcro->nested detail-class in)
-        tx (mapv (replace-db-ids omid->tempid) tx)]
+        ids-replacer (replace-db-ids omid->tempid)
+        within-placer (place-within within)
+        tx (->> in
+                (fulcro->nested detail-class)
+                (mapv ids-replacer))
+        tx (if eid (conj tx (within-placer tx)) tx)]
+    (println "TX: " tx)
     {:tx           tx
      :omid->tempid omid->tempid}))
 
@@ -71,20 +83,41 @@
 (def incoming-example {:form/new-entities  {[:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
                                             {:db/id                      (d/tempid :db.part/user),
                                              :person/name                "Chris Murphy",
-                                             :person/age                 35,
+                                             :person/age                 45,
                                              :person/registered-to-vote? false},
                                             [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]
                                             {:db/id        (d/tempid :db.part/user),
                                              :phone/number "0403162669",
-                                             :phone/type   :home}},
-                       :form/add-relations {[:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
-                                            {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]]}}})
+                                             :phone/type   :home}
+                                            [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
+                                            {:db/id                      (d/tempid :db.part/user),
+                                             :person/name                "Jan Marie",
+                                             :person/age                 31,
+                                             :person/registered-to-vote? true},
+                                            [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]
+                                            {:db/id        (d/tempid :db.part/user),
+                                             :phone/number "90866777777",
+                                             :phone/type   :home}
+                                            },
+                       :form/add-relations {
+                                            [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
+                                            {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]]}
+                                            [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
+                                            {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]]}
+                                            }})
+
+(def within-example {
+                     :attribute             :organisation/key
+                     :content-holder-key    :organisation/people
+                     :attribute-value-value :seaweed
+                     :master-class          :people/by-id
+                     :detail-class          :phone/by-id})
 
 (defn test-create-nested-1 []
   (fulcro->nested :phone/by-id incoming-example))
 
 (defn test-create-nested-2 []
-  (datomic-driver :people/by-id :phone/by-id incoming-example))
+  (datomic-driver within-example incoming-example))
 
 ;;
 ;; If there are only new entities life is easy...
@@ -130,7 +163,7 @@
 ;;
 (defn test-creating-nested []
   (let [conn (d/connect db-uri)
-        nested (fulcro->nested :phone/by-id incoming-example)]
+        nested (:tx (datomic-driver within-example incoming-example))]
     @(d/transact conn nested)))
 
 (defn test-what-coming []

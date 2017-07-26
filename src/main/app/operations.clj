@@ -24,21 +24,49 @@
                       (get @people-db 99)))
 
 #_(defmutation add-phone
-             [{:keys [id person #_phone-form]}]
-             (action [{:keys [state]}]
-                     (timbre/info "Server add-phone" id " " person)))
+               [{:keys [id person #_phone-form]}]
+               (action [{:keys [state]}]
+                       (timbre/info "Server add-phone" id " " person)))
 
-(defmethod server/server-mutate `f/commit-to-entity [{:keys [b00ks-database] :as env} k params]
-  {:action (fn []
-             (assert (not (dh/unimplemented-keys? params))
-                     (str "Not yet coded for these keys: " (dh/unimplemented-keys? params)))
-             (let [conn (:connection b00ks-database)
-                   _ (assert conn)
-                   {:keys [omid->tempid tx]} (dh/datomic-driver :people/by-id :phone/by-id params)
-                   result @(d/transact conn tx)
-                   tempid->realid (:tempids result)
-                   omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]
-               {:tempids omids->realids}))})
+#_(defmethod server/server-mutate `commit-to-within-entity [{:keys [b00ks-database] :as env} k params]
+    {:action (fn []
+               (assert (not (dh/unimplemented-keys? params))
+                       (str "Not yet coded for these keys: " (dh/unimplemented-keys? params)))
+               (let [conn (:connection b00ks-database)
+                     _ (assert conn)
+                     {:keys [omid->tempid tx]} (dh/datomic-driver :people/by-id :phone/by-id params)
+                     result @(d/transact conn tx)
+                     tempid->realid (:tempids result)
+                     omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]
+                 {:tempids omids->realids})
+               )
+     }
+    )
+
+;;
+;; :attribute             :organisation/key
+;; :attribute-value-value :seaweed
+;; :master-class          :people/by-id
+;; :detail-class          :phone/by-id
+;;
+(defmutation commit-to-within-entity
+             [{:keys [form-diff within]}]
+             (action [{:keys [b00ks-database]} ;; :b00ks-database :request :parser :target :query-root :path :ast
+                      ]
+                     (u/fulcro-assert (not (dh/unimplemented-keys? form-diff))
+                                      (str "Not yet coded for these keys: " (dh/unimplemented-keys? form-diff)))
+                     (let [{:keys [attribute-value-value attribute]} within
+                           conn (:connection b00ks-database)
+                           _ (println "conn: <" conn ">")
+                           eid (and attribute (d/q '[:find ?e .
+                                                     :in $ ?o ?a
+                                                     :where [?e ?a ?o]]
+                                                   (d/db conn) attribute-value-value attribute))
+                           {:keys [omid->tempid tx]} (dh/datomic-driver (assoc within :eid eid) form-diff)
+                           result @(d/transact conn tx)
+                           tempid->realid (:tempids result)
+                           omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]
+                       {:tempids omids->realids})))
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

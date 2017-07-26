@@ -3,6 +3,15 @@
             [clojure.pprint :as pp]
             [clojure.edn :as edn]))
 
+;;
+;; Asserts get handled terribly by fulcro server ("Not an exception"). This ensures you can
+;; see your error message.
+;;
+(defn fulcro-assert [predicate msg]
+  (if-not predicate
+    (throw
+      (ex-info msg {}))))
+
 (defn keys-remapper [m]
   (fn [ma]
     (into {} (map (fn [[k v]] [(m k) v]) ma))))

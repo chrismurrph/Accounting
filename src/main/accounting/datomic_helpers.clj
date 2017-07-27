@@ -72,7 +72,7 @@
                 (fulcro->nested detail-class)
                 (mapv ids-replacer))
         tx (if eid (conj tx (within-placer tx)) tx)]
-    (println "TX: " tx)
+    ;(println "TX: " tx)
     {:tx           tx
      :omid->tempid omid->tempid}))
 

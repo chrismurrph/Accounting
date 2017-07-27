@@ -12,6 +12,7 @@
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
             [app.person :as per]
+            [app.rule :as rul]
             [fulcro.ui.forms :as f]
             [app.forms-helpers :as fh]
             [app.config :as config]
@@ -215,7 +216,7 @@
   {:db/id                            id
    :banking-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
    :banking-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
-   :person                           nil})
+   :rule                             nil})
 
 ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
 ;; but the existing rules were not being displayed.
@@ -252,11 +253,11 @@
               ;; Only when there's a target account will any of these come back
               {:banking-form/existing-rules (om/get-query RulesList)}
               {:banking-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key
-              {:person (om/get-query per/PersonForm)}])
+              {:rule (om/get-query rul/RuleForm)}])
   Object
   (render [this]
     (let [{:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
-                  banking-form/target-ledger banking-form/existing-rules person] :as form} (om/props this)
+                  banking-form/target-ledger banking-form/existing-rules rule] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts]} config-data
           matching-rules-count (-> existing-rules :rules-list/items count)]
@@ -275,7 +276,7 @@
                                                                                    {:acct-type      ~new-val
                                                                                     :sub-query-comp ~RuleRow
                                                                                     :src-bank       ~src-bank
-                                                                                    :person-form    ~per/PersonForm})]))))})
+                                                                                    :rule-form    ~rul/RuleForm})]))))})
                (if (and ledger-type (not (#{no-pick :type/personal} ledger-type)))
                  (fh/field-with-label this form :banking-form/target-ledger
                                       (str "Target " (help/ledger-type->desc ledger-type))
@@ -295,10 +296,10 @@
                           (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
                                               " from " (help/bank-kw->bank-name src-bank)
                                               ". You need to create a new rule:"))
-                          (if person
+                          (if rule
                             (dom/div nil
                                      (dom/label nil (str "ledger type: " ledger-type))
-                                     (per/ui-person-form person))
+                                     (rul/ui-rule-form rule))
                             (us/log-off "Better create new person")))
                  (ui-rules-list existing-rules))))))
 

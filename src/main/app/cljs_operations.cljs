@@ -106,8 +106,8 @@
                                              (fn [m] [:rule/by-id (:db/id m)])
                                              (comp count :rule/conditions)))
 
-;; person-form -> really want that as parameter -> instead I've put it at top level in state, under :global-form/person-form
-;; Used the word 'global-form' because it is never going to change and can always be there to be picked by by others
+;; rule-form -> really want that as parameter -> instead I've put it at top level in state, under :global-form/rule-form
+;; Used the word 'rule-form' because it is never going to change and can always be there to be picked by by others
 (defmutation rules-loaded
   [{:keys [no-params]}]
   (action [{:keys [state]}]
@@ -116,12 +116,12 @@
                 _ (println "rules-loaded, rules count: " rules-count)]
             (condp = rules-count
               0 (let [st @state
-                      person-form (get st :global-form/person-form)
-                      _ (assert person-form)
-                      new-person (f/build-form person-form (make-person "Chris Murphy" 25))
+                      rule-form (get st :global-form/rule-form)
+                      _ (assert rule-form)
+                      new-person (f/build-form rule-form (make-person "Chris Murphy" 25))
                       _ (assert new-person)
-                      person-ident (om/ident person-form new-person)
-                      target help/banking-form-person-whereabouts
+                      person-ident (om/ident rule-form new-person)
+                      target help/banking-form-rule-whereabouts
                       ]
                   (swap! state #(-> %
                                     (assoc-in person-ident new-person)
@@ -153,7 +153,7 @@
 ;; If user has selected :type/personal then the next drop down is not even going to appear
 ;;
 (defmutation config-data-for-target-ledger-dropdown
-  [{:keys [sub-query-comp acct-type src-bank person-form]}]
+  [{:keys [sub-query-comp acct-type src-bank rule-form]}]
   (action [{:keys [state]}]
           (assert sub-query-comp (us/assert-str "sub-query-comp" sub-query-comp))
           (assert acct-type (us/assert-str "acct-type" acct-type))
@@ -173,7 +173,7 @@
                 (swap! state help/target-account-dropdown-rebuilder selected-target-account alphabetic-target-account-options))
               (swap! state assoc-in help/target-account-field-whereabouts personal-key))
             ;; 'rules-loaded (see post-mutation below) doesn't take a parameter so have to put one in here
-            (swap! state assoc :global-form/person-form person-form)
+            (swap! state assoc :global-form/rule-form rule-form)
             (let [st @state
                   org-ident [:organisation/by-id p/ORGANISATION]
                   {:keys [organisation/key]} (get-in st org-ident)]

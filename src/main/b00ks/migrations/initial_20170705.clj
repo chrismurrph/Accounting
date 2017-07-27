@@ -163,7 +163,7 @@
                [type :keyword]))
 
    (s/schema person
-             (u/probe-on (s/fields
+             (u/probe-off (s/fields
                            [name :string :unique-identity]
                            [age :long]
                            [registered-to-vote? :boolean]

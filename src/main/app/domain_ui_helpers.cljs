@@ -143,7 +143,7 @@
 
 (def banking-form-ident [:banking-form/by-id p/BANKING_FORM])
 (def banking-form-config-data-whereabouts (conj banking-form-ident :banking-form/config-data))
-(def banking-form-person-whereabouts (conj banking-form-ident :person))
+(def banking-form-rule-whereabouts (conj banking-form-ident :rule))
 ; Not where they go:
 ;(def banking-form-existing-rules-whereabouts (conj banking-form-ident :banking-form/existing-rules))
 

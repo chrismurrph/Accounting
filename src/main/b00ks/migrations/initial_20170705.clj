@@ -99,9 +99,11 @@
                ;; Most are permanent. If not will have an actual-period
                [permanent? :boolean]
                [conditions :ref :many :component]
+               [phone-numbers :ref :many :component]
                [source-bank :ref :one]
                [target-account :ref :one]
                ;;
+               ;; If there is not an actual period then it is permanent.
                ;; Notice that statement has a time ordinal. Here we have only
                ;; actual-period, rather than time-ordinal. Have time-lookup
                ;; entity which use if want to get actual-period->time-ordinal or

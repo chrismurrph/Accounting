@@ -30,11 +30,16 @@
               (dom/label nil (f/form-field comp form name params) label))
      (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
               (dom/label #js {:className (or label-width-css "col-sm-1") :htmlFor name} label)
-              (dom/div #js {:className "col-sm-2"} (f/form-field comp form name :onChange onChange))
+              (dom/div #js {:className "col-sm-2"}
+                       (if onChange                         ;; remove later
+                         (f/form-field comp form name :onChange onChange)
+                         ;; Thus no complaints from React
+                         ;; Hmm - still complains, the bug was elsewhere, remove this later as doubt is helpful
+                         (f/form-field comp form name)))
               (when (and validation-message (f/invalid? form name))
                 (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message))))))
 
-(comment "Makes no sense"
+(comment "Makes no sense - yes it did - no onChange capability"
          (defn checkbox-with-label
            "A helper function to lay out checkboxes."
            ([comp form name label]

@@ -49,33 +49,22 @@
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/subform-element :person/phone-numbers ValidatedPhoneForm :many)
-                     (f/text-input :person/name
-                                   ;:validator `help/name-valid?
-                                   )
-                     (f/integer-input :person/age
-                                      ;:validator `f/in-range?
-                                      :validator-args {:min 1 :max 110})
-                     (f/checkbox-input :person/registered-to-vote?)
-                     #_(f/dropdown-input :rule/logic-operator help/logic-options
+                     (f/subform-element :rule/phone-numbers ValidatedPhoneForm :many)
+                     (f/dropdown-input :rule/logic-operator help/logic-options
                                        :default-value :single)])
   static om/IQuery
   ; NOTE: f/form-root-key so that sub-forms will trigger render here
   (query [this] [f/form-root-key f/form-key
-                 :db/id :person/name :person/age
-                 :person/registered-to-vote?
-                 {:person/phone-numbers (om/get-query ValidatedPhoneForm)}])
+                 :db/id
+                 :rule/logic-operator
+                 {:rule/phone-numbers (om/get-query ValidatedPhoneForm)}])
   static om/Ident
-  (ident [this props] [:people/by-id (:db/id props)])
+  (ident [this props] [:rule/by-id (:db/id props)])
   Object
   (render [this]
-    (let [{:keys [person/phone-numbers] :as props} (om/props this)]
+    (let [{:keys [rule/phone-numbers] :as props} (om/props this)]
       (dom/div #js {:className "form-horizontal"}
-               (fh/field-with-label this props :person/name "Full Name:" "Please enter your first and last name.")
-               (fh/field-with-label this props :person/age "Age:" "That isn't a real age!")
-               (fh/field-with-label this props :person/registered-to-vote? "Registered?" {:checkbox-style? true})
-               (when (f/current-value props :person/registered-to-vote?)
-                 (dom/div nil "Good on you!"))
+               (fh/field-with-label this props :rule/logic-operator "Logic" {:checkbox-style? true})
                (dom/div nil
                         (mapv ui-vphone-form phone-numbers))
                (when (f/valid? props)
@@ -99,16 +88,16 @@
                                                                             {:form   ~(om/props this)
                                                                              :remote true
                                                                              :within {
-                                                                                      :content-holder-key    :organisation/people
+                                                                                      :content-holder-key    :organisation/rules
                                                                                       :attribute             :organisation/key
                                                                                       :attribute-value-value :seaweed
-                                                                                      :master-class          :people/by-id
+                                                                                      :master-class          :rule/by-id
                                                                                       :detail-class          :phone/by-id}})])}
                                     "Submit"))))))
 
 (def ui-rule-form (om/factory RuleForm))
 
-(def first-rule
+#_(def first-rule
   (uc/initial-state RuleForm
                     {:db/id                      1
                      :person/name                "Tony Kay"

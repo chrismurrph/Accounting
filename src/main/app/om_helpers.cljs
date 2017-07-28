@@ -1,4 +1,12 @@
-(ns app.om-helpers)
+(ns app.om-helpers
+  (:require [om.next :as om]))
+
+(defn make-temp-id [txt]
+  (om/tempid))
+
+(defn make-temp-id-debug [txt]
+  (let [res (om/tempid)]
+    (println ">>" txt ":" res)))
 
 ;;
 ;; ident function is the same as the one on a component.

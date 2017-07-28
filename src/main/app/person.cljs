@@ -5,7 +5,8 @@
             [om.dom :as dom]
             [app.forms-helpers :as fh]
             [app.cljs-operations :as cljs-ops]
-            [app.operations :as ops]))
+            [app.operations :as ops]
+            [app.om-helpers :as oh]))
 
 (defui ^:once ValidatedConditionForm
   static uc/InitialAppState
@@ -80,7 +81,7 @@
                (dom/div #js {:className "button-group"}
                         (dom/button #js {:className "btn btn-primary"
                                          :onClick   #(om/transact! this
-                                                                   `[(cljs-ops/add-phone ~{:id         (om/tempid)
+                                                                   `[(cljs-ops/add-phone ~{:id         (oh/make-temp-id-debug "add-phone")
                                                                                            :person     (:db/id props)
                                                                                            :phone-form ValidatedPhoneForm})])}
                                     "Add Phone")

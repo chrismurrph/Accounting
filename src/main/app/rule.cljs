@@ -13,19 +13,6 @@
 (defui ^:once ValidatedConditionForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
-  Object
-  (render [this]
-    (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
-          field-display (us/kw->string field)
-          predicate-display (us/kw->string predicate)]
-      (dom/tr nil
-              (dom/td #js {:className "col-md-2"} field-display)
-              (dom/td #js {:className "col-md-2"} predicate-display)
-              (dom/td #js {:className "col-md-2"} subject)))))
-
-(defui ^:once ValidatedConditionForm
-  static uc/InitialAppState
-  (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :condition/field [(f/option :out/desc "Description")
@@ -47,6 +34,32 @@
                (fh/field-with-label this form :condition/subject "Value:")))))
 
 (def ui-vcondition-form (om/factory ValidatedConditionForm))
+
+(defn button-group [rule-unselected this props]
+  (assert (or (nil? rule-unselected) (and (-> rule-unselected boolean? not) (fn? rule-unselected))))
+  (dom/div #js {:className "button-group"}
+           (when rule-unselected
+             (dom/button #js {:className "btn btn-default"
+                              :onClick rule-unselected}
+                         "Back"))
+           (dom/button #js {:className "btn btn-default"
+                            :onClick   #(om/transact! this
+                                                      `[(cljs-ops/add-condition
+                                                          ~{:id             (oh/make-temp-id "add-condition in rule")
+                                                            :rule           (:db/id props)
+                                                            :condition-form ValidatedConditionForm})])}
+                       "Add Condition")
+           (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
+                            :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
+                                                             (ops/commit-to-within-entity
+                                                               {:form   ~props
+                                                                :remote true
+                                                                :within {:content-holder-key    :organisation/rules
+                                                                         :attribute             :organisation/key
+                                                                         :attribute-value-value :seaweed
+                                                                         :master-class          :rule/by-id
+                                                                         :detail-class          :condition/by-id}})])}
+                       "Submit")))
 
 (defui ^:once RuleForm
   static uc/InitialAppState
@@ -73,25 +86,7 @@
                         (mapv ui-vcondition-form conditions))
                (when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
-               (dom/div #js {:className "button-group"}
-                        (dom/button #js {:className "btn btn-default"
-                                         :onClick   #(om/transact! this
-                                                                   `[(cljs-ops/add-condition
-                                                                       ~{:id             (oh/make-temp-id "add-condition in rule")
-                                                                         :rule           (:db/id props)
-                                                                         :condition-form ValidatedConditionForm})])}
-                                    "Add Condition")
-                        (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                         :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
-                                                                          (ops/commit-to-within-entity
-                                                                            {:form   ~props
-                                                                             :remote true
-                                                                             :within {:content-holder-key    :organisation/rules
-                                                                                      :attribute             :organisation/key
-                                                                                      :attribute-value-value :seaweed
-                                                                                      :master-class          :rule/by-id
-                                                                                      :detail-class          :condition/by-id}})])}
-                                    "Submit"))))))
+               (button-group nil this props)))))
 
 (def ui-rule-form (om/factory RuleForm))
 

@@ -105,57 +105,7 @@
           {:keys [db/id rule/permanent? rule/rule-num rule/source-bank rule/target-account rule/logic-operator rule/conditions]} props
           {:keys [rule-unselected]} (om/get-computed this)]
       (dom/div nil
-               (if rule-unselected
-                 (dom/div nil
-                          (dom/label nil (str "Selector: " logic-operator))
-                          (dom/br nil)
-                          (dom/label nil (str "Rule Num: " rule-num))
-                          (dom/br nil)
-                          (dom/div #js {:className "button-group"}
-                                   (dom/button #js {:className "btn btn-default"
-                                                    :onClick rule-unselected} "Back")
-                                   (dom/button #js {:className "btn btn-default"
-                                                    :onClick   #(om/transact! this
-                                                                              `[(cljs-ops/add-condition
-                                                                                  ~{:id             (oh/make-temp-id "add-condition in rule")
-                                                                                    :rule           (:db/id props)
-                                                                                    :condition-form rul/ValidatedConditionForm})])}
-                                               "Add Condition")
-                                   (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                                    :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
-                                                                                     (ops/commit-to-within-entity
-                                                                                       {:form   ~(om/props this)
-                                                                                        :remote true
-                                                                                        :within {:content-holder-key    :organisation/rules
-                                                                                                 :attribute             :organisation/key
-                                                                                                 :attribute-value-value :seaweed
-                                                                                                 :master-class          :rule/by-id
-                                                                                                 :detail-class          :condition/by-id}})])}
-                                               "Submit")))
-                 (dom/div nil
-                          (dom/label nil (str "Selector: " logic-operator))
-                          (dom/br nil)
-                          (dom/label nil (str "Rule Num: " rule-num))
-                          (dom/br nil)
-                          (dom/div #js {:className "button-group"}
-                                   (dom/button #js {:className "btn btn-default"
-                                                    :onClick   #(om/transact! this
-                                                                              `[(cljs-ops/add-condition
-                                                                                  ~{:id             (oh/make-temp-id "add-condition in rule")
-                                                                                    :rule           (:db/id props)
-                                                                                    :condition-form rul/ValidatedConditionForm})])}
-                                               "Add Condition")
-                                   (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                                    :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
-                                                                                     (ops/commit-to-within-entity
-                                                                                       {:form   ~(om/props this)
-                                                                                        :remote true
-                                                                                        :within {:content-holder-key    :organisation/rules
-                                                                                                 :attribute             :organisation/key
-                                                                                                 :attribute-value-value :seaweed
-                                                                                                 :master-class          :rule/by-id
-                                                                                                 :detail-class          :condition/by-id}})])}
-                                               "Submit"))))
+               (rul/button-group rule-unselected this props)
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map ui-condition conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))
@@ -201,7 +151,10 @@
   static om/Ident
   (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
-  (query [this] [:db/id :rules-list/label [:ui/selected-rule '_] [:ui/only-rule '_] {:rules-list/items (om/get-query RuleRow)}])
+  (query [this] [:db/id :rules-list/label
+                 {[:ui/selected-rule '_] (om/get-query Rule)}
+                 {[:ui/only-rule '_] (om/get-query Rule)}
+                 {:rules-list/items (om/get-query RuleRow)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id            id

@@ -23,26 +23,6 @@
                (value [env params]
                       (get @people-db 99)))
 
-#_(defmutation add-phone
-               [{:keys [id person #_phone-form]}]
-               (action [{:keys [state]}]
-                       (timbre/info "Server add-phone" id " " person)))
-
-#_(defmethod server/server-mutate `commit-to-within-entity [{:keys [b00ks-database] :as env} k params]
-    {:action (fn []
-               (assert (not (dh/unimplemented-keys? params))
-                       (str "Not yet coded for these keys: " (dh/unimplemented-keys? params)))
-               (let [conn (:connection b00ks-database)
-                     _ (assert conn)
-                     {:keys [omid->tempid tx]} (dh/datomic-driver :people/by-id :phone/by-id params)
-                     result @(d/transact conn tx)
-                     tempid->realid (:tempids result)
-                     omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]
-                 {:tempids omids->realids})
-               )
-     }
-    )
-
 ;;
 ;; :attribute             :organisation/key
 ;; :attribute-value-value :seaweed
@@ -57,7 +37,7 @@
                                       (str "Not yet coded for these keys: " (dh/unimplemented-keys? form-diff)))
                      (let [{:keys [attribute-value-value attribute]} within
                            conn (:connection b00ks-database)
-                           _ (println "conn: <" conn ">")
+                           ;_ (println "conn: <" conn ">")
                            eid (and attribute (d/q '[:find ?e .
                                                      :in $ ?o ?a
                                                      :where [?e ?a ?o]]

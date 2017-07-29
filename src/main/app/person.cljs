@@ -6,7 +6,8 @@
             [app.forms-helpers :as fh]
             [app.cljs-operations :as cljs-ops]
             [app.operations :as ops]
-            [app.om-helpers :as oh]))
+            [app.om-helpers :as oh]
+            [cljc.utils :as us]))
 
 (defui ^:once ValidatedConditionForm
   static uc/InitialAppState
@@ -14,8 +15,8 @@
   Object
   (render [this]
     (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
-          field-display (and field (subs (str field) 1))
-          predicate-display (and predicate (subs (str predicate) 1))]
+          field-display (us/kw->string field)
+          predicate-display (us/kw->string predicate)]
       (dom/tr nil
               (dom/td #js {:className "col-md-2"} field-display)
               (dom/td #js {:className "col-md-2"} predicate-display)
@@ -81,7 +82,7 @@
                (dom/div #js {:className "button-group"}
                         (dom/button #js {:className "btn btn-primary"
                                          :onClick   #(om/transact! this
-                                                                   `[(cljs-ops/add-phone ~{:id         (oh/make-temp-id-debug "add-phone")
+                                                                   `[(cljs-ops/add-phone ~{:id         (oh/make-temp-id "add-phone")
                                                                                            :person     (:db/id props)
                                                                                            :phone-form ValidatedPhoneForm})])}
                                     "Add Phone")

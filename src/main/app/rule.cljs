@@ -7,7 +7,8 @@
             [app.cljs-operations :as cljs-ops]
             [app.operations :as ops]
             [app.domain-ui-helpers :as help]
-            [app.om-helpers :as oh]))
+            [app.om-helpers :as oh]
+            [cljc.utils :as us]))
 
 (defui ^:once ValidatedConditionForm
   static uc/InitialAppState
@@ -15,42 +16,44 @@
   Object
   (render [this]
     (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
-          field-display (and field (subs (str field) 1))
-          predicate-display (and predicate (subs (str predicate) 1))]
+          field-display (us/kw->string field)
+          predicate-display (us/kw->string predicate)]
       (dom/tr nil
               (dom/td #js {:className "col-md-2"} field-display)
               (dom/td #js {:className "col-md-2"} predicate-display)
               (dom/td #js {:className "col-md-2"} subject)))))
 
-(defui ^:once ValidatedPhoneForm
+(defui ^:once ValidatedConditionForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/text-input :phone/number
-                                   ;:validator `help/us-phone?
-                                   )
-                     (f/dropdown-input :phone/type [(f/option :home "Home") (f/option :work "Work")])])
+                     (f/dropdown-input :condition/field [(f/option :out/desc "Description")
+                                                         (f/option :out/amount "Amount")])
+                     (f/dropdown-input :condition/predicate [(f/option :starts-with "Starts with")
+                                                             (f/option :ends-with "Ends with")
+                                                             (f/option :equals "Equals")])
+                     (f/text-input :condition/subject)])
   static om/IQuery
-  (query [this] [:db/id :phone/type :phone/number f/form-key])
+  (query [this] [:db/id :condition/field :condition/predicate :condition/subject f/form-key])
   static om/Ident
-  (ident [this props] [:phone/by-id (:db/id props)])
+  (ident [this props] [:condition/by-id (:db/id props)])
   Object
   (render [this]
     (let [form (om/props this)]
       (dom/div #js {:className "form-horizontal"}
-               (fh/field-with-label this form :phone/type "Phone type:")
-               ;; One more parameter to give the validation error message:
-               (fh/field-with-label this form :phone/number "Number:" "Please format as (###) ###-####")))))
+               (fh/field-with-label this form :condition/field "Field:")
+               (fh/field-with-label this form :condition/predicate "Predicate:")
+               (fh/field-with-label this form :condition/subject "Value:")))))
 
-(def ui-vphone-form (om/factory ValidatedPhoneForm))
+(def ui-vcondition-form (om/factory ValidatedConditionForm))
 
 (defui ^:once RuleForm
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/subform-element :rule/phone-numbers ValidatedPhoneForm :many)
+                     (f/subform-element :rule/conditions ValidatedConditionForm :many)
                      (f/dropdown-input :rule/logic-operator help/logic-options
                                        :default-value :single)])
   static om/IQuery
@@ -58,58 +61,37 @@
   (query [this] [f/form-root-key f/form-key
                  :db/id
                  :rule/logic-operator
-                 {:rule/phone-numbers (om/get-query ValidatedPhoneForm)}])
+                 {:rule/conditions (om/get-query ValidatedConditionForm)}])
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
   (render [this]
-    (let [{:keys [rule/phone-numbers] :as props} (om/props this)]
+    (let [{:keys [rule/conditions] :as props} (om/props this)]
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this props :rule/logic-operator "Logic" {:checkbox-style? true})
                (dom/div nil
-                        (mapv ui-vphone-form phone-numbers))
+                        (mapv ui-vcondition-form conditions))
                (when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
                (dom/div #js {:className "button-group"}
-                        (dom/button #js {:className "btn btn-primary"
+                        (dom/button #js {:className "btn btn-default"
                                          :onClick   #(om/transact! this
-                                                                   `[(cljs-ops/add-phone ~{:id         (oh/make-temp-id-debug "add-phone in rule")
-                                                                                           :rule       (:db/id props)
-                                                                                           :phone-form ValidatedPhoneForm})])}
-                                    "Add Phone")
-                        (dom/button #js {:className "btn btn-default" :disabled (f/valid? props)
-                                         :onClick   #(f/validate-entire-form! this props)}
-                                    "Validate")
-                        (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                                         :onClick   #(f/reset-from-entity! this props)}
-                                    "UNDO")
+                                                                   `[(cljs-ops/add-condition
+                                                                       ~{:id             (oh/make-temp-id "add-condition in rule")
+                                                                         :rule           (:db/id props)
+                                                                         :condition-form ValidatedConditionForm})])}
+                                    "Add Condition")
                         (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
                                          :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
                                                                           (ops/commit-to-within-entity
-                                                                            {:form   ~(om/props this)
+                                                                            {:form   ~props
                                                                              :remote true
-                                                                             :within {
-                                                                                      :content-holder-key    :organisation/rules
+                                                                             :within {:content-holder-key    :organisation/rules
                                                                                       :attribute             :organisation/key
                                                                                       :attribute-value-value :seaweed
                                                                                       :master-class          :rule/by-id
-                                                                                      :detail-class          :phone/by-id}})])}
+                                                                                      :detail-class          :condition/by-id}})])}
                                     "Submit"))))))
 
 (def ui-rule-form (om/factory RuleForm))
-
-#_(def first-rule
-  (uc/initial-state RuleForm
-                    {:db/id                      1
-                     :person/name                "Tony Kay"
-                     :person/age                 43
-                     :person/registered-to-vote? false
-                     :person/phone-numbers       [(uc/initial-state ValidatedPhoneForm
-                                                                    {:db/id        22
-                                                                     :phone/type   :work
-                                                                     :phone/number "(123) 412-1212"})
-                                                  (uc/initial-state ValidatedPhoneForm
-                                                                    {:db/id        23
-                                                                     :phone/type   :home
-                                                                     :phone/number "(541) 555-1212"})]}))
 

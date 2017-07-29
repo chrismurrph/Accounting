@@ -6,7 +6,8 @@
 
 (defn make-temp-id-debug [txt]
   (let [res (om/tempid)]
-    (println ">>" txt ":" res)))
+    (println ">>" txt ":" res)
+    res))
 
 ;;
 ;; ident function is the same as the one on a component.

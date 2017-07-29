@@ -1,7 +1,7 @@
 (ns app.banking
   (:require [om.dom :as dom]
             [om.next :as om]
-            ;[untangled.client.core :as uc]
+    ;[untangled.client.core :as uc]
             [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
             [fulcro.client.data-fetch :as df]
@@ -19,7 +19,8 @@
             [app.domain-ui-helpers :as help]
             [app.operations :as ops]
             [app.time :as t]
-            [cljs-time.coerce :as c]))
+            [cljs-time.coerce :as c]
+            [app.om-helpers :as oh]))
 
 ;;
 ;; Expect to only see one of these, the one that has no rule or too many rules.
@@ -50,8 +51,8 @@
   Object
   (render [this]
     (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
-          field-display (and field (subs (str field) 1))
-          predicate-display (and predicate (subs (str predicate) 1))]
+          field-display (us/kw->string field)
+          predicate-display (us/kw->string predicate)]
       (dom/tr nil
               (dom/td #js {:className "col-md-2"} field-display)
               (dom/td #js {:className "col-md-2"} predicate-display)
@@ -110,12 +111,51 @@
                           (dom/br nil)
                           (dom/label nil (str "Rule Num: " rule-num))
                           (dom/br nil)
-                          (dom/button #js {:onClick rule-unselected} "Back"))
+                          (dom/div #js {:className "button-group"}
+                                   (dom/button #js {:className "btn btn-default"
+                                                    :onClick rule-unselected} "Back")
+                                   (dom/button #js {:className "btn btn-default"
+                                                    :onClick   #(om/transact! this
+                                                                              `[(cljs-ops/add-condition
+                                                                                  ~{:id             (oh/make-temp-id "add-condition in rule")
+                                                                                    :rule           (:db/id props)
+                                                                                    :condition-form rul/ValidatedConditionForm})])}
+                                               "Add Condition")
+                                   (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
+                                                    :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
+                                                                                     (ops/commit-to-within-entity
+                                                                                       {:form   ~(om/props this)
+                                                                                        :remote true
+                                                                                        :within {:content-holder-key    :organisation/rules
+                                                                                                 :attribute             :organisation/key
+                                                                                                 :attribute-value-value :seaweed
+                                                                                                 :master-class          :rule/by-id
+                                                                                                 :detail-class          :condition/by-id}})])}
+                                               "Submit")))
                  (dom/div nil
                           (dom/label nil (str "Selector: " logic-operator))
                           (dom/br nil)
                           (dom/label nil (str "Rule Num: " rule-num))
-                          (dom/br nil)))
+                          (dom/br nil)
+                          (dom/div #js {:className "button-group"}
+                                   (dom/button #js {:className "btn btn-default"
+                                                    :onClick   #(om/transact! this
+                                                                              `[(cljs-ops/add-condition
+                                                                                  ~{:id             (oh/make-temp-id "add-condition in rule")
+                                                                                    :rule           (:db/id props)
+                                                                                    :condition-form rul/ValidatedConditionForm})])}
+                                               "Add Condition")
+                                   (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
+                                                    :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
+                                                                                     (ops/commit-to-within-entity
+                                                                                       {:form   ~(om/props this)
+                                                                                        :remote true
+                                                                                        :within {:content-holder-key    :organisation/rules
+                                                                                                 :attribute             :organisation/key
+                                                                                                 :attribute-value-value :seaweed
+                                                                                                 :master-class          :rule/by-id
+                                                                                                 :detail-class          :condition/by-id}})])}
+                                               "Submit"))))
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map ui-condition conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))

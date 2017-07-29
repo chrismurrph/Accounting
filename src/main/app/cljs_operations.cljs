@@ -87,20 +87,24 @@
    })
 
 (defn make-rule [name age]
-  {:db/id               (oh/make-temp-id-debug "make-rule")
+  {:db/id               (oh/make-temp-id "make-rule")
    :rule/logic-operator :single
-   :rule/phone-numbers  []})
+   :rule/conditions     []})
 
-(defmutation add-phone
-             [{:keys [id rule phone-form]}]
+(defmutation add-condition
+             [{:keys [id rule condition-form]}]
              (action [{:keys [state]}]
                      ;newly created one will have a tempid
-                     ;(assert (number? rule))
-                     (let [new-phone (f/build-form phone-form {:db/id id :phone/type :home :phone/number ""})
+                     (assert id)
+                     (let [new-condition (f/build-form condition-form {:db/id id
+                                                                       :condition/field :out/desc
+                                                                       :condition/predicate :equals
+                                                                       :condition/subject ""
+                                                                       })
                            rule-ident [:rule/by-id rule]
-                           phone-ident (om/ident phone-form new-phone)]
-                       (swap! state assoc-in phone-ident new-phone)
-                       (uc/integrate-ident! state phone-ident :append (conj rule-ident :rule/phone-numbers)))))
+                           condition-ident (om/ident condition-form new-condition)]
+                       (swap! state assoc-in condition-ident new-condition)
+                       (uc/integrate-ident! state condition-ident :append (conj rule-ident :rule/conditions)))))
 
 (def conditions-count-sorter (oh/sort-idents 10
                                              (fn [m] [:rule/by-id (:db/id m)])

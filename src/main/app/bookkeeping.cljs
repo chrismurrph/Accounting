@@ -23,7 +23,7 @@
   Object
   (render [this]
     (let [{:keys [db/id line-item/type line-item/name line-item/amount]} (om/props this)
-          type-display (and type (subs (str type) 1))
+          type-display (us/kw->string type)
           negative? (= \- (first (str amount)))
           amount-display (str "$" (gstring/format "%.2f" (u/abs amount)))
           name-display (clojure.string/replace name #"-" " ")

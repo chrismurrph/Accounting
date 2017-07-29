@@ -43,6 +43,7 @@
       keyword))
 
 (defn kw->string [kw]
+  (when kw (assert (keyword? kw)))
   (and kw (subs (str kw) 1)))
 
 (defn log [txt]

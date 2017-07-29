@@ -275,7 +275,7 @@
 
 (defn -create-src-bank [{:keys [acct-cat acct-name] :as m}]
   (assert acct-cat (us/assert-str "acct-cat" m))
-  (let [acct-cat-str (subs (str acct-cat) 1)]
+  (let [acct-cat-str (us/kw->string acct-cat)]
     (-> m
         (assoc :out/src-bank (keyword (str acct-cat-str "/" acct-name)))
         (dissoc :acct-cat :acct-name))))

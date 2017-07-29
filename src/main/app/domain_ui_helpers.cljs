@@ -27,8 +27,9 @@
    :bank-line/desc     "OFFICEWORKS SUPERSTO      KESWICK"
    :bank-line/amount   0.00M})
 
-(defn make-condition [[field predicate subject]]
-  {:condition/field     field
+#_(defn make-condition [id [field predicate subject]]
+  {:db/id               id
+   :condition/field     field
    :condition/predicate predicate
    :condition/subject   subject})
 

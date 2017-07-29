@@ -84,7 +84,7 @@
 
    (s/schema condition
              (s/fields
-               [field :keyword #_[:desc]]
+               [field :keyword #_[:out/desc :out/date :out/amount]]
                [predicate :keyword #_[:starts-with :equals :ends-with :contains]]
                [subject :string]))
 
@@ -99,7 +99,7 @@
                ;; Most are permanent. If not will have an actual-period
                [permanent? :boolean]
                [conditions :ref :many :component]
-               [phone-numbers :ref :many :component]
+               ;[phone-numbers :ref :many :component]
                [source-bank :ref :one]
                [target-account :ref :one]
                ;;

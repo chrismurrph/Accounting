@@ -20,6 +20,7 @@
                                    :creds :gpg}}
 
   :plugins [[lein-cljsbuild "1.1.6"]]
+  :figwheel {:open-file-command "open-in-intellij"}
 
   :cljsbuild {:builds
               [{:id           "dev"

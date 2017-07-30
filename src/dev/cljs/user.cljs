@@ -7,15 +7,16 @@
     [om.next :as om]
     [goog.dom :as gdom]))
 
-#_(defn refresh []
+(defn refresh []
   (swap! app uc/mount Root "app"))
 
-(defn refresh []
+;; Alternative if you wanted straight Om.Next
+#_(defn refresh []
   (om/add-root! experi/reconciler AnotherRoot (gdom/getElement "app")))
 
 (refresh)
 
-#_(defn dump
+(defn dump
   [& keys]
   (let [state-map @(om.next/app-state (-> app deref :reconciler))
         data-of-interest (if (seq keys)
@@ -23,7 +24,8 @@
                            state-map)]
     data-of-interest))
 
-(defn dump
+;; Alternative if you wanted straight Om.Next
+#_(defn dump
   [& keys]
   (let [state-map @(om.next/app-state experi/reconciler)]
     state-map))

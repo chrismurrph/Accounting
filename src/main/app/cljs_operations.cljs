@@ -86,7 +86,7 @@
    :type/liab    (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
-(defn make-rule [name age]
+(defn make-rule []
   {:db/id               (oh/make-temp-id "make-rule")
    :rule/logic-operator :single
    :rule/conditions     []})
@@ -110,7 +110,8 @@
                                              (fn [m] [:rule/by-id (:db/id m)])
                                              (comp count :rule/conditions)))
 
-;; rule-form -> really want that as parameter -> instead I've put it at top level in state, under :global-form/rule-form
+;; rule-form -> really want that as parameter -> instead I've had to put it at top level in state, under
+;; :global-form/rule-form
 ;; Used the word 'rule-form' because it is never going to change and can always be there to be picked by by others
 (defmutation rules-loaded
              [{:keys [no-params]}]
@@ -120,17 +121,17 @@
                            _ (println "rules-loaded, rules count: " rules-count)]
                        (condp = rules-count
                          0 (let [st @state
-                                 rule-form (get st :global-form/rule-form)
-                                 _ (assert rule-form)
-                                 new-rule (f/build-form rule-form (make-rule "Chris Murphy" 25))
-                                 _ (println "new-rule id: " (:db/id new-rule))
-                                 _ (assert new-rule)
-                                 rule-ident (om/ident rule-form new-rule)
+                                 rule-form-class (get st :global-form/rule-form)
+                                 _ (assert rule-form-class)
+                                 rule-as-a-form (f/build-form rule-form-class (make-rule))
+                                 _ (println "rule-as-a-form id: " (:db/id rule-as-a-form))
+                                 _ (assert rule-as-a-form)
+                                 rule-ident (om/ident rule-form-class rule-as-a-form)
                                  _ (println "rule-ident: " rule-ident)
                                  target help/banking-form-rule-whereabouts
                                  ]
                              (swap! state #(-> %
-                                               (assoc-in rule-ident new-rule)
+                                               (assoc-in rule-ident rule-as-a-form)
                                                (assoc-in target rule-ident)
                                                (assoc-in help/only-rule nil)
                                                (assoc-in help/selected-rule nil)
@@ -197,10 +198,15 @@
                                           }))))
              (remote [env] (df/remote-load env)))
 
-(defmutation selected-rule
+(defmutation select-rule-old
              [{:keys [selected-ident]}]
              (action [{:keys [state]}]
                      (swap! state assoc-in help/selected-rule selected-ident)))
+
+(defmutation select-rule-new
+  [{:keys [selected-ident]}]
+  (action [{:keys [state]}]
+          (swap! state assoc-in help/banking-form-rule-whereabouts selected-ident)))
 
 (defmutation un-select-rule
              [{:keys [selected]}]

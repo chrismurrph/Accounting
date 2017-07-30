@@ -100,12 +100,10 @@
                     [?a :account/category ?c]
                     [?a :account/name ?n]
                     [?s :statement/time-ordinal ?ord]
-                    [?s :statement/line-items ?lines]] db org-key)
-        ;rvs (mapv #(d/pull db '[*] %) eids)
-        ]
+                    [?s :statement/line-items ?lines]] db org-key)]
     (seq eids)))
 
-(def -rule-conditions-pull [:condition/field :condition/predicate :condition/subject])
+(def -rule-conditions-pull [:db/id :condition/field :condition/predicate :condition/subject])
 (def -time-slot-pull [:time-slot/start-at :time-slot/end-at])
 (def -account-pull [:account/category :account/name :account/desc
                     {:account/time-slot -time-slot-pull}])

@@ -1,7 +1,6 @@
 (ns app.banking
   (:require [om.dom :as dom]
             [om.next :as om]
-    ;[untangled.client.core :as uc]
             [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
             [fulcro.client.data-fetch :as df]
@@ -47,18 +46,6 @@
                  (dom/label #js {:className "col-md-6"} src-bank-display))))))
 (def ui-bank-statement-line (om/factory BankStatementLine {:keyfn :db/id}))
 
-(defui ^:once Condition
-  Object
-  (render [this]
-    (let [{:keys [condition/field condition/predicate condition/subject]} (om/props this)
-          field-display (us/kw->string field)
-          predicate-display (us/kw->string predicate)]
-      (dom/tr nil
-              (dom/td #js {:className "col-md-2"} field-display)
-              (dom/td #js {:className "col-md-2"} predicate-display)
-              (dom/td #js {:className "col-md-2"} subject)))))
-(def ui-condition (om/factory Condition {:keyfn :condition/subject}))
-
 (defn display-dates [{:keys [rule/on-dates rule/time-slot]}]
   (let [on-dates-str (cond-> ""
                              (pos? (count on-dates))
@@ -71,72 +58,6 @@
                                    (count time-slot)))
         ]
     (str on-dates-str " " time-slot-str)))
-
-;;
-;; All the 'just for this period' goes through here as well, but ends up as just ""
-;;
-(defn display-on-dates [{:keys [rule/on-dates rule/time-slot]}]
-  (assert (or (nil? time-slot) (zero? (count time-slot))))
-  (let [on-dates-str (cond-> ""
-                             (pos? (count on-dates))
-                             (str "on: "
-                                  (apply str (interpose ", " (map (comp t/show c/from-date) on-dates)))))
-        ]
-    (str on-dates-str)))
-
-(defui ^:once TimeSlot
-  static om/IQuery
-  (query [this] [:time-slot/start-at :time-slot/end-at])
-  Object
-  (render [this]
-    (let [{:keys [time-slot/start-at time-slot/end-at]} (om/props this)]
-      (dom/label nil (str (t/show start-at) ", " (t/show end-at))))))
-(def ui-timeslot (om/factory TimeSlot {:keyfn :time-slot/start-at}))
-
-(defui ^:once Rule
-  static om/Ident
-  (ident [this props] [:rule/by-id (:db/id props)])
-  static om/IQuery
-  (query [this] [:db/id :rule/permanent? :rule/rule-num :rule/source-bank :rule/target-account :rule/logic-operator :rule/conditions
-                 :rule/on-dates {:rule/time-slot (om/get-query TimeSlot)}])
-  Object
-  (render [this]
-    (let [props (om/props this)
-          {:keys [db/id rule/permanent? rule/rule-num rule/source-bank rule/target-account rule/logic-operator rule/conditions]} props
-          {:keys [rule-unselected]} (om/get-computed this)]
-      (dom/div nil
-               (rul/button-group rule-unselected this props)
-               (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                          (dom/tbody nil (map ui-condition conditions)))))))
-(def ui-rule (om/factory Rule {:keyfn :db/id}))
-
-(defui ^:once RuleRow
-  static om/Ident
-  (ident [this props] [:rule/by-id (:db/id props)])
-  static om/IQuery
-  (query [this] [:db/id :rule/permanent? :rule/source-bank :rule/target-account :rule/logic-operator :rule/conditions
-                 :rule/on-dates {:rule/time-slot (om/get-query TimeSlot)}])
-  Object
-  (render [this]
-    (let [props (om/props this)
-          {:keys [db/id rule/permanent? rule/source-bank rule/target-account rule/logic-operator rule/conditions]} props
-          {:keys [rule-selected]} (om/get-computed this)
-          ;; permanent? is either true or nil
-          permanent-display (if permanent? "Permanent" (display-on-dates props))
-          ;source-bank-display (us/kw->string source-bank)
-          ;target-account-display (us/kw->string target-account)
-          logic-operator-display (if (= :single logic-operator) "" (us/kw->string logic-operator))
-          ;num-conds (str (count conditions))
-          ]
-      (dom/tr #js {:onClick #(rule-selected id)}
-              (dom/td #js {:className "col-md-2"} permanent-display)
-              ;(dom/td #js {:className "col-md-2"} source-bank-display)
-              ;(dom/td #js {:className "col-md-2"} target-account-display)
-              (dom/td #js {:className "col-md-1"} logic-operator-display)
-              ;(dom/td #js {:className "col-md-2"} num-conds)
-              (dom/td #js {:className "col-md-12"} (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                                                              (dom/tbody nil (map ui-condition conditions))))))))
-(def ui-rule-row (om/factory RuleRow {:keyfn :db/id}))
 
 (def rule-table-header
   (dom/tr nil
@@ -152,9 +73,9 @@
   (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
   (query [this] [:db/id :rules-list/label
-                 {[:ui/selected-rule '_] (om/get-query Rule)}
-                 {[:ui/only-rule '_] (om/get-query Rule)}
-                 {:rules-list/items (om/get-query RuleRow)}])
+                 {[:ui/selected-rule '_] (om/get-query rul/Rule)}
+                 {[:ui/only-rule '_] (om/get-query rul/Rule)}
+                 {:rules-list/items (om/get-query rul/RuleRow)}])
   static uc/InitialAppState
   (initial-state [comp-class {:keys [id label]}]
     {:db/id            id
@@ -163,13 +84,12 @@
   Object
   (render [this]
     (let [{:keys [db/id rules-list/label ui/selected-rule ui/only-rule rules-list/items]} (om/props this)
-          rule-selected (fn [id]
-                          (us/log (str "Clicked on " id))
-                          (om/transact! this `[(cljs-ops/selected-rule {:selected-ident [:rule/by-id ~id]})]))
-          rule-unselected #(om/transact! this `[(cljs-ops/un-select-rule)])]
+          {:keys [rule-selected-f rule-unselected-f]} (om/get-computed this)
+          a-rule (or selected-rule only-rule)]
       (dom/div nil
-               (if (or selected-rule only-rule)
-                 (ui-rule (om/computed (or selected-rule only-rule) {:rule-unselected (when selected-rule rule-unselected)}))
+               (if a-rule
+                 (rul/ui-rule-form (om/computed a-rule {:rule-unselected
+                                                        (when selected-rule rule-unselected-f)}))
                  (when (pos? (count items))
                    (dom/div nil
                             (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
@@ -178,7 +98,8 @@
                             ;; table-striped doesn't work well with hover as same colour
                             (dom/table #js {:className "table table-bordered table-sm table-hover"}
                                        (dom/thead nil rule-table-header)
-                                       (dom/tbody nil (map #(ui-rule-row (om/computed % {:rule-selected rule-selected})) items))))))))))
+                                       (dom/tbody nil (map #(rul/ui-rule-row
+                                                              (om/computed % {:rule-selected rule-selected-f})) items))))))))))
 (def ui-rules-list (om/factory RulesList))
 
 ;; :logic-operator dropdown :and :or :single
@@ -209,12 +130,12 @@
   {:db/id                            id
    :banking-form/bank-statement-line (uc/get-initial-state BankStatementLine {:id p/BANK_STATEMENT_LINE})
    :banking-form/existing-rules      (uc/get-initial-state RulesList {:id p/RULES_LIST :label "Invisible??"})
-   :rule                             nil})
+   :banking-form/creating-rule       nil})
 
 ;; Refreshing one higher fixes issue that when first selected type, target was auto-selected to first,
 ;; but the existing rules were not being displayed.
 (defn load-existing-rules [comp organisation source-bank target-ledger]
-  (df/load comp :my-existing-rules RuleRow
+  (df/load comp :my-existing-rules rul/RuleRow
            {:target        help/rules-list-items-whereabouts
             :refresh       [[:banking-form/by-id p/BANKING_FORM]]
             :params        {:request/organisation organisation :source-bank source-bank :target-ledger target-ledger}
@@ -246,11 +167,15 @@
               ;; Only when there's a target account will any of these come back
               {:banking-form/existing-rules (om/get-query RulesList)}
               {:banking-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key
-              {:rule (om/get-query rul/RuleForm)}])
+              {:banking-form/creating-rule (om/get-query rul/RuleForm)}])
   Object
   (render [this]
-    (let [{:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
-                  banking-form/target-ledger banking-form/existing-rules rule] :as form} (om/props this)
+    (let [rule-selected-f (fn [id]
+                            (us/log (str "Clicked on " id))
+                            (om/transact! this `[(cljs-ops/select-rule-old {:selected-ident [:rule/by-id ~id]})]))
+          rule-unselected-f #(om/transact! this `[(cljs-ops/un-select-rule)])
+          {:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
+                  banking-form/target-ledger banking-form/existing-rules banking-form/creating-rule] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts]} config-data
           matching-rules-count (-> existing-rules :rules-list/items count)]
@@ -263,13 +188,12 @@
                                     {:label-width-css "col-sm-2"
                                      :onChange        (fn [evt]
                                                         (let [new-val (u/target-kw evt)]
-                                                          (when (and #_(not= new-val :type/personal)
-                                                                  (help/ledger-type->desc new-val))
+                                                          (when (help/ledger-type->desc new-val)
                                                             (om/transact! this `[(cljs-ops/config-data-for-target-ledger-dropdown
                                                                                    {:acct-type      ~new-val
-                                                                                    :sub-query-comp ~RuleRow
+                                                                                    :sub-query-comp ~rul/RuleRow
                                                                                     :src-bank       ~src-bank
-                                                                                    :rule-form    ~rul/RuleForm})]))))})
+                                                                                    :rule-form      ~rul/RuleForm})]))))})
                (if (and ledger-type (not (#{no-pick :type/personal} ledger-type)))
                  (fh/field-with-label this form :banking-form/target-ledger
                                       (str "Target " (help/ledger-type->desc ledger-type))
@@ -289,12 +213,12 @@
                           (dom/label nil (str "No matching rules for " (help/ledger-kw->account-name target-ledger)
                                               " from " (help/bank-kw->bank-name src-bank)
                                               ". You need to create a new rule:"))
-                          (if rule
+                          (when creating-rule
                             (dom/div nil
                                      (dom/label nil (str "ledger type: " ledger-type))
-                                     (rul/ui-rule-form rule))
-                            (us/log-off "Better create new person")))
-                 (ui-rules-list existing-rules))))))
+                                     (rul/ui-rule-form creating-rule))))
+                 (ui-rules-list (om/computed existing-rules {:rule-selected-f   rule-selected-f
+                                                             :rule-unselected-f rule-unselected-f})))))))
 
 (def ui-banking-form (om/factory BankingForm))
 

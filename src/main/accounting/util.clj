@@ -20,6 +20,16 @@
   (assert x "Can't assign nil (or false)")
   x)
 
+;;
+;; links are top level keys
+;;
+(defn make-links-nil [links st]
+  (reduce
+    (fn [m link]
+      (assoc m link nil))
+    st
+    links))
+
 (defn write-edn [filename x]
   (assert (clojure.string/ends-with? filename ".edn"))
   (assert (or (map? x) (vector? x)))

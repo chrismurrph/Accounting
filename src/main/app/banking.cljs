@@ -73,7 +73,7 @@
   (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
   (query [this] [:db/id :rules-list/label
-                 {[:ui/selected-rule '_] (om/get-query rul/Rule)}
+                 {[:ui/selected-rule '_] (om/get-query rul/RuleFConditionF)}
                  {[:ui/only-rule '_] (om/get-query rul/Rule)}
                  {:rules-list/items (om/get-query rul/RuleRow)}])
   static uc/InitialAppState
@@ -86,20 +86,20 @@
     (let [{:keys [db/id rules-list/label ui/selected-rule ui/only-rule rules-list/items]} (om/props this)
           {:keys [rule-selected-f rule-unselected-f]} (om/get-computed this)
           a-rule (or selected-rule only-rule)]
+      (assert (or (nil? selected-rule) (fh/form? selected-rule)) (str "rule props not a form: " (keys selected-rule)))
       (dom/div nil
-               (if a-rule
-                 (rul/ui-rule-form (om/computed a-rule {:rule-unselected
-                                                        (when selected-rule rule-unselected-f)}))
-                 (when (pos? (count items))
-                   (dom/div nil
-                            (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
-                            ;(dom/label nil (str "ID: " id ", <" label "> " (count items)))
-                            ;; table-inverse did not work
-                            ;; table-striped doesn't work well with hover as same colour
-                            (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                                       (dom/thead nil rule-table-header)
-                                       (dom/tbody nil (map #(rul/ui-rule-row
-                                                              (om/computed % {:rule-selected rule-selected-f})) items))))))))))
+               (cond
+                 selected-rule (rul/ui-rule-f-condition-f (om/computed selected-rule {:rule-unselected rule-unselected-f}))
+                 only-rule (rul/ui-rule only-rule)
+                 (pos? (count items)) (dom/div nil
+                                               (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
+                                               ;(dom/label nil (str "ID: " id ", <" label "> " (count items)))
+                                               ;; table-inverse did not work
+                                               ;; table-striped doesn't work well with hover as same colour
+                                               (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                                                          (dom/thead nil rule-table-header)
+                                                          (dom/tbody nil (map #(rul/ui-rule-row
+                                                                                 (om/computed % {:rule-selected rule-selected-f})) items)))))))))
 (def ui-rules-list (om/factory RulesList))
 
 ;; :logic-operator dropdown :and :or :single
@@ -167,12 +167,12 @@
               ;; Only when there's a target account will any of these come back
               {:banking-form/existing-rules (om/get-query RulesList)}
               {:banking-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key
-              {:banking-form/creating-rule (om/get-query rul/RuleForm)}])
+              {:banking-form/creating-rule (om/get-query rul/RuleFConditionF)}])
   Object
   (render [this]
     (let [rule-selected-f (fn [id]
                             (us/log (str "Clicked on " id))
-                            (om/transact! this `[(cljs-ops/select-rule-old {:selected-ident [:rule/by-id ~id]})]))
+                            (om/transact! this `[(cljs-ops/select-rule {:selected-ident [:rule/by-id ~id]})]))
           rule-unselected-f #(om/transact! this `[(cljs-ops/un-select-rule)])
           {:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
                   banking-form/target-ledger banking-form/existing-rules banking-form/creating-rule] :as form} (om/props this)
@@ -193,7 +193,7 @@
                                                                                    {:acct-type      ~new-val
                                                                                     :sub-query-comp ~rul/RuleRow
                                                                                     :src-bank       ~src-bank
-                                                                                    :rule-form      ~rul/RuleForm})]))))})
+                                                                                    :rule-form      ~rul/RuleFConditionF})]))))})
                (if (and ledger-type (not (#{no-pick :type/personal} ledger-type)))
                  (fh/field-with-label this form :banking-form/target-ledger
                                       (str "Target " (help/ledger-type->desc ledger-type))
@@ -216,7 +216,7 @@
                           (when creating-rule
                             (dom/div nil
                                      (dom/label nil (str "ledger type: " ledger-type))
-                                     (rul/ui-rule-form creating-rule))))
+                                     (rul/ui-rule-f-condition-f creating-rule))))
                  (ui-rules-list (om/computed existing-rules {:rule-selected-f   rule-selected-f
                                                              :rule-unselected-f rule-unselected-f})))))))
 

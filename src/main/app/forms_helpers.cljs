@@ -1,7 +1,43 @@
 (ns app.forms-helpers
   (:require [om.dom :as dom]
             [fulcro.ui.forms :as f]
-            [fulcro.client.mutations :as m :refer [defmutation]]))
+            [fulcro.client.mutations :as m :refer [defmutation]]
+            [om.next :as om]
+            [cljc.utils :as us]))
+
+(defn form? [?form]
+  (and (f/is-form? ?form)
+       #_(some #{:fulcro.ui.forms/form} (keys ?form))
+       (get ?form :fulcro.ui.forms/form)))
+
+;;
+;; links are top level keys
+;; We want to explicitly set them to nil rather than dissoc them
+;;
+(defn make-links-nil [st links]
+  (reduce
+    (fn [m link]
+      (assoc m link nil))
+    st
+    links))
+
+(defn ->form
+  ([form-class object-map target]
+   (->form form-class object-map target []))
+  ([form-class object-map target clear-links]
+   (assert form-class)
+   (assert (map? object-map) (us/assert-str "object-map" object-map))
+   (assert (:db/id object-map) (str "No :db/id in <" object-map ">"))
+   (let [object-as-a-form (f/build-form form-class object-map)
+         _ (assert (= (:db/id object-map) (:db/id object-as-a-form)))
+         _ (assert (form? object-as-a-form))
+         ident (om/ident form-class object-as-a-form)]
+     (assert (= (second ident) (:db/id object-map)))
+     (fn [st]
+       (-> st
+           (assoc-in ident object-as-a-form)
+           (assoc-in target ident)
+           (make-links-nil clear-links))))))
 
 ;;
 ;; Can be used in a mutation to assoc-in new options

@@ -71,7 +71,7 @@
                                                                          :detail-class          :condition/by-id}})])}
                        "Submit")))
 
-(defui ^:once RuleForm
+(defui ^:once RuleFConditionF
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
@@ -91,14 +91,15 @@
   (render [this]
     (let [{:keys [rule/conditions] :as props} (om/props this)
           {:keys [rule-unselected]} (om/get-computed this)]
+      (assert (fh/form? props) (str "props is not a form: " (keys props)))
       (dom/div #js {:className "form-horizontal"}
-               (fh/field-with-label this props :rule/logic-operator "Logic" {:checkbox-style? true})
+               (fh/field-with-label this props :rule/logic-operator "Logic")
                (dom/div nil
                         (mapv ui-vcondition-form conditions))
                (when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
                (button-group rule-unselected this props)))))
-(def ui-rule-form (om/factory RuleForm))
+(def ui-rule-f-condition-f (om/factory RuleFConditionF))
 
 (defui ^:once Condition
   static om/IQuery
@@ -115,6 +116,41 @@
               (dom/td #js {:className "col-md-2"} predicate-display)
               (dom/td #js {:className "col-md-2"} subject)))))
 (def ui-condition (om/factory Condition {:keyfn :db/id}))
+
+;;
+;; Idea here that conditions not be made forms until needed.
+;; Can you have a form that has a many that are not themselves forms?
+;; Research and ask...
+;;
+(defui ^:once RuleF
+  static uc/InitialAppState
+  (initial-state [this params] (f/build-form this (or params {})))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/subform-element :rule/conditions ValidatedConditionForm :many)
+                     (f/dropdown-input :rule/logic-operator help/logic-options
+                                       :default-value :single)])
+  static om/IQuery
+  ; NOTE: f/form-root-key so that sub-forms will trigger render here
+  (query [this] [f/form-root-key f/form-key
+                 :db/id
+                 :rule/logic-operator
+                 {:rule/conditions (om/get-query ValidatedConditionForm)}])
+  static om/Ident
+  (ident [this props] [:rule/by-id (:db/id props)])
+  Object
+  (render [this]
+    (let [{:keys [rule/conditions] :as props} (om/props this)
+          {:keys [rule-unselected]} (om/get-computed this)]
+      (assert (fh/form? props) (str "props is not a form: " (keys props)))
+      (dom/div #js {:className "form-horizontal"}
+               (fh/field-with-label this props :rule/logic-operator "Logic")
+               (dom/div nil
+                        (mapv ui-vcondition-form conditions))
+               (when (f/valid? props)
+                 (dom/div nil "All fields have had been validated, and are valid"))
+               (button-group rule-unselected this props)))))
+(def ui-rule-f (om/factory RuleFConditionF))
 
 (defui ^:once Rule
   static om/Ident

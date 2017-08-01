@@ -5,14 +5,12 @@
                  [org.clojure/clojurescript "1.9.671"]
                  [org.omcljs/om "1.0.0-beta1"]
                  [fulcrologic/fulcro "1.0.0-beta7-SNAPSHOT"]
-                 ;[awkay/untangled "1.0.0-SNAPSHOT"]
                  [navis/untangled-datomic "0.4.11"]
                  [clj-time "0.13.0"]
                  [com.andrewmcveigh/cljs-time "0.5.0"]
-                 ;; Putting in this version of guava fixes datomic dependency issues
                  [com.datomic/datomic-pro "0.9.5561" :exclusions [com.google.guava/guava]]
                  ]
-  :source-paths ["src/main"]
+  :source-paths ["src/main" "checkouts/fulcro/src/main"]
   :resource-paths ["resources"]
   :clean-targets ^{:protect false} ["resources/public/js" "target" "out"]
 

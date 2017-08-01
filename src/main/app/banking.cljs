@@ -73,7 +73,7 @@
   (ident [this props] [:rules-list/by-id p/RULES_LIST])
   static om/IQuery
   (query [this] [:db/id :rules-list/label
-                 {[:ui/selected-rule '_] (om/get-query rul/RuleFConditionF)}
+                 {[:ui/selected-rule '_] (om/get-query rul/RuleF)}
                  {[:ui/only-rule '_] (om/get-query rul/Rule)}
                  {:rules-list/items (om/get-query rul/RuleRow)}])
   static uc/InitialAppState
@@ -89,7 +89,7 @@
       (assert (or (nil? selected-rule) (fh/form? selected-rule)) (str "rule props not a form: " (keys selected-rule)))
       (dom/div nil
                (cond
-                 selected-rule (rul/ui-rule-f-condition-f (om/computed selected-rule {:rule-unselected rule-unselected-f}))
+                 selected-rule (rul/ui-rule-f (om/computed selected-rule {:rule-unselected rule-unselected-f}))
                  only-rule (rul/ui-rule only-rule)
                  (pos? (count items)) (dom/div nil
                                                (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
@@ -167,7 +167,7 @@
               ;; Only when there's a target account will any of these come back
               {:banking-form/existing-rules (om/get-query RulesList)}
               {:banking-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key
-              {:banking-form/creating-rule (om/get-query rul/RuleFConditionF)}])
+              {:banking-form/creating-rule (om/get-query rul/RuleF)}])
   Object
   (render [this]
     (let [rule-selected-f (fn [id]
@@ -193,7 +193,7 @@
                                                                                    {:acct-type      ~new-val
                                                                                     :sub-query-comp ~rul/RuleRow
                                                                                     :src-bank       ~src-bank
-                                                                                    :rule-form      ~rul/RuleFConditionF})]))))})
+                                                                                    :rule-form      ~rul/RuleF})]))))})
                (if (and ledger-type (not (#{no-pick :type/personal} ledger-type)))
                  (fh/field-with-label this form :banking-form/target-ledger
                                       (str "Target " (help/ledger-type->desc ledger-type))

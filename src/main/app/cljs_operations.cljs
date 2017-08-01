@@ -2,7 +2,6 @@
   (:require
     [fulcro.client.mutations :as m :refer [defmutation]]
     [om.next :as om]
-    [app.panels :as p]
     [app.domain-ui-helpers :as help]
     [app.util :as u]
     [cljc.utils :as us]
@@ -12,7 +11,7 @@
     [clojure.set :as set]
     [fulcro.client.data-fetch :as df]
     [fulcro.client.core :as uc]
-    ))
+    [app.panels :as p]))
 
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
@@ -91,7 +90,7 @@
    :rule/logic-operator :single
    :rule/conditions     []})
 
-(defmutation add-condition
+(defmutation add-condition-1
   [{:keys [id rule condition-form]}]
   (action [{:keys [state]}]
           ;newly created one will have a tempid
@@ -104,7 +103,33 @@
                 rule-ident [:rule/by-id rule]
                 condition-ident (om/ident condition-form new-condition)]
             (swap! state assoc-in condition-ident new-condition)
-            (uc/integrate-ident! state condition-ident :append (conj rule-ident :rule/conditions)))))
+            (uc/integrate-ident! state condition-ident :prepend (conj rule-ident :rule/conditions)))))
+
+;;
+;; Making a new condition and putting it in its own table then putting the ident within the rule.
+;; So why isn't the rule being marked as dirty?
+;; Doc says:
+;; A form is considered dirty? when:
+;; Any field of the form or its declared subforms has a value different from the initial (or most recently committed) value.
+;; Any form or subform in a set has an Om tempid (e.g. server remaps have not yet taken effect)
+;;
+;; Here the second of those statements must be true.
+(defmutation add-condition-2
+  [{:keys [id rule condition-form]}]
+  (action [{:keys [state]}]
+          ;newly created one will have a tempid
+          (assert id)
+          (assert (om/tempid? id))
+          (let [new-condition (f/build-form condition-form
+                                            {:db/id               id
+                                             :condition/field     :out/desc
+                                             :condition/predicate :equals
+                                             :condition/subject   (get-in @state [:bank-line/by-id p/BANK_STATEMENT_LINE :bank-line/desc])
+                                             })
+                rule-ident [:rule/by-id rule]
+                condition-ident (om/ident condition-form new-condition)]
+            (swap! state assoc-in condition-ident new-condition)
+            (uc/integrate-ident! state condition-ident :replace (conj rule-ident :rule/upserting-condition)))))
 
 (def conditions-count-sorter (oh/sort-idents 10
                                              (fn [m] [:rule/by-id (:db/id m)])
@@ -188,9 +213,9 @@
   (remote [env] (df/remote-load env)))
 
 #_(defmutation select-rule-old
-  [{:keys [selected-ident]}]
-  (action [{:keys [state]}]
-          (swap! state assoc-in help/selected-rule selected-ident)))
+    [{:keys [selected-ident]}]
+    (action [{:keys [state]}]
+            (swap! state assoc-in help/selected-rule selected-ident)))
 
 (defmutation select-rule
   [{:keys [selected-ident]}]

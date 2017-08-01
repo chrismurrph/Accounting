@@ -45,19 +45,15 @@
                (fh/field-with-label this form :condition/subject "Value:")))))
 (def ui-vcondition-form (om/factory ValidatedConditionForm {:keyfn :db/id}))
 
-(defn button-group [rule-unselected this props]
-  (assert (or (nil? rule-unselected) (and (-> rule-unselected boolean? not) (fn? rule-unselected))))
+(defn button-group [rule-unselected-f add-condition-f this props]
+  (assert (or (nil? rule-unselected-f) (and (-> rule-unselected-f boolean? not) (fn? rule-unselected-f))))
   (dom/div #js {:className "button-group"}
-           (when rule-unselected
+           (when rule-unselected-f
              (dom/button #js {:className "btn btn-default"
-                              :onClick rule-unselected}
+                              :onClick rule-unselected-f}
                          "Back"))
            (dom/button #js {:className "btn btn-default"
-                            :onClick   #(om/transact! this
-                                                      `[(cljs-ops/add-condition
-                                                          ~{:id             (oh/make-temp-id "add-condition in rule")
-                                                            :rule           (:db/id props)
-                                                            :condition-form ValidatedConditionForm})])}
+                            :onClick   add-condition-f}
                        "Add Condition")
            (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
                             :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
@@ -98,10 +94,10 @@
                         (mapv ui-vcondition-form conditions))
                (when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
-               (button-group rule-unselected this props)))))
+               (button-group rule-unselected nil this props)))))
 (def ui-rule-f-condition-f (om/factory RuleFConditionF))
 
-(defui ^:once Condition
+(defui ^:once ConditionRow
   static om/IQuery
   (query [this] [:db/id :condition/field :condition/predicate :condition/subject])
   static om/Ident
@@ -115,19 +111,20 @@
               (dom/td #js {:className "col-md-2"} field-display)
               (dom/td #js {:className "col-md-2"} predicate-display)
               (dom/td #js {:className "col-md-2"} subject)))))
-(def ui-condition (om/factory Condition {:keyfn :db/id}))
+(def ui-condition-row (om/factory ConditionRow {:keyfn :db/id}))
 
 ;;
 ;; Idea here that conditions not be made forms until needed.
 ;; Can you have a form that has a many that are not themselves forms?
 ;; Research and ask...
 ;;
+
 (defui ^:once RuleF
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/subform-element :rule/conditions ValidatedConditionForm :many)
+                     (f/subform-element :rule/upserting-condition ValidatedConditionForm :one)
                      (f/dropdown-input :rule/logic-operator help/logic-options
                                        :default-value :single)])
   static om/IQuery
@@ -135,29 +132,38 @@
   (query [this] [f/form-root-key f/form-key
                  :db/id
                  :rule/logic-operator
-                 {:rule/conditions (om/get-query ValidatedConditionForm)}])
+                 {:rule/upserting-condition (om/get-query ValidatedConditionForm)}
+                 {:rule/conditions (om/get-query ConditionRow)}])
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
+  (add-condition [this props]
+    (om/transact! this
+                  `[(cljs-ops/add-condition-2
+                      ~{:id             (oh/make-temp-id "add-condition in rule")
+                        :rule           (:db/id props)
+                        :condition-form ValidatedConditionForm})]))
   (render [this]
-    (let [{:keys [rule/conditions] :as props} (om/props this)
+    (let [{:keys [rule/conditions rule/upserting-condition] :as props} (om/props this)
           {:keys [rule-unselected]} (om/get-computed this)]
       (assert (fh/form? props) (str "props is not a form: " (keys props)))
       (dom/div #js {:className "form-horizontal"}
+               (button-group rule-unselected #(.add-condition this props) this props)
                (fh/field-with-label this props :rule/logic-operator "Logic")
-               (dom/div nil
-                        (mapv ui-vcondition-form conditions))
-               (when (f/valid? props)
+               #_(when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
-               (button-group rule-unselected this props)))))
-(def ui-rule-f (om/factory RuleFConditionF))
+               (when upserting-condition
+                 (ui-vcondition-form upserting-condition))
+               (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                          (dom/tbody nil (map ui-condition-row conditions)))))))
+(def ui-rule-f (om/factory RuleF))
 
 (defui ^:once Rule
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   static om/IQuery
   (query [this] [:db/id :rule/permanent? :rule/rule-num :rule/source-bank :rule/target-account
-                 :rule/logic-operator {:rule/conditions (om/get-query Condition)}
+                 :rule/logic-operator {:rule/conditions (om/get-query ConditionRow)}
                  :rule/on-dates {:rule/time-slot (om/get-query TimeSlot)}])
   Object
   (render [this]
@@ -166,9 +172,9 @@
                   rule/logic-operator rule/conditions]} props
           {:keys [rule-unselected]} (om/get-computed this)]
       (dom/div nil
-               (button-group rule-unselected this props)
+               (button-group rule-unselected nil this props)
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                          (dom/tbody nil (map ui-condition conditions)))))))
+                          (dom/tbody nil (map ui-condition-row conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))
 
 ;;
@@ -187,7 +193,7 @@
   (ident [this props] [:rule/by-id (:db/id props)])
   static om/IQuery
   (query [this] [:db/id :rule/permanent? :rule/source-bank :rule/target-account :rule/logic-operator
-                 {:rule/conditions (om/get-query Condition)}
+                 {:rule/conditions (om/get-query ConditionRow)}
                  :rule/on-dates {:rule/time-slot (om/get-query TimeSlot)}])
   Object
   (render [this]
@@ -208,7 +214,7 @@
               (dom/td #js {:className "col-md-1"} logic-operator-display)
               ;(dom/td #js {:className "col-md-2"} num-conds)
               (dom/td #js {:className "col-md-12"} (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                                                              (dom/tbody nil (map ui-condition conditions))))))))
+                                                              (dom/tbody nil (map ui-condition-row conditions))))))))
 (def ui-rule-row (om/factory RuleRow {:keyfn :db/id}))
 
 

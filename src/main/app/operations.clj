@@ -34,7 +34,8 @@
              (action [{:keys [b00ks-database]} ;; :b00ks-database :request :parser :target :query-root :path :ast
                       ]
                      (u/fulcro-assert (not (dh/unimplemented-keys? form-diff))
-                                      (str "Not yet coded for these keys: " (dh/unimplemented-keys? form-diff)))
+                                      (str "Not yet coded for these keys: "
+                                           (dh/unimplemented-keys? form-diff) form-diff))
                      (let [{:keys [attribute-value-value attribute]} within
                            conn (:connection b00ks-database)
                            ;_ (println "conn: <" conn ">")

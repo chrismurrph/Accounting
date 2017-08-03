@@ -21,3 +21,5 @@
            (map #(get-in st %))
            (sort-by sort-by-f)
            (mapv ident-f)))))
+
+(defn details->form [])

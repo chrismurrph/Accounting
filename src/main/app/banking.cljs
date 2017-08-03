@@ -89,7 +89,7 @@
       (assert (or (nil? selected-rule) (fh/form? selected-rule)) (str "rule props not a form: " (keys selected-rule)))
       (dom/div nil
                (cond
-                 selected-rule (rul/ui-rule-f (om/computed selected-rule {:rule-unselected rule-unselected-f}))
+                 selected-rule (rul/ui-rule-f selected-rule)
                  only-rule (rul/ui-rule only-rule)
                  (pos? (count items)) (dom/div nil
                                                (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
@@ -173,7 +173,7 @@
     (let [rule-selected-f (fn [id]
                             (us/log (str "Clicked on " id))
                             (om/transact! this `[(cljs-ops/select-rule {:selected-ident [:rule/by-id ~id]})]))
-          rule-unselected-f #(om/transact! this `[(cljs-ops/un-select-rule)])
+          rule-unselected-f #(om/transact! this `[(cljs-ops/un-select-1 {:selected help/selected-rule})])
           {:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
                   banking-form/target-ledger banking-form/existing-rules banking-form/creating-rule] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
@@ -193,7 +193,8 @@
                                                                                    {:acct-type      ~new-val
                                                                                     :sub-query-comp ~rul/RuleRow
                                                                                     :src-bank       ~src-bank
-                                                                                    :rule-form      ~rul/RuleF})]))))})
+                                                                                    :rule-form      ~rul/RuleF
+                                                                                    :condition-form ~rul/MaybeFormConditionRow})]))))})
                (if (and ledger-type (not (#{no-pick :type/personal} ledger-type)))
                  (fh/field-with-label this form :banking-form/target-ledger
                                       (str "Target " (help/ledger-type->desc ledger-type))

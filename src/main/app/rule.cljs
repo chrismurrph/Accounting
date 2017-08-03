@@ -45,12 +45,59 @@
                (fh/field-with-label this form :condition/subject "Value:")))))
 (def ui-vcondition-form (om/factory ValidatedConditionForm {:keyfn :db/id}))
 
+(defui ^:once ConditionRow
+  static om/IQuery
+  (query [this] [:db/id :condition/field :condition/predicate :condition/subject])
+  static om/Ident
+  (ident [this props] [:condition/by-id (:db/id props)])
+  Object
+  (render [this]
+    (let [{:keys [db/id condition/field condition/predicate condition/subject]} (om/props this)
+          field-display (us/kw->string field)
+          predicate-display (us/kw->string predicate)]
+      (dom/tr nil
+              (dom/td #js {:className "col-md-2"} field-display)
+              (dom/td #js {:className "col-md-2"} predicate-display)
+              (dom/td #js {:className "col-md-2"} subject)))))
+(def ui-condition-row (om/factory ConditionRow {:keyfn :db/id}))
+
+(defui ^:once MaybeFormConditionRow
+  static uc/InitialAppState
+  (initial-state [this params] (f/build-form this (or params {})))
+  static f/IForm
+  (form-spec [this] [(f/id-field :db/id)
+                     (f/dropdown-input :condition/field [(f/option :out/desc "Description")
+                                                         (f/option :out/amount "Amount")])
+                     (f/dropdown-input :condition/predicate [(f/option :starts-with "Starts with")
+                                                             (f/option :ends-with "Ends with")
+                                                             (f/option :equals "Equals")])
+                     (f/text-input :condition/subject)])
+  static om/IQuery
+  (query [this] [:db/id :condition/field :condition/predicate :condition/subject f/form-key :ui/editable?])
+  static om/Ident
+  (ident [this props] [:condition/by-id (:db/id props)])
+  Object
+  (render [this]
+    (let [{:keys [db/id condition/field condition/predicate condition/subject ui/editable?] :as form} (om/props this)]
+      (if editable?
+        (dom/tr nil
+                (fh/field-with-label-in-row this form :condition/field "Field:")
+                (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
+                (fh/field-with-label-in-row this form :condition/subject "Value:"))
+        (let [field-display (us/kw->string field)
+              predicate-display (us/kw->string predicate)]
+          (dom/tr nil
+                  (dom/td #js {:className "col-md-2"} field-display)
+                  (dom/td #js {:className "col-md-2"} predicate-display)
+                  (dom/td #js {:className "col-md-2"} subject)))))))
+(def ui-maybe-form-condition-row (om/factory MaybeFormConditionRow {:keyfn :db/id}))
+
 (defn button-group [rule-unselected-f add-condition-f this props]
   (assert (or (nil? rule-unselected-f) (and (-> rule-unselected-f boolean? not) (fn? rule-unselected-f))))
   (dom/div #js {:className "button-group"}
            (when rule-unselected-f
              (dom/button #js {:className "btn btn-default"
-                              :onClick rule-unselected-f}
+                              :onClick   rule-unselected-f}
                          "Back"))
            (dom/button #js {:className "btn btn-default"
                             :onClick   add-condition-f}
@@ -97,65 +144,43 @@
                (button-group rule-unselected nil this props)))))
 (def ui-rule-f-condition-f (om/factory RuleFConditionF))
 
-(defui ^:once ConditionRow
-  static om/IQuery
-  (query [this] [:db/id :condition/field :condition/predicate :condition/subject])
-  static om/Ident
-  (ident [this props] [:condition/by-id (:db/id props)])
-  Object
-  (render [this]
-    (let [{:keys [db/id condition/field condition/predicate condition/subject]} (om/props this)
-          field-display (us/kw->string field)
-          predicate-display (us/kw->string predicate)]
-      (dom/tr nil
-              (dom/td #js {:className "col-md-2"} field-display)
-              (dom/td #js {:className "col-md-2"} predicate-display)
-              (dom/td #js {:className "col-md-2"} subject)))))
-(def ui-condition-row (om/factory ConditionRow {:keyfn :db/id}))
-
-;;
-;; Idea here that conditions not be made forms until needed.
-;; Can you have a form that has a many that are not themselves forms?
-;; Research and ask...
-;;
-
 (defui ^:once RuleF
   static uc/InitialAppState
   (initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
-                     (f/subform-element :rule/upserting-condition ValidatedConditionForm :one)
+                     (f/subform-element :rule/conditions MaybeFormConditionRow :many)
                      (f/dropdown-input :rule/logic-operator help/logic-options
                                        :default-value :single)])
   static om/IQuery
-  ; NOTE: f/form-root-key so that sub-forms will trigger render here
   (query [this] [f/form-root-key f/form-key
                  :db/id
                  :rule/logic-operator
-                 {:rule/upserting-condition (om/get-query ValidatedConditionForm)}
-                 {:rule/conditions (om/get-query ConditionRow)}])
+                 {:rule/conditions (om/get-query MaybeFormConditionRow)}
+                 :ui/editing?])
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
+  (condition-unselect [this]
+    (om/transact! this `[(cljs-ops/un-select-2 {:details-at ~(conj (om/get-ident this) :rule/conditions)})]))
   (add-condition [this props]
     (om/transact! this
-                  `[(cljs-ops/add-condition-2
+                  `[(cljs-ops/add-condition-3
                       ~{:id             (oh/make-temp-id "add-condition in rule")
                         :rule           (:db/id props)
-                        :condition-form ValidatedConditionForm})]))
+                        :condition-form MaybeFormConditionRow})]))
   (render [this]
-    (let [{:keys [rule/conditions rule/upserting-condition] :as props} (om/props this)
-          {:keys [rule-unselected]} (om/get-computed this)]
+    (let [{:keys [rule/conditions ui/editing?] :as props} (om/props this)
+          ;{:keys [rule-unselected]} (om/get-computed this)
+          ]
       (assert (fh/form? props) (str "props is not a form: " (keys props)))
       (dom/div #js {:className "form-horizontal"}
-               (button-group rule-unselected #(.add-condition this props) this props)
+               (button-group #(.condition-unselect this) #(.add-condition this props) this props)
                (fh/field-with-label this props :rule/logic-operator "Logic")
-               #_(when (f/valid? props)
-                 (dom/div nil "All fields have had been validated, and are valid"))
-               (when upserting-condition
-                 (ui-vcondition-form upserting-condition))
+               #_(when upserting-condition
+                   (ui-vcondition-form upserting-condition))
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                          (dom/tbody nil (map ui-condition-row conditions)))))))
+                          (dom/tbody nil (map ui-maybe-form-condition-row conditions)))))))
 (def ui-rule-f (om/factory RuleF))
 
 (defui ^:once Rule

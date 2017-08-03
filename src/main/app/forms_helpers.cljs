@@ -21,23 +21,29 @@
     st
     links))
 
+(defn fns-over-state [st fns]
+  (reduce
+    (fn [m f]
+      (f m))
+    st
+    fns))
+
 (defn ->form
-  ([form-class object-map target]
-   (->form form-class object-map target []))
-  ([form-class object-map target clear-links]
+  ([form-class]
    (assert form-class)
-   (assert (map? object-map) (us/assert-str "object-map" object-map))
-   (assert (:db/id object-map) (str "No :db/id in <" object-map ">"))
-   (let [object-as-a-form (f/build-form form-class object-map)
-         _ (assert (= (:db/id object-map) (:db/id object-as-a-form)))
-         _ (assert (form? object-as-a-form))
-         ident (om/ident form-class object-as-a-form)]
-     (assert (= (second ident) (:db/id object-map)))
-     (fn [st]
-       (-> st
-           (assoc-in ident object-as-a-form)
-           (assoc-in target ident)
-           (make-links-nil clear-links))))))
+   (fn [object-map target clear-links]
+     (assert (map? object-map) (us/assert-str "object-map" object-map))
+     (assert (:db/id object-map) (str "No :db/id in <" object-map ">"))
+     (let [object-as-a-form (f/build-form form-class object-map)
+           _ (assert (= (:db/id object-map) (:db/id object-as-a-form)))
+           _ (assert (form? object-as-a-form))
+           ident (om/ident form-class object-as-a-form)]
+       (assert (= (second ident) (:db/id object-map)))
+       (fn [st]
+         (cond-> st
+                 true (assoc-in ident object-as-a-form)
+                 target (assoc-in target ident)
+                 true (make-links-nil (or clear-links []))))))))
 
 ;;
 ;; Can be used in a mutation to assoc-in new options
@@ -67,6 +73,23 @@
      (dom/div #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
               (dom/label #js {:className (or label-width-css "col-sm-1") :htmlFor name} label)
               (dom/div #js {:className "col-sm-2"}
+                       (f/form-field comp form name :onChange onChange))
+              (when (and validation-message (f/invalid? form name))
+                (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message))))))
+
+(defn field-with-label-in-row
+  "A non-library helper function, written by you to help lay out your form."
+  ([comp form name label] (field-with-label-in-row comp form name label nil))
+  ([comp form name label {:keys [validation-message onChange label-width-css checkbox-style?] :as params}]
+   (assert label (str "No label passed in for " name))
+   (assert (or (nil? onChange) (fn? onChange)))
+    ;(println params)
+   (if checkbox-style?
+     (dom/td #js {:className "checkbox"}
+              (dom/label nil (f/form-field comp form name params) label))
+     (dom/td #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
+              (dom/label #js {:className (or label-width-css "col-sm-1") :htmlFor name} label)
+              (dom/span #js {:className "col-sm-2"}
                        (f/form-field comp form name :onChange onChange))
               (when (and validation-message (f/invalid? form name))
                 (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message))))))

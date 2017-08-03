@@ -37,6 +37,12 @@
         account-name "anz-visa"]
     (q/find-headings conn account-name)))
 
+;; Hard to do in the console when need spaces like this
+(defn query-predicate []
+  (let [conn (d/connect db-uri)
+        txt "AMAZON AUST SERVICES      MELBOURNE"]
+    (q/find-condition-predicate-by-subject conn txt)))
+
 ;;
 ;; Tells me the console's browser needs to be refreshed!
 ;;

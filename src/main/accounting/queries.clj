@@ -154,6 +154,16 @@
                  )]
     rvs))
 
+(defn find-condition-predicate-by-subject [conn txt]
+  (let [db (d/db conn)
+        p (d/q '[:find ?lo
+                 :in $ ?txt :where
+                 [?cs :condition/subject ?txt]
+                 [?r :rule/conditions ?cs]
+                 [?r :rule/logic-operator ?lo]
+                 ] db txt)]
+    p))
+
 (defn -current-period
   "Find everything about the current actual time period."
   [conn org-key]

@@ -1,7 +1,7 @@
 (ns accounting.datomic-helpers
   (:require [datomic.api :as d]))
 
-(def understood-keys #{:form/new-entities :form/add-relations})
+(def understood-keys #{:form/new-entities :form/add-relations :form/updates})
 (defn unimplemented-keys? [m]
   (let [new-keys (->> m
                       keys
@@ -40,8 +40,13 @@
                 (merge m {k v})))))
         {}
         new-entities)
-      vals
-      vec))
+      vals))
+
+;; We s/be able to assume the numbers are eids
+;; :form/updates       {[:rule/by-id 17592186045637] {:rule/logic-operator :or}},
+(defn fulcro->updates [{:keys [form/updates]}]
+  (mapv (fn [[[table-class id] m]]
+          (merge {:db/id id} m)) updates))
 
 (defn place-within [{:keys [eid content-holder-key]}]
   (fn [tx]
@@ -58,7 +63,7 @@
 ;; 4. mapv over this with replace-db-ids s/give us tx that Datomic needs
 ;; 5. Return as hash-map with tx and omid->tempid
 ;;
-(defn datomic-driver [within {:keys [form/new-entities form/add-relations] :as in}]
+(defn datomic-driver [within {:keys [form/new-entities form/add-relations] :as fulcro-in}]
   (let [{:keys [eid attribute attribute-value-value master-class detail-class]} within
         master-ids (->> new-entities
                         (filter (fn [[k v]] (= master-class (first k))))
@@ -68,10 +73,12 @@
                           (into {}))
         ids-replacer (replace-db-ids omid->tempid)
         within-placer (place-within within)
-        tx (->> in
+        tx (->> fulcro-in
                 (fulcro->nested detail-class)
-                (mapv ids-replacer))
-        tx (if eid (conj tx (within-placer tx)) tx)]
+                (map ids-replacer))
+        tx (-> (if eid (conj tx (within-placer tx)) tx)
+               (concat (fulcro->updates fulcro-in))
+               vec)]
     ;(println "TX: " tx)
     {:tx           tx
      :omid->tempid omid->tempid}))
@@ -80,44 +87,67 @@
 ;; These won't really be tempids but omids. Could not capture omids because of an edn reader problem. It doesn't
 ;; matter what they are for our purposes.
 ;;
-(def incoming-example {:form/new-entities  {[:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
-                                            {:db/id                      (d/tempid :db.part/user),
-                                             :person/name                "Chris Murphy",
-                                             :person/age                 45,
-                                             :person/registered-to-vote? false},
-                                            [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]
-                                            {:db/id        (d/tempid :db.part/user),
-                                             :phone/number "0403162669",
-                                             :phone/type   :home}
-                                            [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
-                                            {:db/id                      (d/tempid :db.part/user),
-                                             :person/name                "Jan Marie",
-                                             :person/age                 31,
-                                             :person/registered-to-vote? true},
-                                            [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]
-                                            {:db/id        (d/tempid :db.part/user),
-                                             :phone/number "90866777777",
-                                             :phone/type   :home}
-                                            },
-                       :form/add-relations {
-                                            [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
-                                            {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]]}
-                                            [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
-                                            {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]]}
-                                            }})
+(def incoming-example-1 {:form/new-entities  {[:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
+                                              {:db/id                      (d/tempid :db.part/user),
+                                               :person/name                "Chris Murphy",
+                                               :person/age                 45,
+                                               :person/registered-to-vote? false},
+                                              [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]
+                                              {:db/id        (d/tempid :db.part/user),
+                                               :phone/number "0403162669",
+                                               :phone/type   :home}
+                                              [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
+                                              {:db/id                      (d/tempid :db.part/user),
+                                               :person/name                "Jan Marie",
+                                               :person/age                 31,
+                                               :person/registered-to-vote? true},
+                                              [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]
+                                              {:db/id        (d/tempid :db.part/user),
+                                               :phone/number "90866777777",
+                                               :phone/type   :home}
+                                              },
+                         :form/add-relations {
+                                              [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
+                                              {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]]}
+                                              [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
+                                              {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]]}
+                                              }})
 
-(def within-example {
-                     :attribute             :organisation/key
-                     :content-holder-key    :organisation/people
-                     :attribute-value-value :seaweed
-                     :master-class          :people/by-id
-                     :detail-class          :phone/by-id})
+(def incoming-example-2 {:form/add-relations {[:rule/by-id 17592186045637]
+                                              {:rule/upserting-condition [:condition/by-id "615aae0d-c052-4709-a5c3-6ca973cf0b9e"]}},
+                         :form/updates       {[:rule/by-id 17592186045637] {:rule/logic-operator :or}},
+                         :form/new-entities  {[:condition/by-id "615aae0d-c052-4709-a5c3-6ca973cf0b9e"]
+                                              {:db/id               "615aae0d-c052-4709-a5c3-6ca973cf0b9e",
+                                               :condition/field     :out/desc,
+                                               :condition/predicate :equals,
+                                               :condition/subject   "SAIGON VIETNAMESE ME      OLD REYNELLA",
+                                               }}})
+(def within-example-1 {
+                       :attribute             :organisation/key
+                       :content-holder-key    :organisation/people
+                       :attribute-value-value :seaweed
+                       :master-class          :people/by-id
+                       :detail-class          :phone/by-id})
 
-(defn test-create-nested-1 []
-  (fulcro->nested :phone/by-id incoming-example))
+(def within-example-2 {:content-holder-key    :organisation/rules
+                       :attribute             :organisation/key
+                       :attribute-value-value :seaweed
+                       :master-class          :rule/by-id
+                       :detail-class          :condition/by-id})
 
-(defn test-create-nested-2 []
-  (datomic-driver within-example incoming-example))
+(defn test-create-nested-a1 []
+  (fulcro->nested :phone/by-id incoming-example-1))
+
+(defn test-create-nested-b1 []
+  (datomic-driver within-example-1 incoming-example-1))
+
+
+(defn test-create-nested-a2 []
+  (fulcro->nested :condition/by-id incoming-example-2))
+
+(defn test-create-nested-b2 []
+  (datomic-driver within-example-2 incoming-example-2))
+
 
 ;;
 ;; If there are only new entities life is easy...
@@ -132,8 +162,8 @@
 ;;
 (defn bring-in []
   (let [conn (d/connect db-uri)]
-    #_(fulcro->datomic incoming-example)
-    @(d/transact conn (fulcro->datomic incoming-example))))
+    #_(fulcro->datomic incoming-example-1)
+    @(d/transact conn (fulcro->datomic incoming-example-1))))
 
 ;; Can't seem to get this to upsert, using either :unique-value or :unique-identity on person entity.
 ;; Are going to need upserting when we are modifying existing rules.
@@ -163,7 +193,7 @@
 ;;
 (defn test-creating-nested []
   (let [conn (d/connect db-uri)
-        nested (:tx (datomic-driver within-example incoming-example))]
+        nested (:tx (datomic-driver within-example-1 incoming-example-1))]
     @(d/transact conn nested)))
 
 (defn test-what-coming []

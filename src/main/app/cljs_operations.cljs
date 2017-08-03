@@ -106,30 +106,29 @@
             (uc/integrate-ident! state condition-ident :prepend (conj rule-ident :rule/conditions)))))
 
 ;;
-;; Making a new condition and putting it in its own table then putting the ident within the rule.
-;; So why isn't the rule being marked as dirty?
-;; Doc says:
-;; A form is considered dirty? when:
-;; Any field of the form or its declared subforms has a value different from the initial (or most recently committed) value.
-;; Any form or subform in a set has an Om tempid (e.g. server remaps have not yet taken effect)
+;; Making a new condition and putting it in its own condition/by-id table
+;; then putting the ident within the rule.
 ;;
-;; Here the second of those statements must be true.
-(defmutation add-condition-2
+(defmutation add-condition-3
   [{:keys [id rule condition-form]}]
   (action [{:keys [state]}]
           ;newly created one will have a tempid
           (assert id)
           (assert (om/tempid? id))
-          (let [new-condition (f/build-form condition-form
-                                            {:db/id               id
-                                             :condition/field     :out/desc
-                                             :condition/predicate :equals
-                                             :condition/subject   (get-in @state [:bank-line/by-id p/BANK_STATEMENT_LINE :bank-line/desc])
-                                             })
+          (let [new-cond (f/build-form
+                           condition-form
+                           {:db/id               id
+                            :condition/field     :out/desc
+                            :condition/predicate :equals
+                            :condition/subject   (get-in @state [:bank-line/by-id p/BANK_STATEMENT_LINE :bank-line/desc])
+                            :ui/editable?        true
+                            })
                 rule-ident [:rule/by-id rule]
-                condition-ident (om/ident condition-form new-condition)]
-            (swap! state assoc-in condition-ident new-condition)
-            (uc/integrate-ident! state condition-ident :replace (conj rule-ident :rule/upserting-condition)))))
+                condition-ident (om/ident condition-form new-cond)]
+            (swap! state #(-> %
+                              (assoc-in (conj rule-ident :ui/editing?) true)
+                              (assoc-in condition-ident new-cond)))
+            (uc/integrate-ident! state condition-ident :prepend (conj rule-ident :rule/conditions)))))
 
 (def conditions-count-sorter (oh/sort-idents 10
                                              (fn [m] [:rule/by-id (:db/id m)])
@@ -145,10 +144,10 @@
                 rules-count (-> (get-in st help/rules-list-items-whereabouts) count)
                 _ (println "rules-loaded, rules count: " rules-count)]
             (condp = rules-count
-              0 (let [form-f (fh/->form (get @state :global-form/rule-form)
-                                        (make-rule)
-                                        help/banking-form-rule-whereabouts
-                                        [help/only-rule help/selected-rule])]
+              0 (let [form-f ((fh/->form (get @state :global-form/rule-form))
+                               (make-rule)
+                               help/banking-form-rule-whereabouts
+                               [help/only-rule help/selected-rule])]
                   (swap! state form-f))
               1 (swap! state #(-> %
                                   (assoc-in help/only-rule (first (get-in st help/rules-list-items-whereabouts)))
@@ -174,7 +173,7 @@
 ;; If user has selected :type/personal then the next drop down is not even going to appear
 ;;
 (defmutation config-data-for-target-ledger-dropdown
-  [{:keys [sub-query-comp acct-type src-bank rule-form]}]
+  [{:keys [sub-query-comp acct-type src-bank rule-form condition-form]}]
   (action [{:keys [state]}]
           (assert sub-query-comp (us/assert-str "sub-query-comp" sub-query-comp))
           (assert acct-type (us/assert-str "acct-type" acct-type))
@@ -195,6 +194,7 @@
               (swap! state assoc-in help/target-account-field-whereabouts personal-key))
             ;; 'rules-loaded (see post-mutation below) doesn't take a parameter so have to put one in here
             (swap! state assoc :global-form/rule-form rule-form)
+            (swap! state assoc :global-form/condition-form condition-form)
             (let [st @state
                   org-ident [:organisation/by-id p/ORGANISATION]
                   {:keys [organisation/key]} (get-in st org-ident)]
@@ -217,22 +217,52 @@
     (action [{:keys [state]}]
             (swap! state assoc-in help/selected-rule selected-ident)))
 
+;;
+;; Completing f with one more arg (detail object) returns a fn that only needs state. Many returned.
+;;
+(defn detail-fns [master-ident details-key f st]
+  (let [master-object (get-in st master-ident)
+        detail-idents (details-key master-object)
+        detail-objects (map (fn [ident] (get-in st ident)) detail-idents)
+        ;; If you don't use mapv to deliver the fn will get nil delivered
+        res (mapv f detail-objects)]
+    res))
+
+;;
+;; The rule and all its conditions are turned into forms.
+;;
 (defmutation select-rule
   [{:keys [selected-ident]}]
   (action [{:keys [state]}]
           (let [st @state
-                form-f (fh/->form (get st :global-form/rule-form)
-                                  (get-in st selected-ident)
-                                  help/selected-rule)]
+                rule-object (get-in st selected-ident)
+                condition-form (get st :global-form/condition-form)
+                ;condition-idents (:rule/conditions rule-object)
+                ;condition-objects (map (fn [ident] (get-in st ident)) condition-idents)
+                ;condition-form-fs (map (fh/->form condition-form) condition-objects)
+                condition-form-fs (detail-fns selected-ident :rule/conditions (fh/->form condition-form) st)
+                rule-form-f ((fh/->form (get st :global-form/rule-form))
+                              rule-object
+                              help/selected-rule)]
             (swap! state #(-> %
                               ;; just for debugging
                               ;; (fh/make-links-nil help/selected-rule)
-                              form-f)))))
+                              rule-form-f
+                              (fh/fns-over-state condition-form-fs))))))
 
-(defmutation un-select-rule
+(defmutation un-select-1
   [{:keys [selected]}]
   (action [{:keys [state]}]
-          (swap! state assoc-in help/selected-rule nil)))
+          (assert (vector? selected) (us/assert-str "selected" selected))
+          (swap! state assoc-in selected nil)))
+
+(defmutation un-select-2
+  [{:keys [details-at]}]
+  (action [{:keys [state]}]
+          (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
+          (let [master-ident (-> details-at (partial take 2) vec)]
+            (swap! state (-> %
+                             )))))
 
 (defmutation unruly-bank-statement-line
   [no-params]

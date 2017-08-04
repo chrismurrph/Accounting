@@ -3,7 +3,9 @@
             [fulcro.ui.forms :as f]
             [fulcro.client.mutations :as m :refer [defmutation]]
             [om.next :as om]
-            [cljc.utils :as us]))
+            [cljc.utils :as us]
+            [cljs.spec.alpha :as s]
+            [cljs.spec.test.alpha :as ts]))
 
 (defn form? [?form]
   (and (f/is-form? ?form)
@@ -22,23 +24,38 @@
     links))
 
 (defn fns-over-state [st fns]
+  (assert (map? st))
   (reduce
     (fn [m f]
+      (assert (fn? f))
+      (assert (map? m))
       (f m))
     st
     fns))
 
+(defn nothing-over-state [st fns]
+  (assert (map? st))
+  st)
+
+(s/def ::state-fn (s/fspec :args (s/cat :x map?)
+                           :ret map?))
+
+(s/fdef fns-over-state
+        :args (s/cat :st map?
+                     :fns (s/coll-of ::state-fn))
+        :ret map?)
+
 (defn ->form
   ([form-class]
    (assert form-class)
-   (fn [object-map target clear-links]
-     (assert (map? object-map) (us/assert-str "object-map" object-map))
-     (assert (:db/id object-map) (str "No :db/id in <" object-map ">"))
-     (let [object-as-a-form (f/build-form form-class object-map)
-           _ (assert (= (:db/id object-map) (:db/id object-as-a-form)))
+   (fn [{:keys [detail-object-map target clear-links]}]
+     (assert (map? detail-object-map) (us/assert-str "detail-object-map" detail-object-map))
+     (assert (:db/id detail-object-map) (str "No :db/id in <" detail-object-map ">"))
+     (let [object-as-a-form (f/build-form form-class detail-object-map)
+           _ (assert (= (:db/id detail-object-map) (:db/id object-as-a-form)))
            _ (assert (form? object-as-a-form))
            ident (om/ident form-class object-as-a-form)]
-       (assert (= (second ident) (:db/id object-map)))
+       (assert (= (second ident) (:db/id detail-object-map)))
        (fn [st]
          (cond-> st
                  true (assoc-in ident object-as-a-form)
@@ -46,7 +63,7 @@
                  true (make-links-nil (or clear-links []))))))))
 
 (defn unedit [detail-class editable-key]
-  (fn [detail-object-map]
+  (fn [{:keys [detail-object-map target clear-links]}]
     (let [id (:db/id detail-object-map)
           _ (assert id (str "No id in " detail-object-map))
           detail-ident [detail-class id]
@@ -54,8 +71,18 @@
       (fn [st]
         (assoc-in st detail-ident new-object)))))
 
-(defn remove-detail-from-master [master-ident detail-key detail-class rm-predicate-f]
-  (fn [detail-object-map]
+(defn do-nothing []
+  (fn [m]
+    (fn [st]
+      st)))
+
+(defn remove-detail-from-master [detail-class rm-predicate-f]
+  (assert (fn? rm-predicate-f))
+  (assert detail-class)
+  (fn [{:keys [detail-object-map master-ident detail-key]}]
+    (assert (map? detail-object-map))
+    (assert (vector? master-ident))
+    (assert (keyword? detail-key))
     (let [rm? (rm-predicate-f detail-object-map)
           _ (println "rm?" rm? " for " (:db/id detail-object-map))]
       (fn [st]
@@ -110,13 +137,13 @@
     ;(println params)
    (if checkbox-style?
      (dom/td #js {:className "checkbox"}
-              (dom/label nil (f/form-field comp form name params) label))
+             (dom/label nil (f/form-field comp form name params) label))
      (dom/td #js {:className (str "form-group" (if (f/invalid? form name) " has-error" ""))}
-              (dom/label #js {:className (or label-width-css "col-sm-1") :htmlFor name} label)
-              (dom/span #js {:className "col-sm-2"}
+             (dom/label #js {:className (or label-width-css "col-sm-1") :htmlFor name} label)
+             (dom/span #js {:className "col-sm-2"}
                        (f/form-field comp form name :onChange onChange))
-              (when (and validation-message (f/invalid? form name))
-                (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message))))))
+             (when (and validation-message (f/invalid? form name))
+               (dom/span #js {:className (str "col-sm-offset-1 col-sm-2" name)} validation-message))))))
 
 (comment "Makes no sense - yes it did - no onChange capability"
          (defn checkbox-with-label
@@ -137,5 +164,4 @@
         (assoc-in field-whereabouts field-value)
         (assoc-in default-value-whereabouts field-value)
         (assoc-in options-whereabouts options-value))))
-
 

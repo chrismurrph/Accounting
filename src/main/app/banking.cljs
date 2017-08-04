@@ -99,7 +99,7 @@
                                                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                                                           (dom/thead nil rule-table-header)
                                                           (dom/tbody nil (map #(rul/ui-rule-row
-                                                                                 (om/computed % {:rule-selected rule-selected-f})) items)))))))))
+                                                                                 (om/computed % {:rule-selected-f rule-selected-f})) items)))))))))
 (def ui-rules-list (om/factory RulesList))
 
 ;; :logic-operator dropdown :and :or :single

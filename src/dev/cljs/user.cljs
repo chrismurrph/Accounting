@@ -5,7 +5,11 @@
     [fulcro.client.core :as uc]
     [fulcro.ui.forms :as f]
     [om.next :as om]
-    [goog.dom :as gdom]))
+    [goog.dom :as gdom]
+    [cljs.spec.alpha :as s]
+    [cljs.spec.test.alpha :as ts]
+    [app.forms-helpers :as fh]
+    [app.cljs-operations :as cljs-ops]))
 
 (defn refresh []
   (swap! app uc/mount Root "app"))
@@ -42,3 +46,24 @@
       [prior (-> st
                  (assoc-in get-there replace-with)
                  (get-in get-there))])))
+
+(defn my-inc [x]
+  (inc x))
+
+(s/fdef my-inc
+        :args (s/cat :x number?)
+        :ret number?)
+
+(ts/instrument)
+
+(defn x-1 []
+  (my-inc "Hi"))
+
+(defn x-2 []
+  (app.forms-helpers/fns-over-state {:a :b} [(fn [m] m)]))
+
+(defn x-3 []
+  (let [st {}
+        nothing-fns (cljs-ops/detail-fns {}
+                                         (fh/do-nothing)
+                                         st)]))

@@ -11,7 +11,8 @@
     [clojure.set :as set]
     [fulcro.client.data-fetch :as df]
     [fulcro.client.core :as uc]
-    [app.panels :as p]))
+    [app.panels :as p]
+    [cljs.spec.alpha :as s]))
 
 ;;
 ;; Only when the report is done do we show its title properly. Consider going from grayed out to black.
@@ -144,10 +145,10 @@
                 rules-count (-> (get-in st help/rules-list-items-whereabouts) count)
                 _ (println "rules-loaded, rules count: " rules-count)]
             (condp = rules-count
-              0 (let [form-f ((fh/->form (get @state :global-form/rule-form))
-                               (make-rule)
-                               help/banking-form-rule-whereabouts
-                               [help/only-rule help/selected-rule])]
+              0 (let [context {:detail-object-map (make-rule)
+                               :target            help/banking-form-rule-whereabouts
+                               :clear-links       [help/only-rule help/selected-rule]}
+                      form-f ((fh/->form (get @state :global-form/rule-form)) context)]
                   (swap! state form-f))
               1 (swap! state #(-> %
                                   (assoc-in help/only-rule (first (get-in st help/rules-list-items-whereabouts)))
@@ -217,16 +218,36 @@
     (action [{:keys [state]}]
             (swap! state assoc-in help/selected-rule selected-ident)))
 
+;{:object-map (make-rule)
+; :target     help/banking-form-rule-whereabouts
+; :clear-links [help/only-rule help/selected-rule]}
+
 ;;
 ;; Completing f with one more arg (detail object) returns a fn that only needs state. Many returned.
 ;;
-(defn detail-fns [{:keys [master-ident details-key]} f st]
+(defn detail-fns [{:keys [master-ident detail-key] :as context} f st]
+  (assert (vector? master-ident))
+  (assert (keyword? detail-key))
   (->> master-ident
        (get-in st)
-       details-key
-       (map (fn [ident] (get-in st ident)))
+       detail-key
+       (map (fn [ident]
+              (let [obj-map (get-in st ident)]
+                (merge {:detail-object-map obj-map} context))))
        ;; If you don't use mapv to deliver the fn will get nil delivered (even as first arg)
        (mapv f)))
+
+(s/def ::state-fn (s/fspec :args (s/cat :x map?)
+                           :ret map?))
+
+(s/def ::state->fnfn (s/fspec :args (s/cat :x map?)
+                              :ret ::state-fn))
+
+#_(s/fdef detail-fns
+          :args (s/cat :st map?
+                       :f ::state->fnfn
+                       :st map?)
+          :ret map?)
 
 ;;
 ;; The rule and all its conditions are turned into forms.
@@ -236,15 +257,16 @@
   (action [{:keys [state]}]
           (let [st @state
                 context {:master-ident selected-ident
-                         :details-key :rule/conditions}
+                         :detail-key   :rule/conditions}
                 condition-form-fs (detail-fns
                                     context
                                     (fh/->form (get st :global-form/condition-form))
                                     st)
                 rule-object (get-in st selected-ident)
+                _ (assert (map? rule-object))
                 rule-form-f ((fh/->form (get st :global-form/rule-form))
-                              rule-object
-                              help/selected-rule)]
+                              {:detail-object-map rule-object
+                               :target            help/selected-rule})]
             (swap! state #(-> %
                               ;; just for debugging
                               ;; (fh/make-links-nil help/selected-rule)
@@ -263,25 +285,30 @@
           (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
           (let [st @state
                 master-ident (->> details-at (take 2) vec)
-                details-key (last details-at)
+                detail-key (last details-at)
                 context {:master-ident master-ident
-                         :details-key details-key}
+                         :detail-key   detail-key}
                 unselect-fns (detail-fns context
                                          (fh/unedit detail-class :ui/editable?)
                                          st)
                 rm-fns (detail-fns context
                                    (fh/remove-detail-from-master
-                                     master-ident
-                                     details-key
                                      detail-class
                                      (fn [obj-map]
-                                       (true? (:ui/editable? obj-map))))
+                                       (let [editable? (:ui/editable? obj-map)]
+                                         (assert (boolean? editable?) (us/assert-str "obj-map" obj-map))
+                                         editable?)))
                                    st)
+                ;;; Problem shows here:
+                ;nothing-fns (detail-fns {}
+                ;                        (fh/do-nothing)
+                ;                        st)
                 ]
             (swap! state #(-> %
-                              (assoc-in (conj master-ident :ui/editing?) false)
                               (fh/fns-over-state unselect-fns)
                               (fh/fns-over-state rm-fns)
+                              (fh/nothing-over-state nothing-fns)
+                              (assoc-in (conj master-ident :ui/editing?) false)
                               )))))
 
 (defmutation unruly-bank-statement-line

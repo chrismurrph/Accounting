@@ -225,7 +225,7 @@
   (render [this]
     (let [props (om/props this)
           {:keys [db/id rule/permanent? rule/source-bank rule/target-account rule/logic-operator rule/conditions]} props
-          {:keys [rule-selected]} (om/get-computed this)
+          {:keys [rule-selected-f]} (om/get-computed this)
           ;; permanent? is either true or nil
           permanent-display (if permanent? "Permanent" (display-on-dates props))
           ;source-bank-display (us/kw->string source-bank)
@@ -233,7 +233,7 @@
           logic-operator-display (if (= :single logic-operator) "" (us/kw->string logic-operator))
           ;num-conds (str (count conditions))
           ]
-      (dom/tr #js {:onClick #(rule-selected id)}
+      (dom/tr #js {:onClick #(rule-selected-f id)}
               (dom/td #js {:className "col-md-2"} permanent-display)
               ;(dom/td #js {:className "col-md-2"} source-bank-display)
               ;(dom/td #js {:className "col-md-2"} target-account-display)

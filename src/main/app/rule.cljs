@@ -162,7 +162,8 @@
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
   (condition-unselect [this]
-    (om/transact! this `[(cljs-ops/un-select-2 {:details-at ~(conj (om/get-ident this) :rule/conditions)})]))
+    (om/transact! this `[(cljs-ops/un-select-2 {:details-at ~(conj (om/get-ident this) :rule/conditions)
+                                                :detail-class :condition/by-id})]))
   (add-condition [this props]
     (om/transact! this
                   `[(cljs-ops/add-condition-3

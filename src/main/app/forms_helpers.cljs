@@ -45,6 +45,30 @@
                  target (assoc-in target ident)
                  true (make-links-nil (or clear-links []))))))))
 
+(defn unedit [detail-class editable-key]
+  (fn [detail-object-map]
+    (let [id (:db/id detail-object-map)
+          _ (assert id (str "No id in " detail-object-map))
+          detail-ident [detail-class id]
+          new-object (assoc detail-object-map editable-key false)]
+      (fn [st]
+        (assoc-in st detail-ident new-object)))))
+
+(defn remove-detail-from-master [master-ident detail-key detail-class rm-predicate-f]
+  (fn [detail-object-map]
+    (let [rm? (rm-predicate-f detail-object-map)
+          _ (println "rm?" rm? " for " (:db/id detail-object-map))]
+      (fn [st]
+        (if rm?
+          (let [id (:db/id detail-object-map)
+                _ (assert id (str "No id in " detail-object-map))
+                detail-ident [detail-class id]
+                _ (println "To rm " id)]
+            (update-in st
+                       (conj master-ident detail-key)
+                       (fn [idents] (remove (fn [ident] (= ident detail-ident)) idents))))
+          st)))))
+
 ;;
 ;; Can be used in a mutation to assoc-in new options
 ;;

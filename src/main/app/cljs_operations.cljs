@@ -220,13 +220,13 @@
 ;;
 ;; Completing f with one more arg (detail object) returns a fn that only needs state. Many returned.
 ;;
-(defn detail-fns [master-ident details-key f st]
-  (let [master-object (get-in st master-ident)
-        detail-idents (details-key master-object)
-        detail-objects (map (fn [ident] (get-in st ident)) detail-idents)
-        ;; If you don't use mapv to deliver the fn will get nil delivered
-        res (mapv f detail-objects)]
-    res))
+(defn detail-fns [{:keys [master-ident details-key]} f st]
+  (->> master-ident
+       (get-in st)
+       details-key
+       (map (fn [ident] (get-in st ident)))
+       ;; If you don't use mapv to deliver the fn will get nil delivered (even as first arg)
+       (mapv f)))
 
 ;;
 ;; The rule and all its conditions are turned into forms.
@@ -235,12 +235,13 @@
   [{:keys [selected-ident]}]
   (action [{:keys [state]}]
           (let [st @state
+                context {:master-ident selected-ident
+                         :details-key :rule/conditions}
+                condition-form-fs (detail-fns
+                                    context
+                                    (fh/->form (get st :global-form/condition-form))
+                                    st)
                 rule-object (get-in st selected-ident)
-                condition-form (get st :global-form/condition-form)
-                ;condition-idents (:rule/conditions rule-object)
-                ;condition-objects (map (fn [ident] (get-in st ident)) condition-idents)
-                ;condition-form-fs (map (fh/->form condition-form) condition-objects)
-                condition-form-fs (detail-fns selected-ident :rule/conditions (fh/->form condition-form) st)
                 rule-form-f ((fh/->form (get st :global-form/rule-form))
                               rule-object
                               help/selected-rule)]
@@ -257,12 +258,31 @@
           (swap! state assoc-in selected nil)))
 
 (defmutation un-select-2
-  [{:keys [details-at]}]
+  [{:keys [details-at detail-class]}]
   (action [{:keys [state]}]
           (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
-          (let [master-ident (-> details-at (partial take 2) vec)]
-            (swap! state (-> %
-                             )))))
+          (let [st @state
+                master-ident (->> details-at (take 2) vec)
+                details-key (last details-at)
+                context {:master-ident master-ident
+                         :details-key details-key}
+                unselect-fns (detail-fns context
+                                         (fh/unedit detail-class :ui/editable?)
+                                         st)
+                rm-fns (detail-fns context
+                                   (fh/remove-detail-from-master
+                                     master-ident
+                                     details-key
+                                     detail-class
+                                     (fn [obj-map]
+                                       (true? (:ui/editable? obj-map))))
+                                   st)
+                ]
+            (swap! state #(-> %
+                              (assoc-in (conj master-ident :ui/editing?) false)
+                              (fh/fns-over-state unselect-fns)
+                              (fh/fns-over-state rm-fns)
+                              )))))
 
 (defmutation unruly-bank-statement-line
   [no-params]

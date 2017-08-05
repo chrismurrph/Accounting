@@ -213,15 +213,6 @@
                                }))))
   (remote [env] (df/remote-load env)))
 
-#_(defmutation select-rule-old
-    [{:keys [selected-ident]}]
-    (action [{:keys [state]}]
-            (swap! state assoc-in help/selected-rule selected-ident)))
-
-;{:object-map (make-rule)
-; :target     help/banking-form-rule-whereabouts
-; :clear-links [help/only-rule help/selected-rule]}
-
 ;;
 ;; Completing f with one more arg (detail object) returns a fn that only needs state. Many returned.
 ;;
@@ -235,7 +226,7 @@
               (let [obj-map (get-in st ident)]
                 (merge {:detail-object-map obj-map} context))))
        ;; If you don't use mapv to deliver the fn will get nil delivered (even as first arg)
-       (mapv f)))
+       (map (fn [new-context] {:fn (f new-context) :info new-context}))))
 
 (s/def ::state-fn (s/fspec :args (s/cat :x map?)
                            :ret map?))
@@ -273,13 +264,7 @@
                               rule-form-f
                               (fh/fns-over-state condition-form-fs))))))
 
-(defmutation un-select-1
-  [{:keys [selected]}]
-  (action [{:keys [state]}]
-          (assert (vector? selected) (us/assert-str "selected" selected))
-          (swap! state assoc-in selected nil)))
-
-(defmutation un-select-2
+(defmutation un-select
   [{:keys [details-at detail-class]}]
   (action [{:keys [state]}]
           (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
@@ -296,18 +281,15 @@
                                      detail-class
                                      (fn [obj-map]
                                        (let [editable? (:ui/editable? obj-map)]
-                                         (assert (boolean? editable?) (us/assert-str "obj-map" obj-map))
+                                         (assert (or (nil? editable?)
+                                                     (boolean? editable?)) (us/assert-str "obj-map" obj-map))
                                          editable?)))
                                    st)
-                ;;; Problem shows here:
-                ;nothing-fns (detail-fns {}
-                ;                        (fh/do-nothing)
-                ;                        st)
                 ]
             (swap! state #(-> %
                               (fh/fns-over-state unselect-fns)
                               (fh/fns-over-state rm-fns)
-                              (fh/nothing-over-state nothing-fns)
+                              (assoc-in help/selected-rule nil)
                               (assoc-in (conj master-ident :ui/editing?) false)
                               )))))
 

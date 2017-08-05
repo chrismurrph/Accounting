@@ -10,7 +10,8 @@
             [app.om-helpers :as oh]
             [cljc.utils :as us]
             [app.time :as t]
-            [cljs-time.coerce :as c]))
+            [cljs-time.coerce :as c]
+            [app.panels :as p]))
 
 (defui ^:once TimeSlot
   static om/IQuery
@@ -79,6 +80,7 @@
   Object
   (render [this]
     (let [{:keys [db/id condition/field condition/predicate condition/subject ui/editable?] :as form} (om/props this)]
+      (assert (or (nil? editable?) (boolean? editable?)) (us/assert-str "editable?" editable?))
       (if editable?
         (dom/tr nil
                 (fh/field-with-label-in-row this form :condition/field "Field:")
@@ -162,8 +164,8 @@
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
   (condition-unselect [this]
-    (om/transact! this `[(cljs-ops/un-select-2 {:details-at ~(conj (om/get-ident this) :rule/conditions)
-                                                :detail-class :condition/by-id})]))
+    (om/transact! this `[(cljs-ops/un-select {:details-at     ~(conj (om/get-ident this) :rule/conditions)
+                                                :detail-class :condition/by-id}) [:banking-form/by-id ~p/BANKING_FORM]]))
   (add-condition [this props]
     (om/transact! this
                   `[(cljs-ops/add-condition-3
@@ -234,6 +236,7 @@
           ;num-conds (str (count conditions))
           ]
       (dom/tr #js {:onClick #(rule-selected-f id)}
+              (dom/td #js {:className "col-md-1"} id)
               (dom/td #js {:className "col-md-2"} permanent-display)
               ;(dom/td #js {:className "col-md-2"} source-bank-display)
               ;(dom/td #js {:className "col-md-2"} target-account-display)

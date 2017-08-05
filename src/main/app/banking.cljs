@@ -1,6 +1,5 @@
 (ns app.banking
   (:require [om.dom :as dom]
-            [om.next :as om]
             [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
             [fulcro.client.data-fetch :as df]
@@ -61,6 +60,7 @@
 
 (def rule-table-header
   (dom/tr nil
+          (dom/th #js {:className "col-md-1"} "ID")
           (dom/th #js {:className "col-md-2"} "When")
           ;(dom/th #js {:className "col-md-2"} "Source bank account")
           ;(dom/th #js {:className "col-md-2"} "Target ledger account")
@@ -84,7 +84,7 @@
   Object
   (render [this]
     (let [{:keys [db/id rules-list/label ui/selected-rule ui/only-rule rules-list/items]} (om/props this)
-          {:keys [rule-selected-f rule-unselected-f]} (om/get-computed this)
+          {:keys [rule-selected-f]} (om/get-computed this)
           a-rule (or selected-rule only-rule)]
       (assert (or (nil? selected-rule) (fh/form? selected-rule)) (str "rule props not a form: " (keys selected-rule)))
       (dom/div nil
@@ -169,12 +169,11 @@
               {:banking-form/config-data (om/get-query config/ConfigData)} f/form-root-key f/form-key
               {:banking-form/creating-rule (om/get-query rul/RuleF)}])
   Object
+  (rule-selected-f [this id]
+    (us/log (str "Clicked on " id))
+    (om/transact! this `[(cljs-ops/select-rule {:selected-ident [:rule/by-id ~id]})]))
   (render [this]
-    (let [rule-selected-f (fn [id]
-                            (us/log (str "Clicked on " id))
-                            (om/transact! this `[(cljs-ops/select-rule {:selected-ident [:rule/by-id ~id]})]))
-          rule-unselected-f #(om/transact! this `[(cljs-ops/un-select-1 {:selected help/selected-rule})])
-          {:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
+    (let [{:keys [ui/ledger-type banking-form/config-data banking-form/logic-operator banking-form/bank-statement-line
                   banking-form/target-ledger banking-form/existing-rules banking-form/creating-rule] :as form} (om/props this)
           {:keys [bank-line/src-bank]} bank-statement-line
           {:keys [config-data/ledger-accounts]} config-data
@@ -218,8 +217,7 @@
                             (dom/div nil
                                      (dom/label nil (str "ledger type: " ledger-type))
                                      (rul/ui-rule-f-condition-f creating-rule))))
-                 (ui-rules-list (om/computed existing-rules {:rule-selected-f   rule-selected-f
-                                                             :rule-unselected-f rule-unselected-f})))))))
+                 (ui-rules-list (om/computed existing-rules {:rule-selected-f #(.rule-selected-f this %1)})))))))
 
 (def ui-banking-form (om/factory BankingForm))
 

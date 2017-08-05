@@ -43,7 +43,7 @@
                                                      :in $ ?o ?a
                                                      :where [?e ?a ?o]]
                                                    (d/db conn) attribute-value-value attribute))
-                           {:keys [omid->tempid tx]} (dh/datomic-driver (assoc within :eid eid) form-diff)
+                           {:keys [omid->tempid tx]} (dh/datomic-driver-1 (assoc within :eid eid) form-diff)
                            result @(d/transact conn tx)
                            tempid->realid (:tempids result)
                            omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]

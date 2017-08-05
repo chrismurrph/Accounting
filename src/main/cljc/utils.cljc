@@ -35,7 +35,9 @@
 ;; value - of the thing we are asserting on
 ;;
 (defn assert-str [name value]
-  (str name " (nil?, type, value-of): [" (nil? value) ", " (type value) ", " value "]"))
+  (str name " (nil?, fn?, type, value-of): ["
+       (nil? value) ", " (fn? value)
+       (when (-> value fn? not) (str ", " (type value) ", " value)) "]"))
 
 (defn string->kw [s]
   (-> s

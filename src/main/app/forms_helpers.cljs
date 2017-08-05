@@ -23,26 +23,29 @@
     st
     links))
 
-(defn fns-over-state [st fns]
+(defn fns-over-state [st mps]
   (assert (map? st))
   (reduce
-    (fn [m f]
-      (assert (fn? f))
+    (fn [m {:keys [fn info]}]
+      (assert (fn? fn))
       (assert (map? m))
-      (f m))
+      ;(println "keys:" (keys info))
+      (fn m))
     st
-    fns))
+    mps))
 
 (defn nothing-over-state [st fns]
   (assert (map? st))
   st)
 
-(s/def ::state-fn (s/fspec :args (s/cat :x map?)
+(s/def ::fn (s/fspec :args (s/cat :x map?)
                            :ret map?))
+(s/def ::info map?)
+(s/def ::fn-map (s/keys :req [::fn ::info]))
 
-(s/fdef fns-over-state
+#_(s/fdef fns-over-state
         :args (s/cat :st map?
-                     :fns (s/coll-of ::state-fn))
+                     :fns (s/coll-of ::fn-map))
         :ret map?)
 
 (defn ->form
@@ -93,7 +96,7 @@
                 _ (println "To rm " id)]
             (update-in st
                        (conj master-ident detail-key)
-                       (fn [idents] (remove (fn [ident] (= ident detail-ident)) idents))))
+                       (fn [idents] (vec (remove (fn [ident] (= ident detail-ident)) idents)))))
           st)))))
 
 ;;

@@ -3,17 +3,16 @@
             [om.next :as om]
             [accounting.util :as u]))
 
-(def testing true)
-(defn om-tempid? [x]
-  (if testing
-    (string? x)
-    (om/tempid? x)))
+(defn om-tempid? [testing?]
+  (fn [x]
+    (if testing?
+      (string? x)
+      (om/tempid? x))))
 
-(def understood-keys #{:form/new-entities :form/add-relations :form/updates})
 (defn unimplemented-keys? [m]
   (let [new-keys (->> m
                       keys
-                      (remove understood-keys))]
+                      (remove #{:form/new-entities :form/add-relations :form/updates}))]
     (seq new-keys)))
 
 (defn resolve-ids [new-db omids->tempids tempids->realids]
@@ -97,12 +96,13 @@
      :omid->tempid omid->tempid}))
 
 (defn non-relations->tx
-  [within form-new-entities form-updates]
+  [testing? within form-new-entities form-updates]
   (let [{:keys [eid]} within
+        omid? (om-tempid? testing?)
         omid->tempid (->> form-new-entities
                           keys
                           (map second)
-                          (filter om-tempid?)
+                          (filter omid?)
                           (map (fn [id] [id (d/tempid :db.part/user)]))
                           (into {}))
         tx (->> form-new-entities
@@ -115,37 +115,36 @@
     {:tx           tx
      :omid->tempid omid->tempid}))
 
-(defn translate-coll [omids->realids]
+(defn form-relations->datomic [omids->realids]
   (fn [v]
     (into {} (map (fn [[a b]]
-                    [a (mapv (fn [[class key]] [class (or (omids->realids key) key)]) b)]) v))))
+                    [a (mapv (fn [[class key]] {:db/id (or (omids->realids key) key)}) b)]) v))))
 
 ;; {[:rule/by-id 17592186045640]
 ;;  {:rule/conditions [[:condition/by-id "aa544ed2-c52d-4211-902e-1cafd0407699"]]}
 ;; }
 (defn relations->tx [omids->realids form-add-relations]
   (println form-add-relations)
-  (let [coll-translate-f (translate-coll omids->realids)
-        realids-adds (->> form-add-relations
-                          (map (fn [[k v]] [(or (omids->realids k) k) (coll-translate-f v)]))
-                          (into {}))]
-    realids-adds))
+  (let [coll-translate-f (form-relations->datomic omids->realids)
+        tx (->> form-add-relations
+                (map (fn [[k v]] (merge (coll-translate-f v) {:db/id (second (or (omids->realids k) k))})))
+                (into {}))]
+    tx))
 
 (defn datomic-driver
-  [db
-   within
+  [testing?
+   conn
+   {:keys [attribute-value-value attribute] :as within}
    {:keys [form/new-entities form/add-relations form/updates] :as form-diff}]
   (u/fulcro-assert (not (unimplemented-keys? form-diff))
                    (str "Not yet coded for these keys: "
                         (unimplemented-keys? form-diff) form-diff))
-  (let [{:keys [attribute-value-value attribute]} within
-        conn (:connection db)
-        ;_ (println "conn: <" conn ">")
+  (let [db (d/db conn)
         eid (and attribute (d/q '[:find ?e .
                                   :in $ ?o ?a
                                   :where [?e ?a ?o]]
-                                (d/db conn) attribute-value-value attribute))
-        {:keys [omid->tempid tx]} (non-relations->tx (assoc within :eid eid) new-entities updates)
+                                db attribute-value-value attribute))
+        {:keys [omid->tempid tx]} (non-relations->tx testing? (assoc within :eid eid) new-entities updates)
         result @(d/transact conn tx)
         tempid->realid (:tempids result)
         omids->realids (resolve-ids db omid->tempid tempid->realid)
@@ -236,9 +235,8 @@
 (def db-uri "datomic:dev://localhost:4334/b00ks")
 
 (defn test-new-driver []
-  (let [conn (d/connect db-uri)
-        db (d/db conn)]
-    (datomic-driver db {} incoming-example-3)))
+  (let [conn (d/connect db-uri)]
+    (datomic-driver true conn {} incoming-example-3)))
 
 ;;
 ;; Too simple, won't respect the relationships

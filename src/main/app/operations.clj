@@ -31,23 +31,10 @@
 ;;
 (defmutation commit-to-within-entity
              [{:keys [form-diff within]}]
-             (action [{:keys [b00ks-database]} ;; :b00ks-database :request :parser :target :query-root :path :ast
-                      ]
-                     (u/fulcro-assert (not (dh/unimplemented-keys? form-diff))
-                                      (str "Not yet coded for these keys: "
-                                           (dh/unimplemented-keys? form-diff) form-diff))
-                     (let [{:keys [attribute-value-value attribute]} within
-                           conn (:connection b00ks-database)
-                           ;_ (println "conn: <" conn ">")
-                           eid (and attribute (d/q '[:find ?e .
-                                                     :in $ ?o ?a
-                                                     :where [?e ?a ?o]]
-                                                   (d/db conn) attribute-value-value attribute))
-                           {:keys [omid->tempid tx]} (dh/datomic-driver-1 (assoc within :eid eid) form-diff)
-                           result @(d/transact conn tx)
-                           tempid->realid (:tempids result)
-                           omids->realids (dh/resolve-ids (d/db conn) omid->tempid tempid->realid)]
-                       {:tempids omids->realids})))
+             ;; :b00ks-database :request :parser :target :query-root :path :ast
+             (action [{:keys [b00ks-database]}]
+                     (let [conn (:connection b00ks-database)]
+                       (dh/datomic-driver false conn within form-diff))))
 
 (defmutation delete-ledger-item
              "Server Mutation: Handles deleting a ledger-item on the server"

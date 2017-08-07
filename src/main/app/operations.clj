@@ -26,8 +26,7 @@
 ;;
 ;; :attribute             :organisation/key
 ;; :attribute-value-value :seaweed
-;; :master-class          :people/by-id
-;; :detail-class          :phone/by-id
+;; :master-class          :rule/by-id
 ;;
 (defmutation commit-to-within-entity
              [{:keys [form-diff within]}]

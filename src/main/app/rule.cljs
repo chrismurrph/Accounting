@@ -112,8 +112,8 @@
                                                                 :within {:content-holder-key    :organisation/rules
                                                                          :attribute             :organisation/key
                                                                          :attribute-value-value :seaweed
-                                                                         :master-class          :rule/by-id
-                                                                         :detail-class          :condition/by-id}})])}
+                                                                         :content-holder-class  :organisation/by-id
+                                                                         :master-class          :rule/by-id}})])}
                        "Submit")))
 
 (defui ^:once RuleFConditionF

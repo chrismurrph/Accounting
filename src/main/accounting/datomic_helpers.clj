@@ -1,7 +1,8 @@
 (ns accounting.datomic-helpers
   (:require [datomic.api :as d]
             [om.next :as om]
-            [accounting.util :as u]))
+            [accounting.util :as u]
+            [accounting.test-data :as td]))
 
 (defn om-tempid? [testing?]
   (fn [x]
@@ -22,83 +23,36 @@
     {}
     omids->tempids))
 
-(defn replace-db-ids [omid->tempid]
-  (fn [m]
-    (->> m
-         (map (fn [[k v]]
-                (if (= k :db/id)
-                  [k (or (omid->tempid v) v)]
-                  [k v])))
-         (into {}))))
-
-;;
-;; Part of the driver converting what Fulcro creates to what Datomic accepts. So far just looking at new
-;; entities and relations that are added. Yet to come is existing entities and relations to be removed.
-;; From Datomic's point of view the reference to the nested map must be a component attribute.
-;;
-(defn fulcro->nested [detail-class {:keys [form/new-entities form/add-relations]}]
-  (-> (reduce-kv
-        (fn [m k v]
-          (let [[relation-k [merge-k merge-idents]] (some (fn [[rk rv]] (when (= rk k) [rk (first rv)])) add-relations)]
-            (if relation-k
-              (merge m {k (merge v {merge-k (mapv (fn [ident] (dissoc (get new-entities ident) :db/id)) merge-idents)})})
-              (if (= detail-class (first k))
-                m
-                (merge m {k v})))))
-        {}
-        new-entities)
-      vals))
-
 ;; We s/be able to assume the numbers are eids
 ;; :form/updates       {[:rule/by-id 17592186045637] {:rule/logic-operator :or}},
 (defn fulcro->updates [updates]
   (mapv (fn [[[table-class id] m]]
           (merge {:db/id id} m)) updates))
 
-(defn place-within [{:keys [eid content-holder-key]}]
-  (fn [tx]
-    {:db/id             eid
-     content-holder-key (mapv :db/id tx)
-     }))
+(defn only [xs]
+  (let [counted (count xs)]
+    (u/fulcro-assert (= 1 counted) (str "Expect to be one only: " (seq xs))))
+  (first xs))
 
-(defn collect-ids [class new-entities]
-  (->> new-entities
-       (filter (fn [[k v]] (= class (first k))))
-       (map (fn [[k v]] (second k)))))
+(defn include-base-type [m]
+  (let [table-name (->> m
+                        keys
+                        (remove #{:db/id})
+                        (map namespace)
+                        distinct
+                        only
+                        keyword)]
+    (merge m {:base/type table-name})))
 
-;;
-;; Needs to return tx, a transaction vector, and omid->tempid, which maps the ids from add-relations to the ids
-;; we create here which are used by Datomic in the transaction.
-;; 1. Get the existing ids of the master class as a list
-;; 2. Create the omid->tempid map by generating against every one in the list
-;; 3. fulcro->nested will give us tx but without the Datomic tempids
-;; 4. mapv over this with replace-db-ids s/give us tx that Datomic needs
-;; 5. Return as hash-map with tx and omid->tempid
-;;
-(defn datomic-driver-1 [within {:keys [form/new-entities form/add-relations form/updates] :as fulcro-in}]
-  (let [{:keys [eid attribute attribute-value-value master-class detail-class]} within
-        new-master-ids (collect-ids master-class new-entities)
-        new-detail-ids (collect-ids detail-class new-entities)
-        omid->tempid (->> (concat new-master-ids new-detail-ids)
-                          (map (fn [id] [id (d/tempid :db.part/user)]))
-                          (into {}))
-        ids-replacer (replace-db-ids omid->tempid)
-        tx (->> fulcro-in
-                (fulcro->nested detail-class)
-                (map ids-replacer))
-        tx (-> (if eid (conj tx ((place-within within) tx)) tx)
-               (concat (fulcro->updates updates))
-               vec)]
-    (println "new-entities" new-entities)
-    (println "add-relations" add-relations)
-    (println "TX: " tx)
-    {:tx           tx
-     :omid->tempid omid->tempid}))
+(defn x-1 []
+  (include-base-type {:db/id               "87c267cb-8997-4b4b-8bf3-8dcfa19023b0",
+                      :condition/field     :out/desc,
+                      :condition/predicate :equals,
+                      :condition/subject   "SAIGON VIETNAMESE ME      OLD REYNELLA"}))
 
 (defn non-relations->tx
   [testing? within form-new-entities form-updates]
-  (let [{:keys [eid]} within
-        omid? (om-tempid? testing?)
+  (let [omid? (om-tempid? testing?)
         omid->tempid (->> form-new-entities
                           keys
                           (map second)
@@ -107,9 +61,10 @@
                           (into {}))
         tx (->> form-new-entities
                 vals
+                (map include-base-type)
                 (map #(map (fn [[k v]] (if (= k :db/id) [k (omid->tempid v)] [k v])) %))
                 (map #(into {} %)))
-        tx (-> (if eid (conj tx ((place-within within) tx)) tx)
+        tx (-> tx
                (concat (fulcro->updates form-updates))
                vec)]
     {:tx           tx
@@ -118,18 +73,33 @@
 (defn form-relations->datomic [omids->realids]
   (fn [v]
     (into {} (map (fn [[a b]]
-                    [a (mapv (fn [[class key]] {:db/id (or (omids->realids key) key)}) b)]) v))))
+                    [a (mapv (fn [[class key]] (or (omids->realids key) key)) b)]) v))))
 
 ;; {[:rule/by-id 17592186045640]
 ;;  {:rule/conditions [[:condition/by-id "aa544ed2-c52d-4211-902e-1cafd0407699"]]}
 ;; }
+;; {[:rule/by-id 17592186045640] {:rule/conditions [[:condition/by-id #om/id["8d64296b-c458-4cc0-93f9-cd94503a1690"]]]}}
 (defn relations->tx [omids->realids form-add-relations]
-  (println form-add-relations)
+  ;(println "IN:" form-add-relations)
   (let [coll-translate-f (form-relations->datomic omids->realids)
         tx (->> form-add-relations
-                (map (fn [[k v]] (merge (coll-translate-f v) {:db/id (second (or (omids->realids k) k))})))
-                (into {}))]
+                (mapv (fn [[k v]] (merge {:db/id (second (or (omids->realids k) k))}
+                                         (coll-translate-f v))))
+                ;(into {})
+                )
+        ;_ (println "OUT:" tx)
+        ]
     tx))
+
+(defn create-content-holder-relation
+  [eid {:keys [content-holder-key content-holder-class master-class]} form-new-entities]
+  (let [new-masters (->> form-new-entities
+                         (filter (fn [[[class id] v]] (= class master-class)))
+                         vals
+                         (mapv :db/id))
+        k [content-holder-class eid]
+        v {content-holder-key new-masters}]
+    [k v]))
 
 (defn datomic-driver
   [testing?
@@ -144,87 +114,20 @@
                                   :in $ ?o ?a
                                   :where [?e ?a ?o]]
                                 db attribute-value-value attribute))
-        {:keys [omid->tempid tx]} (non-relations->tx testing? (assoc within :eid eid) new-entities updates)
+        {:keys [omid->tempid tx]} (non-relations->tx testing? within new-entities updates)
         result @(d/transact conn tx)
         tempid->realid (:tempids result)
         omids->realids (resolve-ids db omid->tempid tempid->realid)
-        tx (relations->tx omids->realids add-relations)]
+        content-holder-relation (create-content-holder-relation eid within new-entities)
+        tx (relations->tx omids->realids (conj add-relations content-holder-relation))]
     @(d/transact conn tx)
     {:tempids omids->realids}))
 
-;;
-;; These won't really be tempids but omids. Could not capture omids because of an edn reader problem. It doesn't
-;; matter what they are for our purposes.
-;;
-(def incoming-example-1 {:form/new-entities  {[:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
-                                              {:db/id                      (d/tempid :db.part/user),
-                                               :person/name                "Chris Murphy",
-                                               :person/age                 45,
-                                               :person/registered-to-vote? false},
-                                              [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]
-                                              {:db/id        (d/tempid :db.part/user),
-                                               :phone/number "0403162669",
-                                               :phone/type   :home}
-                                              [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
-                                              {:db/id                      (d/tempid :db.part/user),
-                                               :person/name                "Jan Marie",
-                                               :person/age                 31,
-                                               :person/registered-to-vote? true},
-                                              [:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]
-                                              {:db/id        (d/tempid :db.part/user),
-                                               :phone/number "90866777777",
-                                               :phone/type   :home}
-                                              },
-                         :form/add-relations {
-                                              [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb1"]
-                                              {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9652"]]}
-                                              [:people/by-id "279bac0b-cd75-4b7f-824c-e37ad5a5cdb2"]
-                                              {:person/phone-numbers [[:phone/by-id "0bcfbf90-eb56-4514-8259-123893bc9653"]]}
-                                              }})
-
-(def incoming-example-2 {:form/updates      {[:rule/by-id 17592186045637] {:rule/logic-operator :or}},
-                         :form/new-entities {[:condition/by-id "615aae0d-c052-4709-a5c3-6ca973cf0b9e"]
-                                             {:db/id               "615aae0d-c052-4709-a5c3-6ca973cf0b9e",
-                                              :condition/field     :out/desc,
-                                              :condition/predicate :equals,
-                                              :condition/subject   "SAIGON VIETNAMESE ME      OLD REYNELLA",
-                                              }}})
-
-(def incoming-example-3 {:form/new-entities  {[:condition/by-id "aa544ed2-c52d-4211-902e-1cafd0407699"]
-                                              {:db/id             "aa544ed2-c52d-4211-902e-1cafd0407699",
-                                               :condition/field   :out/desc, :condition/predicate :equals,
-                                               :condition/subject "SAIGON VIETNAMESE ME      OLD REYNELLA"}}
-                         :form/add-relations {[:rule/by-id 17592186045640]
-                                              {:rule/conditions [[:condition/by-id "aa544ed2-c52d-4211-902e-1cafd0407699"]]}}})
-
-(def within-example-1 {
-                       :attribute             :organisation/key
-                       :content-holder-key    :organisation/people
-                       :attribute-value-value :seaweed
-                       :master-class          :people/by-id
-                       :detail-class          :phone/by-id})
-
-(def within-example-2 {:content-holder-key    :organisation/rules
-                       :attribute             :organisation/key
-                       :attribute-value-value :seaweed
-                       :master-class          :rule/by-id
-                       :detail-class          :condition/by-id})
-
 (defn test-relations []
-  (relations->tx {"aa544ed2-c52d-4211-902e-1cafd0407699" 777} (:form/add-relations incoming-example-3)))
+  (relations->tx {"aa544ed2-c52d-4211-902e-1cafd0407699" 777} (:form/add-relations td/incoming-example-3)))
 
-(defn test-create-nested-a1 []
-  (fulcro->nested :phone/by-id incoming-example-1))
-
-(defn test-create-nested-b1 []
-  (datomic-driver-1 within-example-1 incoming-example-1))
-
-(defn test-create-nested-a2 []
-  (fulcro->nested :condition/by-id incoming-example-2))
-
-(defn test-create-nested-b2 []
-  (datomic-driver-1 within-example-2 incoming-example-2))
-
+(defn test-create-content-relation []
+  (create-content-holder-relation 2 td/within-example-1 (:form/new-entities td/incoming-example-1)))
 
 ;;
 ;; If there are only new entities life is easy...
@@ -236,7 +139,7 @@
 
 (defn test-new-driver []
   (let [conn (d/connect db-uri)]
-    (datomic-driver true conn {} incoming-example-3)))
+    (datomic-driver true conn {} td/incoming-example-2)))
 
 ;;
 ;; Too simple, won't respect the relationships
@@ -244,7 +147,7 @@
 (defn bring-in []
   (let [conn (d/connect db-uri)]
     #_(fulcro->datomic incoming-example-1)
-    @(d/transact conn (fulcro->datomic incoming-example-1))))
+    @(d/transact conn (fulcro->datomic td/incoming-example-1))))
 
 ;; Can't seem to get this to upsert, using either :unique-value or :unique-identity on person entity.
 ;; Are going to need upserting when we are modifying existing rules.
@@ -267,14 +170,6 @@
                  :person/registered-to-vote? false
                  :person/phone-numbers       [{:phone/number "0403168891",
                                                :phone/type   :home}]}]]
-    @(d/transact conn nested)))
-
-;;
-;; This working. We not yet handling modifications
-;;
-(defn test-creating-nested []
-  (let [conn (d/connect db-uri)
-        nested (:tx (datomic-driver-1 within-example-1 incoming-example-1))]
     @(d/transact conn nested)))
 
 (defn test-what-coming []

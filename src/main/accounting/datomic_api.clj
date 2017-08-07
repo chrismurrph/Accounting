@@ -219,4 +219,4 @@
         statements (->> org-key
                         (-import-statements conn)
                         (keep statement-make))]
-    (println (str "Number of statements imported: " (count statements)))))
+    (println (str "Number of bank statements imported: " (count statements)))))

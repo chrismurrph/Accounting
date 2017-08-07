@@ -9,8 +9,9 @@
                  [clj-time "0.13.0"]
                  [com.andrewmcveigh/cljs-time "0.5.0"]
                  [com.datomic/datomic-pro "0.9.5561" :exclusions [com.google.guava/guava]]
+                 [org.clojure/test.check "0.10.0-alpha2"]
                  ]
-  :source-paths ["src/main" "checkouts/fulcro/src/main"]
+  :source-paths ["src/main"]                                ;;"checkouts/fulcro/src/main"
   :resource-paths ["resources"]
   :clean-targets ^{:protect false} ["resources/public/js" "target" "out"]
 

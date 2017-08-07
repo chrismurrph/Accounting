@@ -81,20 +81,25 @@
   (render [this]
     (let [{:keys [db/id condition/field condition/predicate condition/subject ui/editable?] :as form} (om/props this)]
       (assert (or (nil? editable?) (boolean? editable?)) (us/assert-str "editable?" editable?))
-      (if editable?
-        (dom/tr nil
-                (fh/field-with-label-in-row this form :condition/field "Field:")
-                (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
-                (fh/field-with-label-in-row this form :condition/subject "Value:"))
-        (let [field-display (us/kw->string field)
-              predicate-display (us/kw->string predicate)]
-          (dom/tr nil
-                  (dom/td #js {:className "col-md-2"} field-display)
-                  (dom/td #js {:className "col-md-2"} predicate-display)
-                  (dom/td #js {:className "col-md-2"} subject)))))))
+      (cond
+        editable? (dom/tr nil
+                          (fh/field-with-label-in-row this form :condition/field "Field:")
+                          (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
+                          (fh/field-with-label-in-row this form :condition/subject "Value:"))
+        :else (let [field-display (us/kw->string field)
+                    predicate-display (us/kw->string predicate)]
+                (dom/tr nil
+                        (dom/td #js {:className "col-md-2"} field-display)
+                        (dom/td #js {:className "col-md-2"} predicate-display)
+                        (dom/td #js {:className "col-md-2"} subject)))))))
 (def ui-maybe-form-condition-row (om/factory MaybeFormConditionRow {:keyfn :db/id}))
 
-(defn button-group [rule-unselected-f add-condition-f this props]
+(defn make-fns [rule-unselected-f add-condition-f remove-condition-f]
+  {:rule-unselected-f rule-unselected-f
+   :add-condition-f add-condition-f
+   :remove-condition-f remove-condition-f})
+
+(defn button-group [{:keys [rule-unselected-f add-condition-f remove-condition-f]} this props]
   (assert (or (nil? rule-unselected-f) (and (-> rule-unselected-f boolean? not) (fn? rule-unselected-f))))
   (dom/div #js {:className "button-group"}
            (when rule-unselected-f
@@ -103,7 +108,11 @@
                          "Back"))
            (dom/button #js {:className "btn btn-default"
                             :onClick   add-condition-f}
-                       "Add Condition")
+                       "Add")
+           (when remove-condition-f
+             (dom/button #js {:className "btn btn-default"
+                              :onClick   remove-condition-f}
+                         "Remove"))
            (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
                             :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
                                                              (ops/commit-to-within-entity
@@ -125,7 +134,6 @@
                      (f/dropdown-input :rule/logic-operator help/logic-options
                                        :default-value :single)])
   static om/IQuery
-  ; NOTE: f/form-root-key so that sub-forms will trigger render here
   (query [this] [f/form-root-key f/form-key
                  :db/id
                  :rule/logic-operator
@@ -143,7 +151,7 @@
                         (mapv ui-vcondition-form conditions))
                (when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
-               (button-group rule-unselected nil this props)))))
+               (button-group (make-fns rule-unselected nil nil) this props)))))
 (def ui-rule-f-condition-f (om/factory RuleFConditionF))
 
 (defui ^:once RuleF
@@ -164,8 +172,8 @@
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
   (condition-unselect [this]
-    (om/transact! this `[(cljs-ops/un-select {:details-at     ~(conj (om/get-ident this) :rule/conditions)
-                                                :detail-class :condition/by-id}) [:banking-form/by-id ~p/BANKING_FORM]]))
+    (om/transact! this `[(cljs-ops/un-select {:details-at   ~(conj (om/get-ident this) :rule/conditions)
+                                              :detail-class :condition/by-id}) [:banking-form/by-id ~p/BANKING_FORM]]))
   (add-condition [this props]
     (om/transact! this
                   `[(cljs-ops/add-condition-3
@@ -178,10 +186,8 @@
           ]
       (assert (fh/form? props) (str "props is not a form: " (keys props)))
       (dom/div #js {:className "form-horizontal"}
-               (button-group #(.condition-unselect this) #(.add-condition this props) this props)
+               (button-group (make-fns #(.condition-unselect this) #(.add-condition this props) nil) this props)
                (fh/field-with-label this props :rule/logic-operator "Logic")
-               #_(when upserting-condition
-                   (ui-vcondition-form upserting-condition))
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map ui-maybe-form-condition-row conditions)))))))
 (def ui-rule-f (om/factory RuleF))
@@ -200,7 +206,7 @@
                   rule/logic-operator rule/conditions]} props
           {:keys [rule-unselected]} (om/get-computed this)]
       (dom/div nil
-               (button-group rule-unselected nil this props)
+               (button-group (make-fns rule-unselected nil nil) this props)
                (dom/table #js {:className "table table-bordered table-sm table-hover"}
                           (dom/tbody nil (map ui-condition-row conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))

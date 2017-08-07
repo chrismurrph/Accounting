@@ -12,6 +12,7 @@
     [fulcro.client.data-fetch :as df]
     [fulcro.client.core :as uc]
     [app.panels :as p]
+    ;[clojure.test.check :as stc]
     [cljs.spec.alpha :as s]))
 
 ;;
@@ -264,7 +265,10 @@
                               rule-form-f
                               (fh/fns-over-state condition-form-fs))))))
 
-(defmutation un-select
+;;
+;; Bad because you don't need to remove what you added with forms - it has in-built remove
+;;
+(defmutation un-select-bad
   [{:keys [details-at detail-class]}]
   (action [{:keys [state]}]
           (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
@@ -289,6 +293,35 @@
             (swap! state #(-> %
                               (fh/fns-over-state unselect-fns)
                               (fh/fns-over-state rm-fns)
+                              (assoc-in help/selected-rule nil)
+                              (assoc-in (conj master-ident :ui/editing?) false)
+                              )))))
+
+(defmutation un-select
+  [{:keys [details-at detail-class]}]
+  (action [{:keys [state]}]
+          (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
+          (let [st @state
+                master-ident (->> details-at (take 2) vec)
+                detail-key (last details-at)
+                context {:master-ident master-ident
+                         :detail-key   detail-key}
+                unselect-fns (detail-fns context
+                                         (fh/unedit detail-class :ui/editable?)
+                                         st)
+                ;rm-fns (detail-fns context
+                ;                   (fh/remove-detail-from-master
+                ;                     detail-class
+                ;                     (fn [obj-map]
+                ;                       (let [editable? (:ui/editable? obj-map)]
+                ;                         (assert (or (nil? editable?)
+                ;                                     (boolean? editable?)) (us/assert-str "obj-map" obj-map))
+                ;                         editable?)))
+                ;                   st)
+                ]
+            (swap! state #(-> %
+                              (fh/fns-over-state unselect-fns)
+                              ;(fh/fns-over-state rm-fns)
                               (assoc-in help/selected-rule nil)
                               (assoc-in (conj master-ident :ui/editing?) false)
                               )))))

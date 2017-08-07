@@ -59,7 +59,7 @@
   ([] (go :dev))
   ([path]
    (if @system
-     (println "The server is already running. Use reset to stop, refresh, and start.")
+     (println "The server is already running. Use restart to stop, refresh, and start.")
      (letfn [(start []
                (swap! system component/start))
              (init [path]
@@ -68,7 +68,7 @@
        (init path)
        (start)))))
 
-(defn reset
+(defn restart
   "Stop the server, refresh the code, and restart the server."
   []
   (stop)

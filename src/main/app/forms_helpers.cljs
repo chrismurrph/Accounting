@@ -4,7 +4,6 @@
             [fulcro.client.mutations :as m :refer [defmutation]]
             [om.next :as om]
             [cljc.utils :as us]
-    ;[clojure.test.check :as stc]
             [cljs.spec.alpha :as s]
             [cljs.spec.test.alpha :as ts]))
 

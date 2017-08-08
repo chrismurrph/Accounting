@@ -2,6 +2,7 @@
   (:require [fulcro.client.core :as uc]
             [om.next :as om :refer [defui]]
             [fulcro.ui.forms :as f]
+            [fulcro.ui.bootstrap3 :as b]
             [om.dom :as dom]
             [app.forms-helpers :as fh]
             [app.cljs-operations :as cljs-ops]
@@ -83,9 +84,9 @@
       (assert (or (nil? editable?) (boolean? editable?)) (us/assert-str "editable?" editable?))
       (cond
         editable? (dom/tr nil
-                          (fh/field-with-label-in-row this form :condition/field "Field:")
-                          (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
-                          (fh/field-with-label-in-row this form :condition/subject "Value:"))
+                         (fh/field-with-label-in-row this form :condition/field "Field:")
+                         (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
+                         (fh/field-with-label-in-row this form :condition/subject "Value:"))
         :else (let [field-display (us/kw->string field)
                     predicate-display (us/kw->string predicate)]
                 (dom/tr nil
@@ -95,26 +96,23 @@
 (def ui-maybe-form-condition-row (om/factory MaybeFormConditionRow {:keyfn :db/id}))
 
 (defn make-fns [rule-unselected-f add-condition-f remove-condition-f]
-  {:rule-unselected-f rule-unselected-f
-   :add-condition-f add-condition-f
+  {:rule-unselected-f  rule-unselected-f
+   :add-condition-f    add-condition-f
    :remove-condition-f remove-condition-f})
 
 (defn button-group [{:keys [rule-unselected-f add-condition-f remove-condition-f]} this props]
   (assert (or (nil? rule-unselected-f) (and (-> rule-unselected-f boolean? not) (fn? rule-unselected-f))))
-  (dom/div #js {:className "button-group"}
-           (when rule-unselected-f
-             (dom/button #js {:className "btn btn-default"
-                              :onClick   rule-unselected-f}
-                         "Back"))
-           (dom/button #js {:className "btn btn-default"
-                            :onClick   add-condition-f}
-                       "Add")
-           (when remove-condition-f
-             (dom/button #js {:className "btn btn-default"
-                              :onClick   remove-condition-f}
-                         "Remove"))
-           (dom/button #js {:className "btn btn-default", :disabled (not (f/dirty? props))
-                            :onClick   #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
+  (b/button-group {}
+                  (when rule-unselected-f
+                    (b/button {:onClick rule-unselected-f}
+                              "Back"))
+                  (b/button {:onClick add-condition-f}
+                            "Add")
+                  (when remove-condition-f
+                    (b/button {:onClick remove-condition-f}
+                              "Remove"))
+                  (b/button {:disabled (not (f/dirty? props))
+                             :onClick  #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
                                                              (ops/commit-to-within-entity
                                                                {:form   ~props
                                                                 :remote true
@@ -123,7 +121,7 @@
                                                                          :attribute-value-value :seaweed
                                                                          :content-holder-class  :organisation/by-id
                                                                          :master-class          :rule/by-id}})])}
-                       "Submit")))
+                            "Submit")))
 
 (defui ^:once RuleFConditionF
   static uc/InitialAppState
@@ -188,8 +186,8 @@
       (dom/div #js {:className "form-horizontal"}
                (button-group (make-fns #(.condition-unselect this) #(.add-condition this props) nil) this props)
                (fh/field-with-label this props :rule/logic-operator "Logic")
-               (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                          (dom/tbody nil (map ui-maybe-form-condition-row conditions)))))))
+               (b/table {:className "table table-bordered table-sm table-hover"}
+                        (dom/tbody nil (map ui-maybe-form-condition-row conditions)))))))
 (def ui-rule-f (om/factory RuleF))
 
 (defui ^:once Rule
@@ -207,8 +205,8 @@
           {:keys [rule-unselected]} (om/get-computed this)]
       (dom/div nil
                (button-group (make-fns rule-unselected nil nil) this props)
-               (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                          (dom/tbody nil (map ui-condition-row conditions)))))))
+               (b/table #js {:className "table table-bordered table-sm table-hover"}
+                        (dom/tbody nil (map ui-condition-row conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))
 
 ;;
@@ -248,8 +246,8 @@
               ;(dom/td #js {:className "col-md-2"} target-account-display)
               (dom/td #js {:className "col-md-1"} logic-operator-display)
               ;(dom/td #js {:className "col-md-2"} num-conds)
-              (dom/td #js {:className "col-md-12"} (dom/table #js {:className "table table-bordered table-sm table-hover"}
-                                                              (dom/tbody nil (map ui-condition-row conditions))))))))
+              (dom/td #js {:className "col-md-12"} (b/table {:className "table table-bordered table-sm"}
+                                                            (dom/tbody nil (map ui-condition-row conditions))))))))
 (def ui-rule-row (om/factory RuleRow {:keyfn :db/id}))
 
 

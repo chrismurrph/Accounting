@@ -16,8 +16,7 @@
             [app.util :as u]
             [app.forms-helpers :as fh]
             [app.domain-ui-helpers :as help]
-            [fulcro.client.routing :as r :refer-macros [defrouter]]
-            [fulcro.ui.bootstrap3 :as b]))
+            [fulcro.client.routing :as r :refer-macros [defrouter]]))
 
 (defrouter TopRouter :top-router
            (ident [this props] [(:page props) :top])

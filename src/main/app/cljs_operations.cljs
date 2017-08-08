@@ -12,7 +12,6 @@
     [fulcro.client.data-fetch :as df]
     [fulcro.client.core :as uc]
     [app.panels :as p]
-    ;[clojure.test.check :as stc]
     [cljs.spec.alpha :as s]))
 
 ;;

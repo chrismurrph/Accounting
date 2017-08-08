@@ -18,7 +18,8 @@
             [app.operations :as ops]
             [app.time :as t]
             [cljs-time.coerce :as c]
-            [app.om-helpers :as oh]))
+            [app.om-helpers :as oh]
+            [fulcro.ui.bootstrap3 :as b]))
 
 ;;
 ;; Expect to only see one of these, the one that has no rule or too many rules.
@@ -62,10 +63,7 @@
   (dom/tr nil
           (dom/th #js {:className "col-md-1"} "ID")
           (dom/th #js {:className "col-md-2"} "When")
-          ;(dom/th #js {:className "col-md-2"} "Source bank account")
-          ;(dom/th #js {:className "col-md-2"} "Target ledger account")
           (dom/th #js {:className "col-md-1"} "Logic operator")
-          ;(dom/th #js {:className "col-md-2"} "Num conditions")
           (dom/th #js {:className "col-md-12"} "Conditions")))
 
 (defui ^:once RulesList
@@ -92,11 +90,11 @@
                  selected-rule (rul/ui-rule-f selected-rule)
                  only-rule (rul/ui-rule only-rule)
                  (pos? (count items)) (dom/div nil
-                                               (dom/label nil (str "Num matching rules: " (count items) " (click to select)"))
+                                               (b/label nil (str "Num matching rules: " (count items) " (click to select)"))
                                                ;(dom/label nil (str "ID: " id ", <" label "> " (count items)))
                                                ;; table-inverse did not work
                                                ;; table-striped doesn't work well with hover as same colour
-                                               (dom/table #js {:className "table table-bordered table-sm table-hover"}
+                                               (b/table {:className "table table-bordered table-sm table-hover"}
                                                           (dom/thead nil rule-table-header)
                                                           (dom/tbody nil (map #(rul/ui-rule-row
                                                                                  (om/computed % {:rule-selected-f rule-selected-f})) items)))))))))
@@ -179,9 +177,6 @@
           {:keys [config-data/ledger-accounts]} config-data
           matching-rules-count (-> existing-rules :rules-list/items count)]
       (dom/div #js {:className "form-horizontal"}
-               (dom/label nil (str "Target ledger: " target-ledger))
-               #_(dom/label nil (str "DEBUG - Ledger type is " ledger-type
-                                     ", and count of existing: " (-> existing-rules :rules-list/items count)))
                (fh/field-with-label this form :ui/ledger-type
                                     "Type"
                                     {:label-width-css "col-sm-2"

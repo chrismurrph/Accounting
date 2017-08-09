@@ -91,26 +91,11 @@
    :rule/logic-operator :single
    :rule/conditions     []})
 
-(defmutation add-condition-1
-  [{:keys [id rule condition-form]}]
-  (action [{:keys [state]}]
-          ;newly created one will have a tempid
-          (assert id)
-          (let [new-condition (f/build-form condition-form {:db/id               id
-                                                            :condition/field     :out/desc
-                                                            :condition/predicate :equals
-                                                            :condition/subject   ""
-                                                            })
-                rule-ident [:rule/by-id rule]
-                condition-ident (om/ident condition-form new-condition)]
-            (swap! state assoc-in condition-ident new-condition)
-            (uc/integrate-ident! state condition-ident :prepend (conj rule-ident :rule/conditions)))))
-
 ;;
 ;; Making a new condition and putting it in its own condition/by-id table
 ;; then putting the ident within the rule.
 ;;
-(defmutation add-condition-3
+(defmutation add-condition
   [{:keys [id rule condition-form]}]
   (action [{:keys [state]}]
           ;newly created one will have a tempid
@@ -264,37 +249,16 @@
                               rule-form-f
                               (fh/fns-over-state condition-form-fs))))))
 
-;;
-;; Bad because you don't need to remove what you added with forms - it has in-built remove
-;;
-(defmutation un-select-bad
-  [{:keys [details-at detail-class]}]
+(def condition-select (oh/select-one (fn [m] (assert m) [:condition/by-id (:db/id m)])
+                                     #(:ui/selected? %)
+                                     #(assoc % :ui/selected? true)
+                                     #(assoc % :ui/selected? false)))
+(defmutation select-condition
+  [{:keys [selected-ident master-join]}]
   (action [{:keys [state]}]
-          (assert (and (vector? details-at) (= 3 (count details-at))) (us/assert-str "details-at" details-at))
-          (let [st @state
-                master-ident (->> details-at (take 2) vec)
-                detail-key (last details-at)
-                context {:master-ident master-ident
-                         :detail-key   detail-key}
-                unselect-fns (detail-fns context
-                                         (fh/unedit detail-class :ui/editable?)
-                                         st)
-                rm-fns (detail-fns context
-                                   (fh/remove-detail-from-master
-                                     detail-class
-                                     (fn [obj-map]
-                                       (let [editable? (:ui/editable? obj-map)]
-                                         (assert (or (nil? editable?)
-                                                     (boolean? editable?)) (us/assert-str "obj-map" obj-map))
-                                         editable?)))
-                                   st)
-                ]
+          (let [st @state]
             (swap! state #(-> %
-                              (fh/fns-over-state unselect-fns)
-                              (fh/fns-over-state rm-fns)
-                              (assoc-in help/selected-rule nil)
-                              (assoc-in (conj master-ident :ui/editing?) false)
-                              )))))
+                              (condition-select master-join selected-ident))))))
 
 (defmutation un-select
   [{:keys [details-at detail-class]}]
@@ -308,19 +272,9 @@
                 unselect-fns (detail-fns context
                                          (fh/unedit detail-class :ui/editable?)
                                          st)
-                ;rm-fns (detail-fns context
-                ;                   (fh/remove-detail-from-master
-                ;                     detail-class
-                ;                     (fn [obj-map]
-                ;                       (let [editable? (:ui/editable? obj-map)]
-                ;                         (assert (or (nil? editable?)
-                ;                                     (boolean? editable?)) (us/assert-str "obj-map" obj-map))
-                ;                         editable?)))
-                ;                   st)
                 ]
             (swap! state #(-> %
                               (fh/fns-over-state unselect-fns)
-                              ;(fh/fns-over-state rm-fns)
                               (assoc-in help/selected-rule nil)
                               (assoc-in (conj master-ident :ui/editing?) false)
                               )))))

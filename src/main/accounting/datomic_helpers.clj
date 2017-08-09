@@ -101,6 +101,11 @@
         v {content-holder-key new-masters}]
     [k v]))
 
+;;
+;; TODO
+;; Don't need two transacts, instead call relations->tx with omid->tempid before the first d/transact.
+;; I believe that d/transact will be creating and using tempid->realid as it goes along
+;;
 (defn datomic-driver
   [testing?
    conn

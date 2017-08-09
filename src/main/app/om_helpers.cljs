@@ -22,4 +22,24 @@
            (sort-by sort-by-f)
            (mapv ident-f)))))
 
-(defn details->form [])
+;;
+;; selected-f? takes m and returns m, so
+;; #(:ui/selected? %)
+;; select-f takes a hash-map and returns a hash-map
+;; (the table row in default db format)
+;; Usually it will be something like:
+;; #(assoc % :ui/selected? true)
+;; un-select-f:
+;; #(assoc % :ui/selected? false)
+;;
+(defn select-one [ident-f selected-f? select-f unselect-f]
+  (fn [st master-join to-select-ident]
+    (assert (vector? master-join))
+    (let [edge-idents (get-in st master-join)
+          _ (assert (seq edge-idents) (str "No details at " master-join))
+          edge-maps (map #(get-in st %) edge-idents)
+          selected-map (some #(when (selected-f? %) %) edge-maps)
+          selected-ident (when selected-map (ident-f selected-map))]
+      (cond-> st
+              selected-ident (update-in selected-ident #(unselect-f %))
+              true (update-in to-select-ident #(select-f %))))))

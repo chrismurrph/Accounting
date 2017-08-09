@@ -1,5 +1,6 @@
 (ns app.rule
   (:require [fulcro.client.core :as uc]
+            [fulcro.client.mutations :as fcm]
             [om.next :as om :refer [defui]]
             [fulcro.ui.forms :as f]
             [fulcro.ui.bootstrap3 :as b]
@@ -75,21 +76,26 @@
                                                              (f/option :equals "Equals")])
                      (f/text-input :condition/subject)])
   static om/IQuery
-  (query [this] [:db/id :condition/field :condition/predicate :condition/subject f/form-key :ui/editable?])
+  (query [this] [:db/id :condition/field :condition/predicate :condition/subject f/form-key :ui/editable? :ui/selected?])
   static om/Ident
   (ident [this props] [:condition/by-id (:db/id props)])
   Object
   (render [this]
-    (let [{:keys [db/id condition/field condition/predicate condition/subject ui/editable?] :as form} (om/props this)]
+    (let [{:keys [db/id condition/field condition/predicate condition/subject ui/editable? ui/selected?] :as form} (om/props this)
+          {:keys [condition-selected-f]} (om/get-computed this)
+          selected-style (when selected? #js {:backgroundColor "lightBlue"})
+          attribs #js {:onClick #(condition-selected-f id)
+                       :style   selected-style
+                       }]
       (assert (or (nil? editable?) (boolean? editable?)) (us/assert-str "editable?" editable?))
       (cond
         editable? (dom/tr nil
-                         (fh/field-with-label-in-row this form :condition/field "Field:")
-                         (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
-                         (fh/field-with-label-in-row this form :condition/subject "Value:"))
+                          (fh/field-with-label-in-row this form :condition/field "Field:")
+                          (fh/field-with-label-in-row this form :condition/predicate "Predicate:")
+                          (fh/field-with-label-in-row this form :condition/subject "Value:"))
         :else (let [field-display (us/kw->string field)
                     predicate-display (us/kw->string predicate)]
-                (dom/tr nil
+                (dom/tr attribs
                         (dom/td #js {:className "col-md-2"} field-display)
                         (dom/td #js {:className "col-md-2"} predicate-display)
                         (dom/td #js {:className "col-md-2"} subject)))))))
@@ -169,12 +175,15 @@
   static om/Ident
   (ident [this props] [:rule/by-id (:db/id props)])
   Object
+  (condition-selected-f [this props child-id]
+    (om/transact! this `[(cljs-ops/select-condition {:selected-ident [:condition/by-id ~child-id]
+                                                     :master-join    ~(conj (om/ident this props) :rule/conditions)})]))
   (condition-unselect [this]
     (om/transact! this `[(cljs-ops/un-select {:details-at   ~(conj (om/get-ident this) :rule/conditions)
                                               :detail-class :condition/by-id}) [:banking-form/by-id ~p/BANKING_FORM]]))
   (add-condition [this props]
     (om/transact! this
-                  `[(cljs-ops/add-condition-3
+                  `[(cljs-ops/add-condition
                       ~{:id             (oh/make-temp-id "add-condition in rule")
                         :rule           (:db/id props)
                         :condition-form MaybeFormConditionRow})]))
@@ -187,7 +196,10 @@
                (button-group (make-fns #(.condition-unselect this) #(.add-condition this props) nil) this props)
                (fh/field-with-label this props :rule/logic-operator "Logic")
                (b/table {:className "table table-bordered table-sm table-hover"}
-                        (dom/tbody nil (map ui-maybe-form-condition-row conditions)))))))
+                        (dom/tbody nil (map
+                                         #(ui-maybe-form-condition-row
+                                            (om/computed % {:condition-selected-f (fn [id] (.condition-selected-f this props id))}))
+                                         conditions)))))))
 (def ui-rule-f (om/factory RuleF))
 
 (defui ^:once Rule

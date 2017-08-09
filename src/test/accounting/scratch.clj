@@ -221,7 +221,44 @@
 (defn x-19 []
   (map #(update-map % inc) vector-of-maps))
 
-;; => ({:b 3, :a 2} {:b 5, :a 4})
+(defonce state (atom {:player
+                      {:cells [{:x 123 :y 456 :radius 1.7 :area 10}
+                               {:x 456 :y 789 :radius 1.7 :area 10}]}}))
+(defn x-20 []
+  (let [when-idx 0
+        new-x -1
+        new-y -1]
+    (swap! state update-in [:player :cells]
+           (fn [v] (vec (map-indexed (fn [n {:keys [x y] :as m}]
+                                       (if (= n when-idx)
+                                         (assoc m :x new-x :y new-y)
+                                         m))
+                                     v))))))
+
+(defn x-21 []
+  (let [when-idx 0
+        new-x -1
+        new-y -1]
+    (swap! state update-in [:player :cells when-idx] #(assoc % :x new-x :y new-y))))
+
+(defn replace-in [v [idx new-val]]
+  (concat (subvec v 0 idx)
+          [new-val]
+          (subvec v (inc idx))))
+
+;; (->> haystack
+;; (keep-indexed #(when (= %2 needle) %1))
+;; first)
+(defn x-22 []
+  (let [when-x 456
+        new-x -1
+        new-y -1]
+    (swap! state update-in [:player :cells]
+           (fn [v] (->> v
+                        (keep-indexed (fn [idx {:keys [x] :as m}]
+                                        (when (= x when-x) [idx (assoc m :x new-x :y new-y)])))
+                        first
+                        (replace-in v))))))
 
 ["anz-visa"
  "_ANZ_credit_card.csv"

@@ -168,6 +168,8 @@
 (def source-bank-default-value-whereabouts (banking-form-input-default-value :banking-form/source-bank))
 (def target-account-default-value-whereabouts (banking-form-input-default-value :banking-form/target-ledger))
 
+(def selected-condition-whereabouts [])
+
 ;;
 ;; When the user changes the year we need to rebuild the quarters (or months i.e. periods)
 ;;

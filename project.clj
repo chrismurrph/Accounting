@@ -2,7 +2,7 @@
   :description "Accounting = doing the bookkeeping for my business"
   :url "http://seasoft.com.au/FIXME"
   :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
-                 [org.clojure/clojurescript "1.9.671"]
+                 [org.clojure/clojurescript "1.9.854"]
                  [org.omcljs/om "1.0.0-beta1"]
                  [fulcrologic/fulcro "1.0.0-beta7-SNAPSHOT"]
                  [navis/untangled-datomic "0.4.11"]

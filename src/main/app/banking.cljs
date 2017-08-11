@@ -19,7 +19,8 @@
             [app.time :as t]
             [cljs-time.coerce :as c]
             [app.om-helpers :as oh]
-            [fulcro.ui.bootstrap3 :as b]))
+            [fulcro.ui.bootstrap3 :as b]
+            [app.condition :as con]))
 
 ;;
 ;; Expect to only see one of these, the one that has no rule or too many rules.
@@ -188,7 +189,7 @@
                                                                                     :sub-query-comp ~rul/RuleRow
                                                                                     :src-bank       ~src-bank
                                                                                     :rule-form      ~rul/RuleF
-                                                                                    :condition-form ~rul/MaybeFormConditionRow})]))))})
+                                                                                    :condition-form ~con/MaybeFormConditionRow})]))))})
                (if (and ledger-type (not (#{no-pick :type/personal} ledger-type)))
                  (fh/field-with-label this form :banking-form/target-ledger
                                       (str "Target " (help/ledger-type->desc ledger-type))

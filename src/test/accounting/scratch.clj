@@ -260,33 +260,12 @@
                         first
                         (replace-in v))))))
 
-["anz-visa"
- "_ANZ_credit_card.csv"
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q3}}}
- ]
+(def data-23 {:name ["Wut1" "Wut2"] :desc ["But1" "But2"]})
 
-["amp"
- "_AMP_TransactionHistory.csv"
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q3}}}]
-
-["anz-coy"
- "_ANZ_coy.csv"
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q3}}}]
-
-["anz-coy"
- "_ANZ_coy.csv"
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q1}}}
- #:actual-period{:year 2017, :period #:period{:type    #:db{:ident :period.type/quarterly},
-                                              :quarter #:db{:ident :period.quarter/q3}}}]
-
-["anz-visa" "_ANZ_credit_card.csv" #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q1}}} #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q3}}}] ["amp" "_AMP_TransactionHistory.csv" #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q1}}} #:actual-period{:year 2017, :period #:period{:type #:db{:ident :period.type/quarterly}, :quarter #:db{:ident :period.quarter/q3}}}]
+(defn x-23 []
+  (->> (apply map vector (vals data-23))
+       (map (fn [ks vs] (mapcat vector ks vs)) (repeat (keys data-23)))
+       (map #(->> %
+                 (partition 2)
+                 (map vec)
+                 (into {})))))

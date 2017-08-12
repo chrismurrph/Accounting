@@ -51,14 +51,14 @@
 (defn ->form
   ([form-class]
    (assert form-class)
-   (fn [{:keys [detail-object-map target clear-links]}]
-     (assert (map? detail-object-map) (us/assert-str "detail-object-map" detail-object-map))
-     (assert (:db/id detail-object-map) (str "No :db/id in <" detail-object-map ">"))
-     (let [object-as-a-form (f/build-form form-class detail-object-map)
-           _ (assert (= (:db/id detail-object-map) (:db/id object-as-a-form)))
+   (fn [{:keys [object-map target clear-links]}]
+     (assert (map? object-map) (us/assert-str "object-map" object-map))
+     (assert (:db/id object-map) (str "No :db/id in <" object-map ">"))
+     (let [object-as-a-form (f/build-form form-class object-map)
+           _ (assert (= (:db/id object-map) (:db/id object-as-a-form)))
            _ (assert (form? object-as-a-form))
            ident (om/ident form-class object-as-a-form)]
-       (assert (= (second ident) (:db/id detail-object-map)))
+       (assert (= (second ident) (:db/id object-map)))
        (fn [st]
          (cond-> st
                  true (assoc-in ident object-as-a-form)
@@ -66,11 +66,11 @@
                  true (make-links-nil (or clear-links []))))))))
 
 (defn unedit [detail-class editable-key]
-  (fn [{:keys [detail-object-map target clear-links]}]
-    (let [id (:db/id detail-object-map)
-          _ (assert id (str "No id in " detail-object-map))
+  (fn [{:keys [object-map target clear-links]}]
+    (let [id (:db/id object-map)
+          _ (assert id (str "No id in " object-map))
           detail-ident [detail-class id]
-          new-object (assoc detail-object-map editable-key false)]
+          new-object (assoc object-map editable-key false)]
       (fn [st]
         (assoc-in st detail-ident new-object)))))
 
@@ -82,16 +82,16 @@
 (defn remove-detail-from-master [detail-class rm-predicate-f]
   (assert (fn? rm-predicate-f))
   (assert detail-class)
-  (fn [{:keys [detail-object-map master-ident detail-key]}]
-    (assert (map? detail-object-map))
+  (fn [{:keys [object-map master-ident detail-key]}]
+    (assert (map? object-map))
     (assert (vector? master-ident))
     (assert (keyword? detail-key))
-    (let [rm? (rm-predicate-f detail-object-map)
-          _ (println "rm?" rm? " for " (:db/id detail-object-map))]
+    (let [rm? (rm-predicate-f object-map)
+          _ (println "rm?" rm? " for " (:db/id object-map))]
       (fn [st]
         (if rm?
-          (let [id (:db/id detail-object-map)
-                _ (assert id (str "No id in " detail-object-map))
+          (let [id (:db/id object-map)
+                _ (assert id (str "No id in " object-map))
                 detail-ident [detail-class id]
                 _ (println "To rm " id)]
             (update-in st

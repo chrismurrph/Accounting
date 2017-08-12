@@ -60,6 +60,7 @@
         ledger (e/make-account-key target-ledger)]
     (->> (q/read-period-specific-rules false conn org-key year quarter)
          (m/filter-rules-new #{bank} #{ledger})
+         (map #(assoc % :rule/button-group {:debug-from "server"}))
          ;(drop 3)
          ;(take 10)
          vec

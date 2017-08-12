@@ -263,9 +263,23 @@
 (def data-23 {:name ["Wut1" "Wut2"] :desc ["But1" "But2"]})
 
 (defn x-23 []
-  (->> (apply map vector (vals data-23))
+  (->> data-23
+       vals
+       (apply map vector)
        (map (fn [ks vs] (mapcat vector ks vs)) (repeat (keys data-23)))
        (map #(->> %
-                 (partition 2)
-                 (map vec)
-                 (into {})))))
+                  (partition 2)
+                  (map vec)
+                  (into {})))))
+
+(defn answer [m]
+  (->> m
+       vals
+       (apply map vector)
+       (map #(zipmap (keys m) %))))
+
+(defn x-24 []
+  (answer data-23))
+
+(defn x-25 []
+  (apply map vector '(["Wut1" "Wut2"] ["But1" "But2"])))

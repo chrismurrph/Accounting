@@ -4,11 +4,12 @@
             [cljc.utils :as us]
             [app.forms-helpers :as fh]
             [fulcro.ui.forms :as f]
-            [fulcro.client.core :as uc]))
+            [fulcro.client.core :as uc]
+            [fulcro.ui.bootstrap3 :as b]))
 
 (defui ^:once MaybeFormConditionRow
-  static uc/InitialAppState
-  (initial-state [this params] (f/build-form this (or params {})))
+  ;static uc/InitialAppState
+  ;(initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :condition/field [(f/option :out/desc "Description")
@@ -39,12 +40,13 @@
                 (dom/tr attribs
                         (dom/td #js {:className "col-md-2"} field-display)
                         (dom/td #js {:className "col-md-2"} predicate-display)
-                        (dom/td #js {:className "col-md-2"} subject)))))))
+                        (dom/td #js {:className "col-md-2"} subject)
+                        (when selected? (dom/td #js {:className "col-md-1"} (b/button {} "Delete")))))))))
 (def ui-maybe-form-condition-row (om/factory MaybeFormConditionRow {:keyfn :db/id}))
 
 (defui ^:once ValidatedConditionForm
-       static uc/InitialAppState
-       (initial-state [this params] (f/build-form this (or params {})))
+       ;static uc/InitialAppState
+       ;(initial-state [this params] (f/build-form this (or params {})))
        static f/IForm
        (form-spec [this] [(f/id-field :db/id)
                           (f/dropdown-input :condition/field [(f/option :out/desc "Description")

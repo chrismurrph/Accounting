@@ -9,7 +9,6 @@
             [goog.string.format]
             [app.cljs-operations :as cljs-ops]
             [app.panels :as p]
-            [app.person :as per]
             [app.rule :as rul]
             [fulcro.ui.forms :as f]
             [app.forms-helpers :as fh]

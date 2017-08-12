@@ -86,10 +86,11 @@
    :type/liab    (set/union always-remove #{"personal" "non-exp" "exp" "income"})
    })
 
-(defn make-rule []
+(defn make-rule [from]
   {:db/id               (oh/make-temp-id "make-rule")
    :rule/logic-operator :single
-   :rule/conditions     []})
+   :rule/conditions     []
+   :rule/button-group   {:debug-from from}})
 
 ;;
 ;; Making a new condition and putting it in its own condition/by-id table
@@ -130,9 +131,9 @@
                 rules-count (-> (get-in st help/rules-list-items-whereabouts) count)
                 _ (println "rules-loaded, rules count: " rules-count)]
             (condp = rules-count
-              0 (let [context {:detail-object-map (make-rule)
-                               :target            help/banking-form-rule-whereabouts
-                               :clear-links       [help/only-rule help/selected-rule]}
+              0 (let [context {:object-map  (make-rule "rules-loaded")
+                               :target      help/banking-form-rule-whereabouts
+                               :clear-links [help/only-rule help/selected-rule]}
                       form-f ((fh/->form (get @state :global-form/rule-form)) context)]
                   (swap! state form-f))
               1 (swap! state #(-> %
@@ -209,7 +210,7 @@
        detail-key
        (map (fn [ident]
               (let [obj-map (get-in st ident)]
-                (merge {:detail-object-map obj-map} context))))
+                (merge {:object-map obj-map} context))))
        ;; If you don't use mapv to deliver the fn will get nil delivered (even as first arg)
        (map (fn [new-context] {:fn (f new-context) :info new-context}))))
 
@@ -241,8 +242,8 @@
                 rule-object (get-in st selected-ident)
                 _ (assert (map? rule-object))
                 rule-form-f ((fh/->form (get st :global-form/rule-form))
-                              {:detail-object-map rule-object
-                               :target            help/selected-rule})]
+                              {:object-map rule-object
+                               :target     help/selected-rule})]
             (swap! state #(-> %
                               ;; just for debugging
                               ;; (fh/make-links-nil help/selected-rule)

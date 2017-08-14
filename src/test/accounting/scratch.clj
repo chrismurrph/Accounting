@@ -1,5 +1,6 @@
 (ns accounting.scratch
-  (:require [accounting.util :as u]))
+  (:require [accounting.util :as u]
+            [clojure.string :as string]))
 
 ;; Will need to do this on all computers
 ;Please try to change your system settings:  System -> Preferences -> Keyboard -> Layout -> Options -> Alt/Win key behavior.
@@ -283,3 +284,13 @@
 
 (defn x-25 []
   (apply map vector '(["Wut1" "Wut2"] ["But1" "But2"])))
+
+(defn my-processor [coll]
+  (let [get-text (fn [element] (:text element))
+        sanitize (fn [element] (string/trim element))
+        to-int (fn [element] (Integer. element))]
+    (map to-int (map sanitize (map get-text coll)))))
+
+(defn x-26 []
+  (my-processor [{:text "123"} {:text "456"}]))
+

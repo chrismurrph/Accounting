@@ -10,7 +10,7 @@
     [app.om-helpers :as oh]
     [clojure.set :as set]
     [fulcro.client.data-fetch :as df]
-    [fulcro.client.core :as uc]
+    [fulcro.client.core :as fc]
     [app.panels :as p]
     [cljs.spec.alpha :as s]))
 
@@ -92,6 +92,35 @@
    :rule/conditions     []
    :rule/button-group   {:debug-from from}})
 
+(defmutation condition-mut
+  [{:keys [op rule id]}]
+  (action [{:keys [state]}]
+          (assert #{:remove :cut} op)
+          (let [st @state
+                conditions-in-rule-whereabouts [:rule/by-id rule :rule/conditions]]
+            (swap! state #(cond-> %
+                                  (= op :cut) (assoc :ui/cut (get-in st [:condition/by-id id]))
+                                  true (oh/delete id :condition/by-id conditions-in-rule-whereabouts))))))
+
+(defn add-cond [id rule condition-form default state]
+  ;newly created one will have a tempid
+  (assert id)
+  (assert (om/tempid? id))
+  (assert rule (str "Need be putting condition will create into a rule"))
+  (let [default (or default {:condition/field     :out/desc
+                             :condition/predicate :equals
+                             :condition/subject   (get-in @state [:bank-line/by-id p/BANK_STATEMENT_LINE :bank-line/desc])
+                             :ui/editable?        true})
+        new-cond (f/build-form
+                   condition-form
+                   (merge default {:db/id id}))
+        rule-ident [:rule/by-id rule]
+        condition-ident (om/ident condition-form new-cond)]
+    (swap! state #(-> %
+                      (assoc-in (conj rule-ident :ui/editing?) true)
+                      (assoc-in condition-ident new-cond)))
+    (fc/integrate-ident! state condition-ident :prepend (conj rule-ident :rule/conditions))))
+
 ;;
 ;; Making a new condition and putting it in its own condition/by-id table
 ;; then putting the ident within the rule.
@@ -99,23 +128,15 @@
 (defmutation add-condition
   [{:keys [id rule condition-form]}]
   (action [{:keys [state]}]
-          ;newly created one will have a tempid
-          (assert id)
-          (assert (om/tempid? id))
-          (let [new-cond (f/build-form
-                           condition-form
-                           {:db/id               id
-                            :condition/field     :out/desc
-                            :condition/predicate :equals
-                            :condition/subject   (get-in @state [:bank-line/by-id p/BANK_STATEMENT_LINE :bank-line/desc])
-                            :ui/editable?        true
-                            })
-                rule-ident [:rule/by-id rule]
-                condition-ident (om/ident condition-form new-cond)]
-            (swap! state #(-> %
-                              (assoc-in (conj rule-ident :ui/editing?) true)
-                              (assoc-in condition-ident new-cond)))
-            (uc/integrate-ident! state condition-ident :prepend (conj rule-ident :rule/conditions)))))
+          (add-cond id rule condition-form nil state)))
+
+(defmutation paste-condition
+  [{:keys [id rule condition-form]}]
+  (action [{:keys [state]}]
+          (let [default (get @state :ui/cut)]
+            (assert (map? default) "Expected :ui/cut to have a value that is a hash-map")
+            (add-cond id rule condition-form (assoc default :ui/selected? false
+                                                            :ui/editable? true) state))))
 
 (def conditions-count-sorter (oh/sort-idents 10
                                              (fn [m] [:rule/by-id (:db/id m)])

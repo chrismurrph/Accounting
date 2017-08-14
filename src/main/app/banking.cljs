@@ -179,7 +179,7 @@
       (dom/div #js {:className "form-horizontal"}
                (fh/field-with-label this form :ui/ledger-type
                                     "Type"
-                                    {:label-width-css "col-sm-2"
+                                    {:label-width-css "col-sm-1"
                                      :onChange        (fn [evt]
                                                         (let [new-val (u/target-kw evt)]
                                                           (when (help/ledger-type->desc new-val)

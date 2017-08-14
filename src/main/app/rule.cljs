@@ -16,20 +16,30 @@
             [cljs-time.coerce :as c]
             [app.panels :as p]))
 
-(defn make-fns-map [rule-unselected-f add-condition-f remove-condition-f]
+(defn make-fns-map [rule-unselected-f add-condition-f remove-condition-f paste-f]
   {:rule-unselected-f  rule-unselected-f
    :add-condition-f    add-condition-f
-   :remove-condition-f remove-condition-f})
+   :remove-condition-f remove-condition-f
+   :paste-f            paste-f})
 
 (defui ^:once ButtonGroup
-  ;static uc/InitialAppState
-  ;(initial-state [this params] {:debug-from "unknown"})
   static om/IQuery
-  (query [this] [:debug-from])
+  (query [this] [:debug-from [:ui/cut '_]])
   Object
+  (submit-f [this parent-props]
+    (om/transact! (om/parent this) `[(f/validate-form {:form-id ~(f/form-ident parent-props)})
+                                     (ops/commit-to-within-entity
+                                       {:form   ~parent-props
+                                        :remote true
+                                        :within {:content-holder-key    :organisation/rules
+                                                 :attribute             :organisation/key
+                                                 :attribute-value-value :seaweed
+                                                 :content-holder-class  :organisation/by-id
+                                                 :master-class          :rule/by-id}})]))
   (render [this]
-    (let [{:keys [debug-from] :as props} (om/props this)
-          {:keys [rule-unselected-f add-condition-f remove-condition-f]} (om/get-computed this)]
+    (let [{:keys [debug-from ui/cut] :as props} (om/props this)
+          parent-props (om/props (om/parent this))
+          {:keys [rule-unselected-f add-condition-f remove-condition-f paste-f]} (om/get-computed this)]
       (assert debug-from (us/assert-str "debug-from" props))
       (assert rule-unselected-f (us/assert-str "rule-unselected-f" (om/get-computed this)))
       (b/button-group {}
@@ -37,25 +47,15 @@
                                 "Back")
                       (b/button {:onClick add-condition-f}
                                 "Add")
-                      (comment "remove s/be on row itself" (when remove-condition-f
-                                                             (b/button {:onClick remove-condition-f}
-                                                                       "Remove")))
-                      (b/button {:disabled (not (f/dirty? props))
-                                 :onClick  #(om/transact! this `[(f/validate-form {:form-id ~(f/form-ident props)})
-                                                                 (ops/commit-to-within-entity
-                                                                   {:form   ~props
-                                                                    :remote true
-                                                                    :within {:content-holder-key    :organisation/rules
-                                                                             :attribute             :organisation/key
-                                                                             :attribute-value-value :seaweed
-                                                                             :content-holder-class  :organisation/by-id
-                                                                             :master-class          :rule/by-id}})])}
+                      (when cut
+                        (b/button {:onClick paste-f}
+                                  "Paste"))
+                      (b/button {:disabled (not (f/dirty? parent-props))
+                                 :onClick  #(.submit-f this parent-props)}
                                 "Submit")))))
 (def buttongroup-ui (om/factory ButtonGroup))
 
 (defui ^:once RuleF
-  ;static uc/InitialAppState
-  ;(initial-state [this params] (f/build-form this {:rule/button-group (uc/get-initial-state ButtonGroup {})}))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/subform-element :rule/conditions con/MaybeFormConditionRow :many)
@@ -83,25 +83,41 @@
                       ~{:id             (oh/make-temp-id "add-condition in rule")
                         :rule           (:db/id props)
                         :condition-form con/MaybeFormConditionRow})]))
+  (paste-f [this props]
+    (om/transact! this
+                  `[(cljs-ops/paste-condition
+                      ~{:id             (oh/make-temp-id "paste-condition in rule")
+                        :rule           (:db/id props)
+                        :condition-form con/MaybeFormConditionRow})]))
+  (delete-condition-f [this op props child-id]
+    (om/transact! this
+                  `[(cljs-ops/condition-mut
+                      ~{:op   op
+                        :id   child-id
+                        :rule (:db/id props)})]))
   (render [this]
     (let [{:keys [rule/conditions ui/editing? rule/button-group] :as props} (om/props this)]
-      (println "Doing for button-group:" button-group)
+      ;(println "Doing for button-group:" button-group)
       (assert (fh/form? props) (str "props is not a form: " (keys props)))
       (dom/div #js {:className "form-horizontal"}
                (buttongroup-ui (om/computed button-group
-                                            (make-fns-map #(.condition-unselect this) #(.add-condition this props) nil)))
+                                            (make-fns-map #(.condition-unselect this)
+                                                          #(.add-condition this props)
+                                                          nil
+                                                          #(.paste-f this props))))
                (fh/field-with-label this props :rule/logic-operator "Logic")
                (b/table {:className "table table-bordered table-sm table-hover"}
-                        (dom/tbody nil (map
-                                         #(con/ui-maybe-form-condition-row
-                                            (om/computed % {:condition-selected-f (fn [id] (.condition-selected-f this props id))}))
-                                         conditions)))))))
+                        (dom/tbody nil
+                                   (map
+                                     #(con/ui-maybe-form-condition-row
+                                        (om/computed % {:condition-selected-f (fn [id] (.condition-selected-f this props id))
+                                                        :remove-condition-f   (fn [id] (.delete-condition-f this :remove props id))
+                                                        :cut-condition-f      (fn [id] (.delete-condition-f this :cut props id))
+                                                        }))
+                                     conditions)))))))
 (def ui-rule-f (om/factory RuleF))
 
 (defui ^:once RuleFConditionF
-  ;static uc/InitialAppState
-  ;;; Only put in :debug-from to stop spec complaining
-  ;(initial-state [this params] (f/build-form this (or (merge params {:button-group {:debug-from :a}}) {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/subform-element :rule/conditions con/ValidatedConditionForm :many)
@@ -126,7 +142,8 @@
                         (mapv con/ui-vcondition-form conditions))
                (when (f/valid? props)
                  (dom/div nil "All fields have had been validated, and are valid"))
-               (buttongroup-ui (om/computed button-group (make-fns-map rule-unselected nil nil)))))))
+               (buttongroup-ui (om/computed button-group (make-fns-map rule-unselected
+                                                                       nil nil nil)))))))
 (def ui-rule-f-condition-f (om/factory RuleFConditionF))
 
 (defui ^:once TimeSlot
@@ -153,7 +170,8 @@
                   rule/logic-operator rule/conditions rule/button-group]} props
           {:keys [rule-unselected]} (om/get-computed this)]
       (dom/div nil
-               (buttongroup-ui (om/computed button-group (make-fns-map rule-unselected nil nil)))
+               (buttongroup-ui (om/computed button-group (make-fns-map rule-unselected
+                                                                       nil nil nil)))
                (b/table #js {:className "table table-bordered table-sm table-hover"}
                         (dom/tbody nil (map con/ui-condition-row conditions)))))))
 (def ui-rule (om/factory Rule {:keyfn :db/id}))

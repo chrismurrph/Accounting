@@ -5,11 +5,10 @@
             [app.forms-helpers :as fh]
             [fulcro.ui.forms :as f]
             [fulcro.client.core :as uc]
-            [fulcro.ui.bootstrap3 :as b]))
+            [fulcro.ui.bootstrap3 :as b]
+            [app.cljs-operations :as cljs-ops]))
 
 (defui ^:once MaybeFormConditionRow
-  ;static uc/InitialAppState
-  ;(initial-state [this params] (f/build-form this (or params {})))
   static f/IForm
   (form-spec [this] [(f/id-field :db/id)
                      (f/dropdown-input :condition/field [(f/option :out/desc "Description")
@@ -19,13 +18,14 @@
                                                              (f/option :equals "Equals")])
                      (f/text-input :condition/subject)])
   static om/IQuery
-  (query [this] [:db/id :condition/field :condition/predicate :condition/subject f/form-key :ui/editable? :ui/selected?])
+  (query [this] [:db/id :condition/field :condition/predicate :condition/subject f/form-key
+                 :ui/editable? :ui/selected?])
   static om/Ident
   (ident [this props] [:condition/by-id (:db/id props)])
   Object
   (render [this]
     (let [{:keys [db/id condition/field condition/predicate condition/subject ui/editable? ui/selected?] :as form} (om/props this)
-          {:keys [condition-selected-f]} (om/get-computed this)
+          {:keys [condition-selected-f remove-condition-f cut-condition-f]} (om/get-computed this)
           selected-style (when selected? #js {:backgroundColor "lightBlue"})
           attribs #js {:onClick #(condition-selected-f id)
                        :style   selected-style}]
@@ -41,12 +41,18 @@
                         (dom/td #js {:className "col-md-2"} field-display)
                         (dom/td #js {:className "col-md-2"} predicate-display)
                         (dom/td #js {:className "col-md-2"} subject)
-                        (when selected? (dom/td #js {:className "col-md-1"} (b/button {} "Delete")))))))))
+                        (when selected? (dom/td #js {:className "col-md-1 text-center"}
+                                                (dom/span nil
+                                                          (b/button {:onClick #(do
+                                                                                 (.stopPropagation %)
+                                                                                 (remove-condition-f id))} "Delete")
+                                                          (dom/text nil " ") ;; nothing more than space works
+                                                          (b/button {:onClick #(do
+                                                                                 (.stopPropagation %)
+                                                                                 (cut-condition-f id))} "Cut"))))))))))
 (def ui-maybe-form-condition-row (om/factory MaybeFormConditionRow {:keyfn :db/id}))
 
 (defui ^:once ValidatedConditionForm
-       ;static uc/InitialAppState
-       ;(initial-state [this params] (f/build-form this (or params {})))
        static f/IForm
        (form-spec [this] [(f/id-field :db/id)
                           (f/dropdown-input :condition/field [(f/option :out/desc "Description")

@@ -1,6 +1,17 @@
 (ns app.om-helpers
   (:require [om.next :as om]))
 
+;;
+;; To remove an id from refs and tables.
+;;
+(defn delete [state id ident-kw ref-in]
+  (assert (and state id ident-kw ref-in))
+  (assert (vector? ref-in))
+  (let [ident [ident-kw id]]
+    (-> state
+        (update-in ref-in #(vec (remove #{ident} %)))
+        (update ident-kw dissoc id))))
+
 (defn make-temp-id [txt]
   (om/tempid))
 
@@ -42,4 +53,5 @@
           selected-ident (when selected-map (ident-f selected-map))]
       (cond-> st
               selected-ident (update-in selected-ident #(unselect-f %))
-              true (update-in to-select-ident #(select-f %))))))
+              ;; Ensures that clicking on a selected will un-select
+              (not= selected-ident to-select-ident) (update-in to-select-ident #(select-f %))))))

@@ -11,9 +11,9 @@
 ;;
 (defn bank-rules [bank-accounts in-rules]
   (assert (seq bank-accounts) (us/assert-str "bank-accounts" bank-accounts))
-  (let [bank-account-names (set (map :account/name bank-accounts))
+  (let [bank-account-names (set (map :ledger-account/name bank-accounts))
         ;_ (println bank-account-names)
-        rules (filter #(bank-account-names (u/probe-off (-> % :rule/source-bank :account/name))) in-rules)]
+        rules (filter #(bank-account-names (u/probe-off (-> % :rule/source-bank :ledger-account/name))) in-rules)]
     rules))
 
 ;;
@@ -27,7 +27,7 @@
   (let [rules (filter #(and (bank-accounts (:rule/source-bank %)) (ledger-accounts (:rule/target-account %))) in-rules)]
     rules))
 
-(def -uniq-account-keys [:account/category :account/name])
+(def -uniq-account-keys [:ledger-account/category :ledger-account/name])
 (defn filter-rules-new [bank-accounts ledger-accounts in-rules]
   (assert (set? bank-accounts))
   (assert (set? ledger-accounts))

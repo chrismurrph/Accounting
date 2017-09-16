@@ -41,7 +41,7 @@
     (assert name)
     (assert category)
     {:account/name     name
-     :account/category category}))
+     :ledger-account/category category}))
 
 (defn make-account [begin-date kw]
   (assert (keyword? kw))
@@ -52,12 +52,12 @@
     (cond->
       {:db/id            (d/tempid :db.part/user)
        :base/type        :account
-       :account/category category
-       :account/desc     name
-       :account/name     name}
+       :ledger-account/category category
+       :ledger-account/desc     name
+       :ledger-account/name     name}
       ; Repeating when the organisation began. This is okay because we are importing.
       ; In real life many/all accounts will be created during the life of the organisation.
-      begin-date (assoc :account/time-slot (make-time-slot [begin-date nil])))))
+      begin-date (assoc :ledger-account/time-slot (make-time-slot [begin-date nil])))))
 
 (defn make-heading [n kw]
   {:db/id           (d/tempid :db.part/user)

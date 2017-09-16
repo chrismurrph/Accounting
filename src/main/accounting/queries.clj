@@ -11,8 +11,8 @@
     (d/q '[:find ?a .
            :in $ ?an ?ac
            :where
-           [?a :account/name ?an]
-           [?a :account/category ?ac]
+           [?a :ledger-account/name ?an]
+           [?a :ledger-account/category ?ac]
            ] db account-name account-category)))
 
 (defn read-organisation
@@ -49,8 +49,8 @@
                     [?e :organisation/bank-accounts ?a]
                     [?a :bank-account/statements ?s]
                     ;; We want these 2 because together are source bank
-                    [?a :account/category ?c]
-                    [?a :account/name ?n]
+                    [?a :ledger-account/category ?c]
+                    [?a :ledger-account/name ?n]
                     [?s :statement/actual-period ?p]
                     [?s :statement/line-items ?lines]
                     [?p :actual-period/year ?y]
@@ -75,11 +75,11 @@
                     [?e :organisation/bank-accounts ?a]] db org-key)
         rvs (->> eids
                  (map #(d/pull db '[:db/id
-                                    :account/name
-                                    {:account/time-slot [:time-slot/start-at :time-slot/end-at]}] %))
+                                    :ledger-account/name
+                                    {:ledger-account/time-slot [:time-slot/start-at :time-slot/end-at]}] %))
                  (map (fn [m]
-                        (update m :account/time-slot (fn [ts] (t/wildify-java-datomic ts)))))
-                 (filter (fn [{:keys [account/time-slot] :as in}]
+                        (update m :ledger-account/time-slot (fn [ts] (t/wildify-java-datomic ts)))))
+                 (filter (fn [{:keys [ledger-account/time-slot] :as in}]
                            (let [{:keys [time-slot/start-at time-slot/end-at]} time-slot]
                              (assert start-at (us/assert-str "start-at" in))
                              (t/overlaps? start-at end-at from to))))
@@ -97,16 +97,16 @@
                     [?e :organisation/current-time-ordinal ?ord]
                     [?a :bank-account/statements ?s]
                     ;; We want these 2 because together are source bank
-                    [?a :account/category ?c]
-                    [?a :account/name ?n]
+                    [?a :ledger-account/category ?c]
+                    [?a :ledger-account/name ?n]
                     [?s :statement/time-ordinal ?ord]
                     [?s :statement/line-items ?lines]] db org-key)]
     (seq eids)))
 
 (def -rule-conditions-pull [:db/id :condition/field :condition/predicate :condition/subject])
 (def -time-slot-pull [:time-slot/start-at :time-slot/end-at])
-(def -account-pull [:account/category :account/name :account/desc
-                    {:account/time-slot -time-slot-pull}])
+(def -account-pull [:ledger-account/category :ledger-account/name :ledger-account/desc
+                    {:ledger-account/time-slot -time-slot-pull}])
 (def -actual-period-pull [:actual-period/year
                           :actual-period/month
                           :actual-period/quarter

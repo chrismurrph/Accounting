@@ -294,3 +294,11 @@
 (defn x-26 []
   (my-processor [{:text "123"} {:text "456"}]))
 
+(defn x-27 []
+  (((fn [& fns]
+      (fn [& params] (vec (reduce (fn [acc f] (u/probe-off (f (u/probe-on acc))))
+                                  params
+                                  fns))))
+     rest reverse)
+    [1 2 3 4]))
+

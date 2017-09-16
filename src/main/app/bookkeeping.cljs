@@ -117,16 +117,14 @@
   (df/load comp :my-potential-data-new PotentialData
            {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
             :params        {:request/organisation new-org-value}
-            :post-mutation `cljs-ops/post-potential-data
-            }))
+            :post-mutation `cljs-ops/post-potential-data}))
 
 (defn load-organisation-data [comp new-org-value]
   (assert (keyword? new-org-value))
   (df/load comp :my-potential-data-new Organisation
            {:refresh       [[:user-request/by-id p/USER_REQUEST_FORM]]
             :params        {:request/organisation new-org-value}
-            :post-mutation `cljs-ops/post-potential-data
-            }))
+            :post-mutation `cljs-ops/post-potential-data}))
 
 ;; Hopefully there will be a decent error message rather than user seeing this
 (def initial-potential-data {:organisation/period-type       :unknown

@@ -20,7 +20,7 @@
 (defn organisation-data [conn query org-key]
   (assert conn)
   (assert (= org-key :seaweed))
-  ;(println kws)
+  (println "QUERY: " query)
   (let [org-eid (q/read-organisation conn org-key)
         db (d/db conn)]
     (d/pull db query org-eid)))
@@ -116,7 +116,7 @@
    :line-item/type   ((comp keyword namespace) kw)
    :line-item/amount amount})
 
-(defn make-line-item [idx [{:keys [account/category account/name]} amount]]
+(defn make-line-item [idx [{:keys [ledger-account/category ledger-account/name]} amount]]
   (assert (number? amount) (us/assert-str "amount" amount))
   {:db/id            idx
    :line-item/name   name

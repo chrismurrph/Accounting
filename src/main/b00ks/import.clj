@@ -17,8 +17,8 @@
   (let [[in-ns in-name] ((juxt namespace name) kw)
         res (->> accounts
                  (filter
-                   (fn [{:keys [account/category
-                                account/name]}]
+                   (fn [{:keys [ledger-account/category
+                                ledger-account/name]}]
                      (and (= (keyword in-ns)
                              category)
                           (= in-name name))))

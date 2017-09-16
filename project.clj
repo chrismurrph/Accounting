@@ -37,4 +37,4 @@
                    :dependencies [[binaryage/devtools "0.9.2"]
                                   [org.clojure/java.classpath "0.2.3"]
                                   [org.clojure/tools.namespace "0.3.0-alpha4"]
-                                  [figwheel-sidecar "0.5.9"]]}})
+                                  [figwheel-sidecar "0.5.11"]]}})

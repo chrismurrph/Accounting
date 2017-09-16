@@ -117,8 +117,7 @@
         (u/warn (str "There is a " dest-account " on " (t/show end)
                      ", which we won't have ledger for, as this ledger starts at " (t/show begin)
                      ", ledger record/s:\n" (show-ledger-records records)))
-        {:gl gl :ledgers ledgers}))
-    ))
+        {:gl gl :ledgers ledgers}))))
 
 ;;
 ;; If the ns is income we increase :src-bank and decrease :dest-account
